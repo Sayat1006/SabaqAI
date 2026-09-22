@@ -19,6 +19,12 @@ export interface UserAccount {
   school: string;
   createdAt: string;
   lastLoginAt: string | null;
+  avatarUrl: string;
+  grades: string[];
+  category: string;
+  experienceYears: number | null;
+  phone: string;
+  bio: string;
 }
 
 export interface AuditEntry {
@@ -39,6 +45,13 @@ interface ProfileRow {
   school: string;
   created_at: string;
   last_login_at: string | null;
+  // 2-жаңарту SQL-ы орындалмаған болса, бұл өрістер болмауы мүмкін.
+  avatar_url?: string;
+  grades?: string[];
+  category?: string;
+  experience_years?: number | null;
+  phone?: string;
+  bio?: string;
 }
 
 function mapProfile(row: ProfileRow): UserAccount {
@@ -52,6 +65,12 @@ function mapProfile(row: ProfileRow): UserAccount {
     school: row.school,
     createdAt: row.created_at,
     lastLoginAt: row.last_login_at,
+    avatarUrl: row.avatar_url ?? "",
+    grades: row.grades ?? [],
+    category: row.category ?? "",
+    experienceYears: row.experience_years ?? null,
+    phone: row.phone ?? "",
+    bio: row.bio ?? "",
   };
 }
 
@@ -228,4 +247,52 @@ export async function resetPassword(user: UserAccount): Promise<{ ok: true; newP
   } catch (e) {
     return { ok: false, message: e instanceof Error ? e.message : "Белгісіз қате" };
   }
+}
+
+/* ------------------------------------------------------------------ Жеке бет */
+
+export interface ProfileInput {
+  name: string;
+  subject: string;
+  school: string;
+  grades: string[];
+  category: string;
+  experienceYears: number | null;
+  phone: string;
+  bio: string;
+  avatarUrl: string;
+}
+
+export async function updateMyProfile(input: ProfileInput): Promise<void> {
+  const { error } = await supabase.rpc("update_my_profile", {
+    p_name: input.name,
+    p_subject: input.subject,
+    p_school: input.school,
+    p_grades: input.grades,
+    p_category: input.category,
+    p_experience_years: input.experienceYears,
+    p_phone: input.phone,
+    p_bio: input.bio,
+    p_avatar_url: input.avatarUrl,
+  });
+  if (error) {
+    if (/update_my_profile/.test(error.message) && /(find|exist)/i.test(error.message)) {
+      throw new Error("Профильді сақтау функциясы табылмады. Әкімші Supabase-те supabase/update-2-projects-profile.sql файлын орындауы керек.");
+    }
+    throw new Error(error.message);
+  }
+  await supabase.rpc("log_audit", { p_action: "Профиль жаңартылды", p_detail: "" });
+}
+
+/** Қазіргі құпия сөзді тексеріп, жаңасын орнатады. */
+export async function changeMyPassword(email: string, current: string, next: string): Promise<void> {
+  const check = await supabase.auth.signInWithPassword({ email, password: current });
+  if (check.error) throw new Error("Қазіргі құпия сөз қате.");
+  const { error } = await supabase.auth.updateUser({ password: next });
+  if (error) {
+    if (/should be different/i.test(error.message)) throw new Error("Жаңа құпия сөз ескісінен өзгеше болуы керек.");
+    if (/at least|weak|short/i.test(error.message)) throw new Error("Құпия сөз тым әлсіз: кемінде 8 таңба, әріп пен сан қолданыңыз.");
+    throw new Error(error.message);
+  }
+  await supabase.rpc("log_audit", { p_action: "Құпия сөз өзгертілді", p_detail: "" });
 }

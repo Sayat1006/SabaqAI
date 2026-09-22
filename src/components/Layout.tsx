@@ -1,8 +1,8 @@
-import { FolderOpen, Home, LogOut, ShieldCheck } from "lucide-react";
+import { FolderOpen, Home, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
-import { initialsOf } from "../lib/names";
 import { tools } from "../lib/navigation";
+import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
 
@@ -50,6 +50,9 @@ export function DashboardLayout() {
           <NavLink to="/projects" className={sideLink}>
             <FolderOpen size={19} strokeWidth={1.8} /> Менің жобаларым
           </NavLink>
+          <NavLink to="/profile" className={sideLink}>
+            <UserRound size={19} strokeWidth={1.8} /> Жеке бет
+          </NavLink>
           {user?.role === "admin" && (
             <NavLink to="/admin" className={sideLink}>
               <ShieldCheck size={19} strokeWidth={1.8} /> Әкімші панелі
@@ -61,17 +64,15 @@ export function DashboardLayout() {
 
         {user && (
           <div className="hidden flex-col gap-1.5 lg:flex">
-            <div className="flex items-center gap-3 rounded-2xl bg-navy-800 px-2.5 py-3.5">
-              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-violet-500 text-sm font-bold text-white">
-                {initialsOf(user.name)}
-              </span>
+            <NavLink to="/profile" className="flex items-center gap-3 rounded-2xl bg-navy-800 px-2.5 py-3.5 hover:bg-navy-700">
+              <Avatar user={user} className="h-[38px] w-[38px] rounded-[11px] text-sm" tone="bg-violet-500 text-white" />
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-white">{user.name}</p>
                 <p className="truncate text-xs text-[#b4b0c8]">
                   {user.role === "admin" ? "Әкімші" : user.subject ? `${user.subject} мұғалімі` : "Мұғалім"}
                 </p>
               </div>
-            </div>
+            </NavLink>
             <button
               type="button"
               onClick={handleLogout}

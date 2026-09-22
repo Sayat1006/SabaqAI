@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { downloadBlob } from "../lib/downloadBlob";
-import { getImages, removeImage, saveImage, svgDataUrl, type SavedImage } from "../lib/projects";
+import { deleteProject, getImages, saveImage, svgDataUrl, type SavedImage } from "../lib/projects";
+import { useLoad } from "../lib/useLoad";
 import { generateIllustration, IMAGE_STYLES } from "../lib/studio";
 
 const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").trim() || "sabaq";
@@ -27,15 +28,21 @@ function downloadSvg(img: SavedImage) {
 
 export default function ImagesPage() {
   const location = useLocation();
-  const [images, setImages] = useState<SavedImage[]>(getImages);
+  const { data, setData: setImages, error: loadError, loading } = useLoad(getImages);
+  const images = data ?? [];
   const [prompt, setPrompt] = useState("");
   const [style, setStyle] = useState<string>(IMAGE_STYLES[0].key);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
-  const [viewing, setViewing] = useState<SavedImage | null>(() => {
-    const id = (location.state as { imageId?: string } | null)?.imageId;
-    return (id && getImages().find((i) => i.id === id)) || null;
-  });
+  const [viewing, setViewing] = useState<SavedImage | null>(null);
+
+  // «Жобалар» тізімінен ашылса, сол суретті үлкейтіп көрсетеміз.
+  const openedId = (location.state as { imageId?: string } | null)?.imageId;
+  useEffect(() => {
+    const found = openedId && data?.find((i) => i.id === openedId);
+    // eslint-disable-next-line react/set-state-in-effect -- жүктелген тізімнен бір рет ашу
+    if (found) setViewing(found);
+  }, [openedId, data]);
 
   useEffect(() => {
     if (!viewing) return;
@@ -55,8 +62,8 @@ export default function ImagesPage() {
     setError("");
     try {
       const result = await generateIllustration(prompt.trim(), style);
-      saveImage({ prompt: prompt.trim(), style, styleLabel: result.styleLabel, title: result.title, svg: result.svg });
-      setImages(getImages());
+      const saved = await saveImage({ prompt: prompt.trim(), style, styleLabel: result.styleLabel, title: result.title, svg: result.svg });
+      setImages([saved, ...images]);
       setPrompt("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Сурет жасау мүмкін болмады.");
@@ -65,10 +72,15 @@ export default function ImagesPage() {
     }
   }
 
-  function handleDelete(img: SavedImage) {
+  async function handleDelete(img: SavedImage) {
     if (!window.confirm(`«${img.title}» суретін жоясыз ба?`)) return;
-    setImages(removeImage(img.id));
-    if (viewing?.id === img.id) setViewing(null);
+    try {
+      await deleteProject(img.id);
+      setImages(images.filter((i) => i.id !== img.id));
+      if (viewing?.id === img.id) setViewing(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Жою мүмкін болмады.");
+    }
   }
 
   return (
@@ -138,7 +150,13 @@ export default function ImagesPage() {
             <div className="border-t border-slate-200 px-4 py-3.5 font-bold">{prompt.slice(0, 50)}</div>
           </article>
         )}
-        {images.length === 0 && !generating && (
+        {loadError && (
+          <div role="alert" className="col-span-full rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
+        )}
+        {loading && !loadError && (
+          <div className="col-span-full rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">Жүктелуде...</div>
+        )}
+        {!loading && !loadError && images.length === 0 && !generating && (
           <div className="col-span-full rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">
             Әзірге сурет жоқ. Жоғарыда сипаттама жазып, алғашқы иллюстрацияңызды жасаңыз.
           </div>

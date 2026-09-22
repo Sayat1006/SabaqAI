@@ -1,10 +1,10 @@
 import { Check, Download, Eye, EyeOff, FileText, Printer, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
-import { getTests, saveTest, type SavedTest } from "../lib/projects";
+import { getTest, saveTest, type SavedTest } from "../lib/projects";
 import { DIFFICULTIES, generateTest, QUESTION_COUNTS } from "../lib/studio";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
@@ -20,20 +20,31 @@ const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5
 export default function TestsPage() {
   const { user } = useAuth();
   const location = useLocation();
-  const [test, setTest] = useState<SavedTest | null>(() => {
-    const id = (location.state as { testId?: string } | null)?.testId;
-    return (id && getTests().find((t) => t.id === id)) || null;
-  });
-  const [subject, setSubject] = useState(
-    () => test?.subject ?? (user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]),
-  );
-  const [grade, setGrade] = useState(() => test?.grade ?? GRADES[4]);
-  const [topic, setTopic] = useState(() => test?.topic ?? "");
+  const [test, setTest] = useState<SavedTest | null>(null);
+  const [error, setError] = useState("");
+  const [subject, setSubject] = useState(() => (user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]));
+  const [grade, setGrade] = useState(() => user?.grades?.[0] ?? GRADES[4]);
+  const [topic, setTopic] = useState("");
   const [count, setCount] = useState<number>(10);
-  const [difficulty, setDifficulty] = useState<string>(() => test?.difficulty ?? "Орташа");
+  const [difficulty, setDifficulty] = useState<string>("Орташа");
+
+  // «Жобалар» тізімінен ашылса, сақталған тестті жүктейміз.
+  const openedId = (location.state as { testId?: string } | null)?.testId;
+  useEffect(() => {
+    if (!openedId) return;
+    getTest(openedId)
+      .then((t) => {
+        if (!t) return;
+        setTest(t);
+        setSubject(t.subject);
+        setGrade(t.grade);
+        setTopic(t.topic);
+        setDifficulty(t.difficulty);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Тестті ашу мүмкін болмады."));
+  }, [openedId]);
   const [notes, setNotes] = useState("");
   const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState("");
   const [showAnswers, setShowAnswers] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -48,7 +59,7 @@ export default function TestsPage() {
     setError("");
     try {
       const questions = await generateTest({ subject, grade, topic: topic.trim(), difficulty, count, notes: notes.trim() });
-      setTest(saveTest({ subject, grade, topic: topic.trim(), difficulty, questions }));
+      setTest(await saveTest({ subject, grade, topic: topic.trim(), difficulty, questions }));
       setShowAnswers(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Тест жасау мүмкін болмады.");

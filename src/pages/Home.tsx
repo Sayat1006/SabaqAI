@@ -6,7 +6,8 @@ import { UserMenu } from "../components/UserMenu";
 import { firstNameOf } from "../lib/names";
 import { ProjectCard } from "../components/ProjectCard";
 import { tools } from "../lib/navigation";
-import { getRecentProjects, getStats, removeProject, type RecentProject } from "../lib/projects";
+import { deleteProject, getRecentProjects, statsOf, type RecentProject } from "../lib/projects";
+import { useLoad } from "../lib/useLoad";
 import { useCountUp } from "../lib/useCountUp";
 
 const announcements = [
@@ -59,8 +60,9 @@ export default function Home() {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [projects, setProjects] = useState(getRecentProjects);
-  const stats = getStats();
+  const { data, setData, error: loadError, loading } = useLoad(getRecentProjects);
+  const projects = useMemo(() => data ?? [], [data]);
+  const stats = statsOf(projects);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -78,10 +80,14 @@ export default function Home() {
     ? projects.filter((p) => `${p.title} ${p.detail}`.toLowerCase().includes(q))
     : projects.slice(0, 6);
 
-  function deleteProject(p: RecentProject) {
+  async function handleDelete(p: RecentProject) {
     if (!window.confirm(`«${p.title}» жобасын жоясыз ба?`)) return;
-    removeProject(p);
-    setProjects(getRecentProjects());
+    try {
+      await deleteProject(p.id);
+      setData(projects.filter((x) => x.id !== p.id));
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Жою мүмкін болмады.");
+    }
   }
 
   return (
@@ -198,7 +204,7 @@ export default function Home() {
 
           {/* Статистика */}
           <div className="flex flex-wrap gap-5">
-            <Stat value={Math.max(stats.qmzh, projects.filter((p) => p.kind === "qmzh").length)} label="жасалған ҚМЖ жоспары" />
+            <Stat value={stats.qmzh} label="жасалған ҚМЖ жоспары" />
             <Stat value={stats.slides} label="құрастырылған слайд" />
             <Stat value={stats.images} label="генерацияланған сурет" />
             <Stat value={stats.tests} label="құрастырылған тест" />
@@ -239,14 +245,18 @@ export default function Home() {
             Барлығын көру
           </Link>
         </div>
-        {shownProjects.length === 0 ? (
+        {loadError ? (
+          <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
+        ) : loading ? (
+          <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">Жүктелуде...</div>
+        ) : shownProjects.length === 0 ? (
           <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">
             {q ? "Жоба табылмады." : "Әзірге жоба жоқ. Жоғарыдағы құралдардың бірін таңдап, алғашқы материалыңызды жасаңыз."}
           </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[18px]">
             {shownProjects.map((p, i) => (
-              <ProjectCard key={p.id} project={p} index={i} onDelete={() => deleteProject(p)} />
+              <ProjectCard key={p.id} project={p} index={i} onDelete={() => handleDelete(p)} />
             ))}
           </div>
         )}
