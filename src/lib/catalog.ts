@@ -6,3 +6,12 @@ export const SUBJECTS = [
 ];
 
 export const GRADES = Array.from({ length: 11 }, (_, i) => `${i + 1}-сынып`);
+
+export const CATEGORIES = [
+  "Педагог",
+  "Педагог-модератор",
+  "Педагог-сарапшы",
+  "Педагог-зерттеуші",
+  "Педагог-шебер",
+  "Санаты жоқ",
+];

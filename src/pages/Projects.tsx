@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { ProjectCard } from "../components/ProjectCard";
-import { getRecentProjects, KIND_LABEL, removeProject, type ProjectKind, type RecentProject } from "../lib/projects";
+import { deleteProject, getRecentProjects, KIND_LABEL, type ProjectKind, type RecentProject } from "../lib/projects";
+import { useLoad } from "../lib/useLoad";
 
 const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "test"];
 
 export default function ProjectsPage() {
-  const [projects, setProjects] = useState(getRecentProjects);
+  const { data, setData, error, loading } = useLoad(getRecentProjects);
+  const projects = useMemo(() => data ?? [], [data]);
   const [kind, setKind] = useState<"" | ProjectKind>("");
   const [query, setQuery] = useState("");
 
@@ -15,10 +17,14 @@ export default function ProjectsPage() {
     (p) => (!kind || p.kind === kind) && (!q || `${p.title} ${p.detail}`.toLowerCase().includes(q)),
   );
 
-  function handleDelete(p: RecentProject) {
+  async function handleDelete(p: RecentProject) {
     if (!window.confirm(`«${p.title}» жобасын жоясыз ба?`)) return;
-    removeProject(p);
-    setProjects(getRecentProjects());
+    try {
+      await deleteProject(p.id);
+      setData(projects.filter((x) => x.id !== p.id));
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Жою мүмкін болмады.");
+    }
   }
 
   return (
@@ -54,7 +60,11 @@ export default function ProjectsPage() {
           className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 sm:max-w-[320px]"
         />
       </div>
-      {shown.length === 0 ? (
+      {error ? (
+        <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}</div>
+      ) : loading ? (
+        <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">Жүктелуде...</div>
+      ) : shown.length === 0 ? (
         <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">
           {q || kind ? "Ештеңе табылмады." : "Әзірге жоба жоқ."}
         </div>

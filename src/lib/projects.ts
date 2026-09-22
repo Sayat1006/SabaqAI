@@ -1,7 +1,9 @@
-// Мұғалімнің AI студиядағы материалдары (ҚМЖ-дан басқа: презентациялар, суреттер,
-// тесттер) мен жалпы статистика. Браузерде (localStorage) сақталады.
+// Мұғалімнің жобалары (ҚМЖ, презентация, сурет, тест) Supabase-тегі `projects`
+// кестесінде сақталады: RLS арқылы әр мұғалім тек өз жобаларын көреді.
+// Бұрын браузерде (localStorage) сақталған жобалар бірінші кіргенде дерекқорға көшіріледі.
 
-import { getQmzhHistory, removeQmzhHistory } from "./planHistory";
+import type { LessonPlan } from "./generators";
+import { supabase } from "./supabaseClient";
 
 export interface SlideData {
   layout: "title" | "bullets" | "two_column" | "highlight" | "quiz" | "closing";
@@ -16,25 +18,6 @@ export interface SlideData {
   notes: string;
 }
 
-export interface SavedPresentation {
-  id: string;
-  savedAt: number;
-  topic: string;
-  style: string;
-  title: string;
-  slides: SlideData[];
-}
-
-export interface SavedImage {
-  id: string;
-  savedAt: number;
-  prompt: string;
-  style: string;
-  styleLabel: string;
-  title: string;
-  svg: string;
-}
-
 export interface TestQuestion {
   question: string;
   options: string[];
@@ -42,9 +25,22 @@ export interface TestQuestion {
   explanation: string;
 }
 
-export interface SavedTest {
-  id: string;
-  savedAt: number;
+interface PresentationData {
+  topic: string;
+  style: string;
+  title: string;
+  slides: SlideData[];
+}
+
+interface ImageData {
+  prompt: string;
+  style: string;
+  styleLabel: string;
+  title: string;
+  svg: string;
+}
+
+interface TestData {
   subject: string;
   grade: string;
   topic: string;
@@ -52,102 +48,15 @@ export interface SavedTest {
   questions: TestQuestion[];
 }
 
-export interface Stats {
-  qmzh: number;
-  slides: number;
-  images: number;
-  tests: number;
+interface Saved {
+  id: string;
+  savedAt: number;
 }
 
-const PRESENTATIONS_KEY = "sabaq-presentations";
-const IMAGES_KEY = "sabaq-images";
-const TESTS_KEY = "sabaq-tests";
-const STATS_KEY = "sabaq-stats";
-
-function load<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function save(key: string, value: unknown): boolean {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function getStats(): Stats {
-  return { qmzh: 0, slides: 0, images: 0, tests: 0, ...load<Partial<Stats>>(STATS_KEY, {}) };
-}
-
-export function bumpStats(delta: Partial<Stats>) {
-  const s = getStats();
-  save(STATS_KEY, {
-    qmzh: s.qmzh + (delta.qmzh ?? 0),
-    slides: s.slides + (delta.slides ?? 0),
-    images: s.images + (delta.images ?? 0),
-    tests: s.tests + (delta.tests ?? 0),
-  });
-}
-
-export function getPresentations(): SavedPresentation[] {
-  return load<SavedPresentation[]>(PRESENTATIONS_KEY, []);
-}
-
-export function savePresentation(p: Omit<SavedPresentation, "id" | "savedAt">): SavedPresentation {
-  const entry: SavedPresentation = { ...p, id: crypto.randomUUID(), savedAt: Date.now() };
-  save(PRESENTATIONS_KEY, [entry, ...getPresentations()].slice(0, 30));
-  bumpStats({ slides: p.slides.length });
-  return entry;
-}
-
-export function removePresentation(id: string): SavedPresentation[] {
-  const next = getPresentations().filter((p) => p.id !== id);
-  save(PRESENTATIONS_KEY, next);
-  return next;
-}
-
-export function getImages(): SavedImage[] {
-  return load<SavedImage[]>(IMAGES_KEY, []);
-}
-
-/** Суреттер ~5–15 КБ SVG; localStorage толса, ең ескілерін шығарып тастаймыз. */
-export function saveImage(img: Omit<SavedImage, "id" | "savedAt">): SavedImage {
-  const entry: SavedImage = { ...img, id: crypto.randomUUID(), savedAt: Date.now() };
-  let list = [entry, ...getImages()].slice(0, 60);
-  while (!save(IMAGES_KEY, list) && list.length > 1) list = list.slice(0, -1);
-  bumpStats({ images: 1 });
-  return entry;
-}
-
-export function removeImage(id: string): SavedImage[] {
-  const next = getImages().filter((i) => i.id !== id);
-  save(IMAGES_KEY, next);
-  return next;
-}
-
-export function getTests(): SavedTest[] {
-  return load<SavedTest[]>(TESTS_KEY, []);
-}
-
-export function saveTest(t: Omit<SavedTest, "id" | "savedAt">): SavedTest {
-  const entry: SavedTest = { ...t, id: crypto.randomUUID(), savedAt: Date.now() };
-  save(TESTS_KEY, [entry, ...getTests()].slice(0, 50));
-  bumpStats({ tests: 1 });
-  return entry;
-}
-
-export function removeTest(id: string): SavedTest[] {
-  const next = getTests().filter((t) => t.id !== id);
-  save(TESTS_KEY, next);
-  return next;
-}
+export type SavedPresentation = Saved & PresentationData;
+export type SavedImage = Saved & ImageData;
+export type SavedTest = Saved & TestData;
+export type SavedQmzh = Saved & { plan: LessonPlan };
 
 export type ProjectKind = "qmzh" | "presentation" | "image" | "test";
 
@@ -158,6 +67,161 @@ export const KIND_LABEL: Record<ProjectKind, string> = {
   test: "Тест",
 };
 
+interface ProjectRow {
+  id: string;
+  kind: ProjectKind;
+  title: string;
+  detail: string;
+  data: unknown;
+  created_at: string;
+}
+
+export class ProjectsError extends Error {}
+
+function wrapError(error: { message: string; code?: string }): ProjectsError {
+  // 42P01 — кесте жоқ: Supabase-те 2-жаңарту SQL-ы әлі орындалмаған.
+  if (error.code === "42P01" || /relation .*projects.* does not exist|Could not find the table/i.test(error.message)) {
+    return new ProjectsError(
+      "Жобалар кестесі табылмады. Әкімші Supabase-те supabase/update-2-projects-profile.sql файлын орындауы керек.",
+    );
+  }
+  return new ProjectsError(`Жобаларды сақтау/оқу мүмкін болмады: ${error.message}`);
+}
+
+const savedAt = (row: ProjectRow) => new Date(row.created_at).getTime();
+
+/* ------------------------------------------------ бұрынғы localStorage-тен көшіру */
+
+const LEGACY_KEYS = {
+  qmzh: "sai-qmzh-history",
+  presentation: "sabaq-presentations",
+  image: "sabaq-images",
+  test: "sabaq-tests",
+  stats: "sabaq-stats",
+};
+
+function readLegacy<T>(key: string): T[] {
+  try {
+    const raw = localStorage.getItem(key);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+let migration: Promise<void> | null = null;
+
+/** Браузерде қалған ескі жобаларды бір рет дерекқорға жүктейді; сәтті болса, жергілікті көшірмені өшіреді. */
+function migrateLegacy(): Promise<void> {
+  migration ??= (async () => {
+    const rows: Omit<ProjectRow, "id">[] = [];
+    const at = (ts: number) => new Date(ts || Date.now()).toISOString();
+
+    for (const e of readLegacy<{ savedAt: number; data: LessonPlan }>(LEGACY_KEYS.qmzh)) {
+      if (e?.data?.topic) rows.push({ kind: "qmzh", title: e.data.topic, detail: `${e.data.subject} · ${e.data.grade}`, data: e.data, created_at: at(e.savedAt) });
+    }
+    for (const p of readLegacy<SavedPresentation>(LEGACY_KEYS.presentation)) {
+      if (p?.slides) rows.push({ kind: "presentation", title: p.title, detail: `${p.slides.length} слайд`, data: { topic: p.topic, style: p.style, title: p.title, slides: p.slides }, created_at: at(p.savedAt) });
+    }
+    for (const i of readLegacy<SavedImage>(LEGACY_KEYS.image)) {
+      if (i?.svg) rows.push({ kind: "image", title: i.title, detail: i.styleLabel, data: { prompt: i.prompt, style: i.style, styleLabel: i.styleLabel, title: i.title, svg: i.svg }, created_at: at(i.savedAt) });
+    }
+    for (const t of readLegacy<SavedTest>(LEGACY_KEYS.test)) {
+      if (t?.questions) rows.push({ kind: "test", title: t.topic, detail: `${t.subject} · ${t.grade} · ${t.questions.length} сұрақ`, data: { subject: t.subject, grade: t.grade, topic: t.topic, difficulty: t.difficulty, questions: t.questions }, created_at: at(t.savedAt) });
+    }
+
+    if (rows.length > 0) {
+      const { error } = await supabase.from("projects").insert(rows);
+      if (error) {
+        migration = null; // келесі жолы қайталап көреміз
+        return;
+      }
+    }
+    try {
+      Object.values(LEGACY_KEYS).forEach((k) => localStorage.removeItem(k));
+    } catch {
+      // localStorage қолжетімсіз болса — үнсіз өтеміз
+    }
+  })();
+  return migration;
+}
+
+/* ------------------------------------------------------------ жалпы операциялар */
+
+async function list(kind?: ProjectKind, limit = 200): Promise<ProjectRow[]> {
+  await migrateLegacy();
+  let query = supabase.from("projects").select("id, kind, title, detail, data, created_at").order("created_at", { ascending: false }).limit(limit);
+  if (kind) query = query.eq("kind", kind);
+  const { data, error } = await query;
+  if (error) throw wrapError(error);
+  return (data ?? []) as ProjectRow[];
+}
+
+async function getRow(id: string, kind: ProjectKind): Promise<ProjectRow | null> {
+  const { data, error } = await supabase.from("projects").select("id, kind, title, detail, data, created_at").eq("id", id).eq("kind", kind).maybeSingle();
+  if (error) throw wrapError(error);
+  return (data as ProjectRow | null) ?? null;
+}
+
+async function create(kind: ProjectKind, title: string, detail: string, data: unknown): Promise<ProjectRow> {
+  const { data: row, error } = await supabase
+    .from("projects")
+    .insert({ kind, title: title.slice(0, 300), detail: detail.slice(0, 300), data })
+    .select("id, kind, title, detail, data, created_at")
+    .single();
+  if (error) throw wrapError(error);
+  return row as ProjectRow;
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  const { error } = await supabase.from("projects").delete().eq("id", id);
+  if (error) throw wrapError(error);
+}
+
+/* ---------------------------------------------------------------- түрлер бойынша */
+
+const toPresentation = (r: ProjectRow): SavedPresentation => ({ id: r.id, savedAt: savedAt(r), ...(r.data as PresentationData) });
+const toImage = (r: ProjectRow): SavedImage => ({ id: r.id, savedAt: savedAt(r), ...(r.data as ImageData) });
+const toTest = (r: ProjectRow): SavedTest => ({ id: r.id, savedAt: savedAt(r), ...(r.data as TestData) });
+const toQmzh = (r: ProjectRow): SavedQmzh => ({ id: r.id, savedAt: savedAt(r), plan: r.data as LessonPlan });
+
+export async function savePresentation(p: PresentationData): Promise<SavedPresentation> {
+  return toPresentation(await create("presentation", p.title, `${p.slides.length} слайд`, p));
+}
+export async function getPresentation(id: string): Promise<SavedPresentation | null> {
+  const row = await getRow(id, "presentation");
+  return row && toPresentation(row);
+}
+
+export async function saveImage(img: ImageData): Promise<SavedImage> {
+  return toImage(await create("image", img.title, img.styleLabel, img));
+}
+export async function getImages(): Promise<SavedImage[]> {
+  return (await list("image")).map(toImage);
+}
+
+export async function saveTest(t: TestData): Promise<SavedTest> {
+  return toTest(await create("test", t.topic, `${t.subject} · ${t.grade} · ${t.questions.length} сұрақ`, t));
+}
+export async function getTest(id: string): Promise<SavedTest | null> {
+  const row = await getRow(id, "test");
+  return row && toTest(row);
+}
+
+export async function saveQmzh(plan: LessonPlan): Promise<SavedQmzh> {
+  return toQmzh(await create("qmzh", plan.topic, `${plan.subject} · ${plan.grade}`, plan));
+}
+export async function getQmzhList(limit = 8): Promise<SavedQmzh[]> {
+  return (await list("qmzh", limit)).map(toQmzh);
+}
+export async function getQmzh(id: string): Promise<SavedQmzh | null> {
+  const row = await getRow(id, "qmzh");
+  return row && toQmzh(row);
+}
+
+/* ------------------------------------------------------- басты бет пен «Жобалар» */
+
 export interface RecentProject {
   id: string;
   kind: ProjectKind;
@@ -165,49 +229,47 @@ export interface RecentProject {
   detail: string;
   savedAt: number;
   to: string;
-  state?: unknown;
+  state: unknown;
   thumb?: string;
 }
 
-export function getRecentProjects(): RecentProject[] {
-  const qmzh: RecentProject[] = getQmzhHistory().map((e) => ({
-    id: e.id,
-    kind: "qmzh",
-    title: e.data.topic,
-    detail: `${e.data.subject} · ${e.data.grade}`,
-    savedAt: e.savedAt,
-    to: "/qmzh",
-    state: { historyId: e.id },
-  }));
-  const presentations: RecentProject[] = getPresentations().map((p) => ({
-    id: p.id,
-    kind: "presentation",
-    title: p.title,
-    detail: `${p.slides.length} слайд`,
-    savedAt: p.savedAt,
-    to: "/presentation",
-    state: { presentationId: p.id },
-  }));
-  const images: RecentProject[] = getImages().map((i) => ({
-    id: i.id,
-    kind: "image",
-    title: i.title,
-    detail: i.styleLabel,
-    savedAt: i.savedAt,
-    to: "/images",
-    state: { imageId: i.id },
-    thumb: svgDataUrl(i.svg),
-  }));
-  const tests: RecentProject[] = getTests().map((t) => ({
-    id: t.id,
-    kind: "test",
-    title: t.topic,
-    detail: `${t.subject} · ${t.grade} · ${t.questions.length} сұрақ`,
-    savedAt: t.savedAt,
-    to: "/tests",
-    state: { testId: t.id },
-  }));
-  return [...qmzh, ...presentations, ...images, ...tests].sort((a, b) => b.savedAt - a.savedAt);
+const ROUTES: Record<ProjectKind, { to: string; key: string }> = {
+  qmzh: { to: "/qmzh", key: "qmzhId" },
+  presentation: { to: "/presentation", key: "presentationId" },
+  image: { to: "/images", key: "imageId" },
+  test: { to: "/tests", key: "testId" },
+};
+
+function toRecent(r: ProjectRow): RecentProject {
+  return {
+    id: r.id,
+    kind: r.kind,
+    title: r.title,
+    detail: r.detail,
+    savedAt: savedAt(r),
+    to: ROUTES[r.kind].to,
+    state: { [ROUTES[r.kind].key]: r.id },
+    thumb: r.kind === "image" ? svgDataUrl((r.data as ImageData).svg) : undefined,
+  };
+}
+
+export async function getRecentProjects(): Promise<RecentProject[]> {
+  return (await list()).map(toRecent);
+}
+
+export interface Stats {
+  qmzh: number;
+  slides: number;
+  images: number;
+  tests: number;
+}
+
+export function statsOf(projects: RecentProject[]): Stats {
+  const count = (k: ProjectKind) => projects.filter((p) => p.kind === k).length;
+  const slides = projects
+    .filter((p) => p.kind === "presentation")
+    .reduce((sum, p) => sum + (Number.parseInt(p.detail, 10) || 0), 0);
+  return { qmzh: count("qmzh"), slides, images: count("image"), tests: count("test") };
 }
 
 export function svgDataUrl(svg: string): string {
@@ -223,11 +285,4 @@ export function timeAgo(ts: number): string {
   if (days === 1) return "Кеше";
   if (days < 7) return `${days} күн бұрын`;
   return new Date(ts).toLocaleDateString("ru-RU");
-}
-
-export function removeProject(p: Pick<RecentProject, "id" | "kind">) {
-  if (p.kind === "qmzh") removeQmzhHistory(p.id);
-  if (p.kind === "presentation") removePresentation(p.id);
-  if (p.kind === "image") removeImage(p.id);
-  if (p.kind === "test") removeTest(p.id);
 }

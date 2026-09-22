@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { buildLessonPresentation, type LessonPlan } from "../lib/generators";
-import { getPresentations, savePresentation, type SavedPresentation, type SlideData } from "../lib/projects";
+import { getPresentation, savePresentation, type SavedPresentation, type SlideData } from "../lib/projects";
 import { generatePresentation, PRESENTATION_STYLES, SLIDE_COUNTS, SLIDE_THEMES } from "../lib/studio";
 import "./presentation.css";
 
@@ -117,11 +117,7 @@ export default function PresentationPage() {
   const location = useLocation();
   const navState = location.state as { plan?: LessonPlan; presentationId?: string } | null;
 
-  const initialDeck = useMemo(() => {
-    if (navState?.plan) return deckFromPlan(navState.plan);
-    const saved = navState?.presentationId && getPresentations().find((p) => p.id === navState.presentationId);
-    return saved ? deckFromSaved(saved) : null;
-  }, [navState]);
+  const initialDeck = useMemo(() => (navState?.plan ? deckFromPlan(navState.plan) : null), [navState]);
 
   const [deck, setDeck] = useState<Deck | null>(initialDeck);
   const [active, setActive] = useState(0);
@@ -132,6 +128,20 @@ export default function PresentationPage() {
   const [error, setError] = useState("");
   const [presenting, setPresenting] = useState(false);
   const [exporting, setExporting] = useState(false);
+
+  // «Жобалар» тізімінен ашылса, сақталған презентацияны жүктейміз.
+  const openedId = navState?.presentationId;
+  useEffect(() => {
+    if (!openedId) return;
+    getPresentation(openedId)
+      .then((p) => {
+        if (!p) return;
+        setDeck(deckFromSaved(p));
+        setTopic(p.topic);
+        setStyle(p.style);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Презентацияны ашу мүмкін болмады."));
+  }, [openedId]);
 
   const total = deck?.slides.length ?? 0;
   const go = useCallback((i: number) => setActive(Math.max(0, Math.min(total - 1, i))), [total]);
@@ -173,7 +183,7 @@ export default function PresentationPage() {
     setError("");
     try {
       const result = await generatePresentation(topic.trim(), style, count);
-      const saved = savePresentation({ topic: topic.trim(), style, title: result.title, slides: result.slides });
+      const saved = await savePresentation({ topic: topic.trim(), style, title: result.title, slides: result.slides });
       setDeck(deckFromSaved(saved));
       setActive(0);
     } catch (err) {
