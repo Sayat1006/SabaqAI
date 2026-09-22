@@ -5,16 +5,17 @@ import http from 'node:http';
 /* A stand-in for the Anthropic Messages API so the AI code path runs end to end without a real key. */
 const captured = [];
 let nextOutput = null;
+let nextPrefix = [];
 const mock = http.createServer((req, res) => {
   let body = '';
   req.on('data', (c) => { body += c; });
   req.on('end', () => {
     const json = JSON.parse(body);
-    captured.push(json);
+    captured.push({ ...json, beta: req.headers['anthropic-beta'] });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       id: 'msg_test', type: 'message', role: 'assistant', model: json.model,
-      content: [{ type: 'text', text: JSON.stringify(nextOutput) }],
+      content: [...nextPrefix, { type: 'text', text: JSON.stringify(nextOutput) }],
       stop_reason: 'end_turn', stop_sequence: null,
       usage: { input_tokens: 10, output_tokens: 10 },
     }));
@@ -111,6 +112,8 @@ test('ҚМЖ generation calls Claude with a JSON schema and saves the project', 
   assert.equal(req.output_config.format.type, 'json_schema');
   assert.ok(req.output_config.format.schema.properties.stages);
   assert.match(req.messages[0].content, /Жай бөлшектерді салыстыру/);
+  assert.equal(req.fallbacks, 'default');
+  assert.match(req.beta, /server-side-fallback-2026-07-01/);
 
   const docx = await fetch(`${base}/api/projects/${r.data.project.id}/docx`, { headers: { Cookie: jar.teacher } });
   assert.equal(docx.status, 200);
@@ -134,8 +137,11 @@ test('presentation generation and PowerPoint export', async () => {
       { ...blank, layout: 'closing', heading: 'Рахмет!' },
     ],
   };
+  // The answer came from the fallback model after a refusal: a fallback block precedes the text.
+  nextPrefix = [{ type: 'fallback', from: { model: 'claude-opus-5' }, to: { model: 'claude-opus-4-8' } }];
   const r = await call('teacher', 'POST', '/api/generate/presentation', { topic: 'Жай бөлшектер', style: 'science', count: 5 });
-  assert.equal(r.status, 200);
+  nextPrefix = [];
+  assert.equal(r.status, 200, JSON.stringify(r.data));
   assert.equal(r.data.project.meta.slideCount, 4);
   const pptx = await fetch(`${base}/api/projects/${r.data.project.id}/pptx`, { headers: { Cookie: jar.teacher } });
   assert.equal(pptx.status, 200);

@@ -1,11 +1,16 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
+import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import { IMAGE_STYLES, PRESENTATION_STYLES } from './catalog.js';
 import { sanitizeSvg } from './svg.js';
 
 const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-5';
 const EFFORT = process.env.CLAUDE_EFFORT || 'medium';
+/**
+ * Server-side refusal fallback: if the model's safety classifiers decline a request, the API re-runs it
+ * on Anthropic's recommended model for that refusal category inside the same call. CLAUDE_FALLBACKS=off disables it.
+ */
+const FALLBACKS = process.env.CLAUDE_FALLBACKS !== 'off';
 
 /** Real generation needs a key; without one the app runs in demo mode with template content. */
 export const aiEnabled = Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
@@ -21,11 +26,12 @@ export class AIError extends Error {
 async function generateJson(schema, system, prompt) {
   let response;
   try {
-    response = await client.messages.parse({
+    response = await client.beta.messages.parse({
       model: MODEL,
       max_tokens: 16000,
       thinking: { type: 'adaptive' },
-      output_config: { effort: EFFORT, format: zodOutputFormat(schema) },
+      output_config: { effort: EFFORT, format: betaZodOutputFormat(schema) },
+      ...(FALLBACKS ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' } : {}),
       system,
       messages: [{ role: 'user', content: prompt }],
     });
@@ -35,6 +41,9 @@ async function generateJson(schema, system, prompt) {
     if (err instanceof Anthropic.APIConnectionError) throw new AIError('AI қызметіне қосылу мүмкін болмады.', 503);
     if (err instanceof Anthropic.APIError) throw new AIError(`AI қатесі: ${err.message}`, 502);
     throw err;
+  }
+  for (const block of response.content) {
+    if (block.type === 'fallback') console.info(`AI fallback: ${block.from?.model} → ${block.to?.model}`);
   }
   if (response.stop_reason === 'refusal') throw new AIError('AI бұл сұранысты орындаудан бас тартты. Тақырыпты өзгертіп көріңіз.', 422);
   if (response.stop_reason === 'max_tokens') throw new AIError('Жауап тым ұзын болып кетті. Сұранысты қысқартып көріңіз.', 422);
