@@ -1,0 +1,175 @@
+@import "tailwindcss";
+
+/* Sabaq AI палитрасы. Бар компоненттер Tailwind-тың violet/fuchsia/slate кластарын
+   қолданады, сондықтан шкалалардың өзін қайта анықтаймыз:
+   violet → терракота (негізгі акцент), fuchsia → теңіз-жасыл (екінші акцент),
+   slate → жылы сия/кілегей бейтарап түстер, navy → бүйір мәзір. */
+@theme {
+  --color-violet-50: #fdf4ee;
+  --color-violet-100: #f9e4d6;
+  --color-violet-200: #f2c6a8;
+  --color-violet-300: #eaa47a;
+  --color-violet-400: #e4865a;
+  --color-violet-500: #e0733d;
+  --color-violet-600: #b85a2a;
+  --color-violet-700: #9a4a20;
+  --color-violet-800: #7a3a18;
+  --color-violet-900: #5e2d14;
+  --color-violet-950: #3a1b0b;
+
+  --color-fuchsia-50: #eef7f5;
+  --color-fuchsia-100: #d9ece9;
+  --color-fuchsia-200: #b3d9d3;
+  --color-fuchsia-300: #86c0b7;
+  --color-fuchsia-400: #56a197;
+  --color-fuchsia-500: #2f7d74;
+  --color-fuchsia-600: #286b63;
+  --color-fuchsia-700: #22605a;
+  --color-fuchsia-800: #1c4d48;
+  --color-fuchsia-900: #163c38;
+  --color-fuchsia-950: #0c2421;
+
+  --color-slate-50: #fbf7f0;
+  --color-slate-100: #f4efe6;
+  --color-slate-200: #e9e2d4;
+  --color-slate-300: #d6cebf;
+  --color-slate-400: #8c8799;
+  --color-slate-500: #6b6680;
+  --color-slate-600: #534f6b;
+  --color-slate-700: #3e3b55;
+  --color-slate-800: #2a2840;
+  --color-slate-900: #1c1b2e;
+  --color-slate-950: #121120;
+
+  --color-navy-700: #37415c;
+  --color-navy-800: #28324c;
+  --color-navy-900: #1b2438;
+
+  --font-sans: "Times New Roman", Times, serif;
+  --font-display: "Times New Roman", Times, serif;
+}
+
+/* Sabaq AI дизайны тек ашық түсті: dark: класстары тек .dark класы қосылғанда ғана
+   іске қосылады, ал ол ешқашан қосылмайды. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  position: relative;
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 16px;
+  font-weight: 400;
+  background: #fbf7f0;
+  color: #1c1b2e;
+}
+
+h1, h2, h3 {
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: #f7dfcb;
+  color: #1c1b2e;
+}
+
+/* Жіңішке, брендтік түсті скролл жолағы — Chrome/Edge/Safari. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(184 90 42 / 0.25);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(184 90 42 / 0.45);
+  background-clip: padding-box;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  body::before {
+    display: none;
+  }
+
+  .print-card {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    background: #fff !important;
+    border: none !important;
+    /* Бірнеше беттік құжат толығымен бір бетке сыюға мәжбүрленбесін —
+       тек кестенің жолдары мен блоктары дұрыс бөлінбей қалу керек. */
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  td,
+  th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes floatA { 0%, 100% { transform: translate3d(0, 0, 0) rotateX(8deg) rotateY(-14deg); } 50% { transform: translate3d(0, -10px, 0) rotateX(8deg) rotateY(-14deg); } }
+@keyframes floatB { 0%, 100% { transform: translate3d(0, 0, 0) rotateX(6deg) rotateY(-8deg); } 50% { transform: translate3d(0, -7px, 0) rotateX(6deg) rotateY(-8deg); } }
+@keyframes floatC { 0%, 100% { transform: translate3d(0, 0, 0) rotateX(4deg) rotateY(-4deg); } 50% { transform: translate3d(0, -13px, 0) rotateX(4deg) rotateY(-4deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}
