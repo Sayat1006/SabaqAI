@@ -1,0 +1,33 @@
+{
+  "name": "sabaq-ai",
+  "version": "1.0.0",
+  "description": "Sabaq AI — мұғалімге арналған AI студия (ҚМЖ, презентация, сурет)",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node --no-warnings=ExperimentalWarning server/index.js",
+    "dev": "node --watch --no-warnings=ExperimentalWarning server/index.js",
+    "test": "node --no-warnings=ExperimentalWarning --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sayat1006/SabaqAI.git"
+  },
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/Sayat1006/SabaqAI/issues"
+  },
+  "homepage": "https://github.com/Sayat1006/SabaqAI#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
+    "cookie-parser": "^1.4.7",
+    "docx": "^9.7.1",
+    "express": "^5.2.1",
+    "pptxgenjs": "^4.0.1",
+    "zod": "^4.6.5"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "private": true
+}

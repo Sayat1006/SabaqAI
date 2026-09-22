@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sabaq AI — Презентация генераторы</title>
+<link rel="icon" href="/img/logo.png">
+<link rel="stylesheet" href="/css/app.css">
+<link rel="stylesheet" href="/css/presentation.css">
+</head>
+<body>
+<header class="topbar">
+  <a href="/" class="brand"><img src="/img/logo.png" alt=""><span>Sabaq AI</span></a>
+  <nav class="topnav" aria-label="Құралдар">
+    <a href="/">Басты бет</a><a href="/qmz">ҚМЖ</a><a href="/presentation" aria-current="page">Презентация</a><a href="/images">Сурет</a><a href="/projects">Жобалар</a>
+  </nav>
+  <div data-user-menu></div>
+</header>
+
+<main class="container">
+  <div class="crumbs"><a href="/">Басты бет</a> / Презентация жасау</div>
+  <h1 class="page-title">Презентация генераторы</h1>
+  <div class="page-sub">Тақырыпты жазып, стилін таңдаңыз — слайдтарды каруселден қарап, PowerPoint түрінде жүктеп алыңыз немесе бірден көрсетіңіз.</div>
+  <div class="banner" data-demo-banner hidden>Демо режим: AI кілті орнатылмаған, слайдтар үлгі мазмұнмен толтырылады.</div>
+
+  <div class="split">
+    <form class="glass form-panel teal-chips" id="form" novalidate>
+      <div>
+        <label class="field-label" for="topic">Тақырып</label>
+        <textarea class="field-input" id="topic" maxlength="500" placeholder="мыс.: 5-сынып, математика: жай бөлшектер — анықтамасы, мысалдары және салыстыру тәсілдері"></textarea>
+      </div>
+      <div>
+        <label class="field-label" for="subject">Пән <span style="font-weight:400">(міндетті емес)</span></label>
+        <select class="select" id="subject"><option value="">—</option></select>
+      </div>
+      <div>
+        <span class="field-label" id="style-l">Стиль</span>
+        <div class="chip-grid" id="styles" role="group" aria-labelledby="style-l" style="grid-template-columns:repeat(2,1fr)"></div>
+      </div>
+      <div>
+        <span class="field-label" id="count-l">Слайд саны</span>
+        <div class="chip-grid" id="counts" role="group" aria-labelledby="count-l" style="grid-template-columns:repeat(4,1fr)"></div>
+      </div>
+      <button class="btn-primary block teal" type="submit" id="gen">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.2 5.2L20 10l-5.2 2.2L12 17l-2.2-4.8L4 10l5.8-1.8z"/></svg>
+        <span>Слайд жасау</span>
+      </button>
+    </form>
+
+    <section class="result-panel" id="result" aria-live="polite">
+      <div class="empty-state">
+        <div class="ico" style="background:var(--teal-soft)"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="13" rx="2"/><path d="M8.5 20.5h7M12 17.5v3"/></svg></div>
+        <div style="font-size:16px;color:var(--ink)">Тақырыпты жазып, «Слайд жасау» батырмасын басыңыз</div>
+        <div style="font-size:13.5px">Слайдтар осы жерде 3D каруселде көрсетіледі.</div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="present" id="present" hidden>
+  <div class="present-stage" id="present-stage"></div>
+  <div class="present-bar">
+    <button class="btn-ghost" id="p-prev" aria-label="Алдыңғы слайд">←</button>
+    <span id="p-count"></span>
+    <button class="btn-ghost" id="p-next" aria-label="Келесі слайд">→</button>
+    <button class="btn-ghost" id="p-exit">Шығу (Esc)</button>
+  </div>
+</div>
+<script type="module" src="/js/presentation.js"></script>
+</body>
+</html>
