@@ -1,0 +1,90 @@
+# Sabaq AI · Supabase бэкенді орнату нұсқаулығы
+
+Бұл қадамдар аутентификацияны толығымен клиент жағынан (localStorage) шынайы серверлік
+аутентификацияға көшіреді: құпия сөздер Supabase-те қауіпсіз хэштеліп сақталады, ал
+"кім әкімші/белсенді" деген ереже дерекқордың Row Level Security (RLS) саясаттарында
+тексеріледі — браузерде емес.
+
+## 1. Жоба құру
+
+1. https://supabase.com → "Start your project" → GitHub немесе email-мен тіркеліңіз.
+2. "New project" — атын (мысалы `sabaq-ai`), базаның құпия сөзін және аймақты таңдап құрыңыз
+   (1-2 минут күтіледі).
+
+## 2. Кестелер мен қауіпсіздік ережелерін орнату
+
+1. Сол жақ мәзірден **SQL Editor** → **New query**.
+2. Осы репозиторийдегі [`supabase/schema.sql`](./schema.sql) файлының толық мазмұнын
+   көшіріп қойып, **Run** басыңыз.
+
+## 3. Бастапқы (бірінші) әкімші аккаунтын құру
+
+Мұғалімдер өз бетінше тіркеле алмайтындықтан, ең бірінші әкімші аккаунтын **сіз өзіңіз**
+Dashboard арқылы қолмен жасайсыз (бұл — сайттың өзі ешқашан ашпайтын жалғыз "тіркеу" жолы):
+
+1. **Authentication → Users → Add user → Create new user**.
+2. Email мен құпия сөзді өзіңіз таңдап енгізіңіз, **Auto Confirm User** құсбелгісін қойыңыз.
+3. Жасалған пайдаланушының **UUID**-ін көшіріп алыңыз (кестедегі жол).
+4. **SQL Editor**-ге қайта оралып, мына сұранысты өз мәліметтеріңізбен ауыстырып орындаңыз:
+
+   ```sql
+   insert into public.profiles (id, name, email, role, status)
+   values ('<2-қадамдағы UUID>', 'Бас әкімші', '<сіздің email>', 'admin', 'active');
+   ```
+
+## 4. Edge Function-ды жариялау (аккаунт құру/жою/құпия сөз ысыру үшін)
+
+Бұл — жалғыз сервистік (`service_role`) кілтті қолданатын бөлік, сондықтан ол браузерде
+емес, Supabase-тің өз серверінде орындалады.
+
+1. [Supabase CLI орнатыңыз](https://supabase.com/docs/guides/cli/getting-started) (`npm i -g supabase` немесе `brew install supabase/tap/supabase`).
+2. Терминалда осы репозиторийдің түбірінде:
+   ```bash
+   supabase login
+   supabase link --project-ref <жобаңыздың-ref-і>   # Project Settings → General ішінде
+   supabase functions deploy admin-actions --no-verify-jwt
+   ```
+   (`--no-verify-jwt` қажет, себебі функция авторизацияны JWT-ті өзі, қолмен тексереді.)
+
+   Балама жол: CLI орнатқыңыз келмесе, Dashboard → **Edge Functions → Create a function** →
+   атын `admin-actions` деп қойып, [`supabase/functions/admin-actions/index.ts`](./functions/admin-actions/index.ts)
+   мазмұнын сол жерге қолмен қойып сақтаңыз.
+
+## 5. `ai-generate` Edge Function-ды жариялау (Gemini арқылы генерациялау үшін)
+
+ҚМЖ, презентация, сурет және тест беттері мазмұнды Gemini API арқылы генерациялайды. Бұл — соны істейтін екінші Edge Function, ол да
+құпия кілтті (бұл жерде `GEMINI_API_KEY`) тек серверде сақтайды, браузерге ешқашан
+шықпайды.
+
+1. **Gemini API кілтін алыңыз**: https://aistudio.google.com/apikey → "Create API key".
+2. Кілтті Edge Function-ның құпия айнымалысы ретінде орнатыңыз:
+   ```bash
+   supabase secrets set GEMINI_API_KEY=<сіздің-gemini-кілтіңіз>
+   ```
+   (Балама жол: Dashboard → **Edge Functions → Secrets → Add new secret**, атын
+   `GEMINI_API_KEY` деп қойып, мәнін қойыңыз.)
+3. Функцияны жариялаңыз:
+   ```bash
+   supabase functions deploy ai-generate --no-verify-jwt
+   ```
+   (`--no-verify-jwt` қажет — функция авторизацияны JWT-ті өзі, қолмен тексереді,
+   сосын пайдаланушының `status = active` екенін дерекқордан тексереді.)
+
+   Балама жол: CLI орнатқыңыз келмесе, Dashboard → **Edge Functions → Create a function** →
+   атын `ai-generate` деп қойып, [`supabase/functions/ai-generate/index.ts`](./functions/ai-generate/index.ts)
+   мазмұнын сол жерге қолмен қойып сақтаңыз (секретті 2-қадамдағыдай бөлек орнату қажет).
+
+⚠️ `admin-actions`-тан айырмашылығы: бұған `service_role` кілті емес, тек `GEMINI_API_KEY`
+секреті керек — сондықтан ол да функция ортасында ғана сақталады, ешқашан браузерге шықпайды.
+
+## 6. Кілттерді алу
+
+**Project Settings → API** бөлімінде:
+- **Project URL** (мысалы `https://xxxxx.supabase.co`)
+- **anon / public** кілті (ұзын JWT жолы)
+
+⚠️ **`service_role` кілтін ешқашан ешкімге, соның ішінде маған да, бермеңіз** — ол толық
+құқық береді және тек Edge Function ортасында, Supabase-тің өзінде сақталады.
+
+Осы екі мәнді (Project URL және anon кілт) маған беріңіз — соларды `.env` файлына қойып,
+қосымшаны солармен байланыстырамын.
