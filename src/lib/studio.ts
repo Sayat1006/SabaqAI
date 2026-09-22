@@ -1,8 +1,8 @@
-// AI студия: тақырып бойынша презентация және сабақ иллюстрациялары.
-// Екеуі де `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
+// AI студия: тақырып бойынша презентация, сабақ иллюстрациялары және тест.
+// Барлығы `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
 
 import { aiGenerateJson } from "./ai";
-import type { SlideData } from "./projects";
+import type { SlideData, TestQuestion } from "./projects";
 
 export const PRESENTATION_STYLES = [
   { key: "minimal", label: "Минимал" },
@@ -167,4 +167,66 @@ export function sanitizeSvg(input: string): string | null {
   walk(root);
   if (!root.getAttribute("xmlns")) root.setAttribute("xmlns", "http://www.w3.org/2000/svg");
   return new XMLSerializer().serializeToString(root);
+}
+
+/* ------------------------------------------------------------------- Тест */
+
+export const DIFFICULTIES = ["Жеңіл", "Орташа", "Қиын"] as const;
+export const QUESTION_COUNTS = [5, 10, 15, 20] as const;
+
+const testSchema = {
+  type: "OBJECT",
+  properties: {
+    questions: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          question: { type: "STRING" },
+          options: { type: "ARRAY", items: { type: "STRING" } },
+          correctIndex: { type: "INTEGER" },
+          explanation: { type: "STRING" },
+        },
+        required: ["question", "options", "correctIndex", "explanation"],
+      },
+    },
+  },
+  required: ["questions"],
+};
+
+export async function generateTest(input: {
+  subject: string;
+  grade: string;
+  topic: string;
+  difficulty: string;
+  count: number;
+  notes: string;
+}): Promise<TestQuestion[]> {
+  const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің.
+Пән: ${input.subject}
+Сынып: ${input.grade}
+Тақырып: ${input.topic}
+Қиындық деңгейі: ${input.difficulty}
+${input.notes ? `Мұғалімнің тілегі: ${input.notes}\n` : ""}Осы тақырып бойынша дәл ${input.count} тест сұрағын құрастыр.
+- Әр сұрақта 4 жауап нұсқасы, тек біреуі дұрыс; дұрыс жауаптың орны сұрақтан сұраққа әртүрлі болсын.
+- "correctIndex" — дұрыс нұсқаның "options" ішіндегі реттік нөмірі (0-ден бастап).
+- Нұсқаларда "A)" сияқты әріп белгілерін жазба, сұрақтың алдына нөмір қойма.
+- Қате нұсқалар сенімді, бірақ анық қате болсын; "барлығы дұрыс" сияқты нұсқаларды қолданба.
+- "explanation" — дұрыс жауаптың бір сөйлемдік түсіндірмесі.
+- Сұрақтар сынып деңгейіне сай, фактілері дұрыс, қазақ тілінде (шет тілі пәні болмаса).`;
+  const result = await aiGenerateJson<{ questions: Partial<TestQuestion>[] }>(prompt, testSchema);
+  const questions = (result.questions ?? [])
+    .filter((q) => q.question && Array.isArray(q.options) && q.options.length >= 2)
+    .slice(0, input.count)
+    .map((q) => {
+      const options = q.options!.map((o) => o.replace(/^\s*[A-DА-Г][).]\s*/, ""));
+      return {
+        question: q.question!.replace(/^\s*\d+[).]\s*/, ""),
+        options,
+        correctIndex: Math.min(Math.max(Number(q.correctIndex) || 0, 0), options.length - 1),
+        explanation: q.explanation ?? "",
+      };
+    });
+  if (questions.length === 0) throw new Error("AI сұрақ қайтармады. Қайталап көріңіз.");
+  return questions;
 }

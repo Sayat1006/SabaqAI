@@ -1,7 +1,7 @@
-// Мұғалімнің AI студиядағы материалдары (презентациялар, суреттер) мен жалпы
-// статистикасы. S-AI-дың қалған деректері сияқты браузерде (localStorage) сақталады.
+// Мұғалімнің AI студиядағы материалдары (ҚМЖ-дан басқа: презентациялар, суреттер,
+// тесттер) мен жалпы статистика. Браузерде (localStorage) сақталады.
 
-import { getQmzhHistory } from "./planHistory";
+import { getQmzhHistory, removeQmzhHistory } from "./planHistory";
 
 export interface SlideData {
   layout: "title" | "bullets" | "two_column" | "highlight" | "quiz" | "closing";
@@ -35,14 +35,33 @@ export interface SavedImage {
   svg: string;
 }
 
+export interface TestQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+}
+
+export interface SavedTest {
+  id: string;
+  savedAt: number;
+  subject: string;
+  grade: string;
+  topic: string;
+  difficulty: string;
+  questions: TestQuestion[];
+}
+
 export interface Stats {
   qmzh: number;
   slides: number;
   images: number;
+  tests: number;
 }
 
 const PRESENTATIONS_KEY = "sabaq-presentations";
 const IMAGES_KEY = "sabaq-images";
+const TESTS_KEY = "sabaq-tests";
 const STATS_KEY = "sabaq-stats";
 
 function load<T>(key: string, fallback: T): T {
@@ -64,7 +83,7 @@ function save(key: string, value: unknown): boolean {
 }
 
 export function getStats(): Stats {
-  return { qmzh: 0, slides: 0, images: 0, ...load<Partial<Stats>>(STATS_KEY, {}) };
+  return { qmzh: 0, slides: 0, images: 0, tests: 0, ...load<Partial<Stats>>(STATS_KEY, {}) };
 }
 
 export function bumpStats(delta: Partial<Stats>) {
@@ -73,6 +92,7 @@ export function bumpStats(delta: Partial<Stats>) {
     qmzh: s.qmzh + (delta.qmzh ?? 0),
     slides: s.slides + (delta.slides ?? 0),
     images: s.images + (delta.images ?? 0),
+    tests: s.tests + (delta.tests ?? 0),
   });
 }
 
@@ -112,9 +132,35 @@ export function removeImage(id: string): SavedImage[] {
   return next;
 }
 
+export function getTests(): SavedTest[] {
+  return load<SavedTest[]>(TESTS_KEY, []);
+}
+
+export function saveTest(t: Omit<SavedTest, "id" | "savedAt">): SavedTest {
+  const entry: SavedTest = { ...t, id: crypto.randomUUID(), savedAt: Date.now() };
+  save(TESTS_KEY, [entry, ...getTests()].slice(0, 50));
+  bumpStats({ tests: 1 });
+  return entry;
+}
+
+export function removeTest(id: string): SavedTest[] {
+  const next = getTests().filter((t) => t.id !== id);
+  save(TESTS_KEY, next);
+  return next;
+}
+
+export type ProjectKind = "qmzh" | "presentation" | "image" | "test";
+
+export const KIND_LABEL: Record<ProjectKind, string> = {
+  qmzh: "ҚМЖ",
+  presentation: "Презентация",
+  image: "Сурет",
+  test: "Тест",
+};
+
 export interface RecentProject {
   id: string;
-  kind: "qmzh" | "presentation" | "image";
+  kind: ProjectKind;
   title: string;
   detail: string;
   savedAt: number;
@@ -152,7 +198,16 @@ export function getRecentProjects(): RecentProject[] {
     state: { imageId: i.id },
     thumb: svgDataUrl(i.svg),
   }));
-  return [...qmzh, ...presentations, ...images].sort((a, b) => b.savedAt - a.savedAt);
+  const tests: RecentProject[] = getTests().map((t) => ({
+    id: t.id,
+    kind: "test",
+    title: t.topic,
+    detail: `${t.subject} · ${t.grade} · ${t.questions.length} сұрақ`,
+    savedAt: t.savedAt,
+    to: "/tests",
+    state: { testId: t.id },
+  }));
+  return [...qmzh, ...presentations, ...images, ...tests].sort((a, b) => b.savedAt - a.savedAt);
 }
 
 export function svgDataUrl(svg: string): string {
@@ -168,4 +223,11 @@ export function timeAgo(ts: number): string {
   if (days === 1) return "Кеше";
   if (days < 7) return `${days} күн бұрын`;
   return new Date(ts).toLocaleDateString("ru-RU");
+}
+
+export function removeProject(p: Pick<RecentProject, "id" | "kind">) {
+  if (p.kind === "qmzh") removeQmzhHistory(p.id);
+  if (p.kind === "presentation") removePresentation(p.id);
+  if (p.kind === "image") removeImage(p.id);
+  if (p.kind === "test") removeTest(p.id);
 }

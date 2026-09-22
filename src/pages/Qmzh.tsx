@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../context/useAuth";
-import { Badge, Button, Card, Field, PrintButton, Select, Textarea, TextInput } from "../components/ui";
+import { GRADES, SUBJECTS } from "../lib/catalog";
+import { Button, Card, Field, PrintButton, Select, Textarea, TextInput } from "../components/ui";
 import { generateLessonPlan, type LessonPlan, type QmzhTask } from "../lib/generators";
 import { getQmzhHistory, pushQmzhHistory, removeQmzhHistory, type SavedPlan } from "../lib/planHistory";
 
@@ -14,8 +16,8 @@ function timeAgo(ts: number): string {
   return `${Math.round(diffHour / 24)} күн бұрын`;
 }
 
-const subjects = ["Математика", "Қазақ тілі", "Ағылшын тілі", "Биология", "Тарих", "Информатика", "Физика", "Химия", "Жаратылыстану"];
-const grades = Array.from({ length: 11 }, (_, i) => `${i + 1}-сынып`);
+const subjects = SUBJECTS;
+const grades = GRADES;
 
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -147,11 +149,11 @@ function TaskBlock({ task }: { task: QmzhTask }) {
 
 export default function QmzhPage() {
   const navigate = useNavigate();
-  const [subject, setSubject] = useState(subjects[0]);
+  const { user } = useAuth();
+  const [subject, setSubject] = useState(() => (user?.subject && subjects.includes(user.subject) ? user.subject : subjects[0]));
   const [grade, setGrade] = useState(grades[4]);
   const [topic, setTopic] = useState("");
   const [duration, setDuration] = useState(45);
-  const { user } = useAuth();
   const [teacherName, setTeacherName] = useState(() => user?.name ?? "");
   const [date, setDate] = useState("");
   const [objectivesInput, setObjectivesInput] = useState("");
@@ -230,16 +232,13 @@ export default function QmzhPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <Badge>ҚМЖ · Қысқа мерзімді жоспар</Badge>
-      <h1 className="mt-3 mb-2 text-3xl font-semibold text-slate-900 dark:text-white">
-        ҚМЖ-ны автоматты құру
-      </h1>
-      <p className="mb-8 text-slate-600 dark:text-slate-300">
-        Пән, сынып, тақырып пен ұзақтықты енгізіңіз — ресми ҚМЖ үлгісіне сай, кестелермен
-        толық рәсімделген қысқа мерзімді жоспар дайын болады.
-      </p>
+      <PageHeader
+        crumb="ҚМЖ жоспарлау"
+        title="Қысқа мерзімді жоспар (ҚМЖ)"
+        subtitle="Формасын толтырыңыз — ресми үлгі бойынша кестелермен толық рәсімделген ҚМЖ дайын болады. Нәтижені Word немесе PDF түрінде жүктей аласыз."
+      />
 
-      <Card className="print:hidden">
+      <Card className="mt-8 print:hidden">
         <form onSubmit={handleGenerate} className="grid gap-1 sm:grid-cols-2 sm:gap-x-6">
           <Field>
             Пән

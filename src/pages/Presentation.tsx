@@ -1,6 +1,7 @@
 import { ChevronLeft, ChevronRight, Download, Maximize, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { PageHeader } from "../components/PageHeader";
 import { buildLessonPresentation, type LessonPlan } from "../lib/generators";
 import { getPresentations, savePresentation, type SavedPresentation, type SlideData } from "../lib/projects";
 import { generatePresentation, PRESENTATION_STYLES, SLIDE_COUNTS, SLIDE_THEMES } from "../lib/studio";
@@ -197,14 +198,11 @@ export default function PresentationPage() {
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
-      <div className="mb-2 text-[12.5px] text-slate-500">
-        <Link to="/" className="hover:text-violet-600">Басты бет</Link> / Презентация жасау
-      </div>
-      <h1 className="text-[28px] font-bold">Презентация генераторы</h1>
-      <p className="mt-1.5 max-w-[680px] text-[14.5px] text-slate-500">
-        Тақырыпты жазып, стилін таңдаңыз — слайдтарды каруселден қарап, PowerPoint түрінде жүктеп алыңыз немесе бірден
-        көрсетіңіз. Дайын ҚМЖ-дан да презентация жасауға болады.
-      </p>
+      <PageHeader
+        crumb="Презентация жасау"
+        title="Презентация генераторы"
+        subtitle="Тақырыпты жазып, стилін таңдаңыз — слайдтарды каруселден қарап, PowerPoint түрінде жүктеп алыңыз немесе бірден көрсетіңіз. Дайын ҚМЖ-дан да презентация жасауға болады."
+      />
 
       <div className="mt-8 flex flex-wrap items-start gap-7">
         <form

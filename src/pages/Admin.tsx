@@ -155,14 +155,11 @@ export default function AdminPage() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6">
-      <Badge>Әкімшілік панелі</Badge>
-      <h1 className="mt-3 mb-2 text-3xl font-semibold text-slate-900 dark:text-white">
-        Аккаунттарды басқару
-      </h1>
-      <p className="mb-8 text-slate-600 dark:text-slate-300">
-        Мұғалімдер сайтқа өз бетінше тіркеле алмайды — тек осы жерден құрылған аккаунтпен
-        кіре алады. Аккаунтты кез келген уақытта өшіруге/қосуға немесе жоюға болады.
+    <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
+      <h1 className="text-[28px] font-bold">Әкімші панелі</h1>
+      <p className="mt-1.5 mb-8 max-w-[680px] text-[14.5px] text-slate-500">
+        Мұғалімдерге аккаунт ашыңыз, қатынасты бақылаңыз — олар «Мұғалім» ретінде осы деректермен
+        қосымшаға кіре алады. Аккаунтты кез келген уақытта өшіруге/қосуға немесе жоюға болады.
       </p>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-4">

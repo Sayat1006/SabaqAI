@@ -1,148 +1,153 @@
-import { Home, LogOut, Menu, ShieldCheck, X } from "lucide-react";
-import { useState } from "react";
+import { FolderOpen, Home, LogOut, ShieldCheck } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { initialsOf } from "../lib/names";
-import { navGroups } from "../lib/navigation";
+import { tools } from "../lib/navigation";
 import { Logo } from "./Logo";
+import { UserMenu } from "./UserMenu";
 
-const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-  `flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] transition-colors ${
+/* Sabaq AI құрылымы: басты бетте — қою көк бүйір мәзір, құрал беттерінде — жоғарғы мәзір. */
+
+const sideLink = ({ isActive }: { isActive: boolean }) =>
+  `flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] whitespace-nowrap transition-colors ${
     isActive
       ? "bg-navy-800 text-white shadow-[inset_3px_0_0_0_var(--color-violet-500)]"
       : "text-[#c7c4da] hover:bg-navy-800 hover:text-white"
   }`;
 
-function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
+export function DashboardLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   async function handleLogout() {
     await logout();
-    onNavigate?.();
     navigate("/login", { replace: true });
   }
 
   return (
-    <div className="flex h-full flex-col gap-6 overflow-y-auto px-5 py-8">
-      <NavLink to="/" onClick={onNavigate} className="flex items-center gap-3 px-1.5">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f4f1ea] p-1">
-          <Logo className="h-9 w-9" />
-        </span>
-        <span className="text-[19px] font-bold text-white">Sabaq AI</span>
-      </NavLink>
-
-      <nav aria-label="Негізгі мәзір" className="flex flex-col gap-5">
-        <NavLink to="/" end onClick={onNavigate} className={navLinkClasses}>
-          <Home size={19} strokeWidth={1.8} />
-          Басты бет
+    <div className="flex min-h-screen flex-col lg:flex-row">
+      <nav
+        aria-label="Негізгі мәзір"
+        className="flex items-center gap-3 overflow-x-auto bg-navy-900 px-4 py-3 text-[#f4f1ea] lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-visible lg:px-5 lg:py-8"
+      >
+        <NavLink to="/" className="flex shrink-0 items-center gap-3 lg:mb-11 lg:px-1.5">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f4f1ea] p-1 lg:h-[42px] lg:w-[42px]">
+            <Logo className="h-full w-full" />
+          </span>
+          <span className="hidden text-[19px] font-bold lg:inline">Sabaq AI</span>
         </NavLink>
 
-        {navGroups.map((group) => (
-          <div key={group.title}>
-            <p className="mb-1.5 px-3.5 text-[11.5px] font-semibold tracking-wider text-[#8f8ba8] uppercase">
-              {group.title}
-            </p>
-            <div className="flex flex-col gap-0.5">
-              {group.items.map((item) => (
-                <NavLink key={item.to} to={item.to} onClick={onNavigate} className={navLinkClasses}>
-                  <item.icon size={19} strokeWidth={1.8} />
-                  {item.label}
-                </NavLink>
-              ))}
-            </div>
-          </div>
-        ))}
-
-        {user?.role === "admin" && (
-          <div>
-            <p className="mb-1.5 px-3.5 text-[11.5px] font-semibold tracking-wider text-[#8f8ba8] uppercase">
-              Әкімшілік
-            </p>
-            <NavLink to="/admin" onClick={onNavigate} className={navLinkClasses}>
-              <ShieldCheck size={19} strokeWidth={1.8} />
-              Әкімші панелі
+        <div className="flex gap-1 lg:flex-col">
+          <NavLink to="/" end className={sideLink}>
+            <Home size={19} strokeWidth={1.8} /> Басты бет
+          </NavLink>
+          {tools.map((t) => (
+            <NavLink key={t.to} to={t.to} className={sideLink}>
+              <t.icon size={19} strokeWidth={1.8} /> {t.label}
             </NavLink>
+          ))}
+          <div className="mx-1.5 my-3.5 hidden h-px bg-navy-700 lg:block" />
+          <NavLink to="/projects" className={sideLink}>
+            <FolderOpen size={19} strokeWidth={1.8} /> Менің жобаларым
+          </NavLink>
+          {user?.role === "admin" && (
+            <NavLink to="/admin" className={sideLink}>
+              <ShieldCheck size={19} strokeWidth={1.8} /> Әкімші панелі
+            </NavLink>
+          )}
+        </div>
+
+        <div className="hidden flex-1 lg:block" />
+
+        {user && (
+          <div className="hidden flex-col gap-1.5 lg:flex">
+            <div className="flex items-center gap-3 rounded-2xl bg-navy-800 px-2.5 py-3.5">
+              <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-violet-500 text-sm font-bold text-white">
+                {initialsOf(user.name)}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">{user.name}</p>
+                <p className="truncate text-xs text-[#b4b0c8]">
+                  {user.role === "admin" ? "Әкімші" : user.subject ? `${user.subject} мұғалімі` : "Мұғалім"}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm text-[#c7c4da] hover:bg-navy-800 hover:text-white"
+            >
+              <LogOut size={17} /> Шығу
+            </button>
           </div>
         )}
       </nav>
 
-      <div className="mt-auto flex flex-col gap-2">
-        {user && (
-          <div className="flex items-center gap-3 rounded-2xl bg-navy-800 px-2.5 py-3.5">
-            <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[11px] bg-violet-500 text-sm font-bold text-white">
-              {initialsOf(user.name)}
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-white">{user.name}</p>
-              <p className="truncate text-xs text-[#b4b0c8]">
-                {user.role === "admin" ? "Әкімші" : user.subject ? `${user.subject} мұғалімі` : "Мұғалім"}
-              </p>
-            </div>
-          </div>
-        )}
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm text-[#c7c4da] transition-colors hover:bg-navy-800 hover:text-white"
-        >
-          <LogOut size={17} /> Шығу
-        </button>
-      </div>
+      <main className="min-w-0 flex-1">
+        <Outlet />
+      </main>
     </div>
   );
 }
 
-export default function Layout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
+const topLink = ({ isActive }: { isActive: boolean }) =>
+  `rounded-[11px] px-4 py-2 text-[13.5px] font-semibold whitespace-nowrap transition-colors ${
+    isActive ? "bg-navy-900 text-white" : "text-slate-500 hover:bg-violet-100 hover:text-violet-700"
+  }`;
 
+function Topbar({ admin = false }: { admin?: boolean }) {
   return (
-    <div className="flex min-h-screen">
-      <aside className="hidden w-[272px] shrink-0 bg-navy-900 lg:block print:hidden">
-        <div className="sticky top-0 h-screen">
-          <SidebarContent />
-        </div>
-      </aside>
+    <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/90 px-4 py-3 backdrop-blur-md sm:px-10 sm:py-4 print:hidden">
+      <NavLink to={admin ? "/admin" : "/"} className="flex items-center gap-3 font-bold">
+        <Logo className="h-9 w-9" />
+        <span className="text-[16.5px]">
+          Sabaq AI{admin && <span className="text-[13.5px] font-semibold text-slate-500"> · Әкімші</span>}
+        </span>
+      </NavLink>
+      <nav
+        aria-label={admin ? "Әкімші мәзірі" : "Құралдар"}
+        className="order-3 flex w-full gap-1 overflow-x-auto rounded-[14px] border border-slate-200 bg-white p-1 md:order-none md:w-auto"
+      >
+        {admin ? (
+          <>
+            <NavLink to="/admin" className={topLink}>Аккаунттар</NavLink>
+            <NavLink to="/" end className={topLink}>Қосымшаны қарау</NavLink>
+          </>
+        ) : (
+          <>
+            <NavLink to="/" end className={topLink}>Басты бет</NavLink>
+            {tools.map((t) => (
+              <NavLink key={t.to} to={t.to} className={topLink}>
+                {t.short}
+              </NavLink>
+            ))}
+            <NavLink to="/projects" className={topLink}>Жобалар</NavLink>
+          </>
+        )}
+      </nav>
+      <UserMenu />
+    </header>
+  );
+}
 
-      {mobileOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden print:hidden">
-          <div className="absolute inset-0 bg-navy-900/50" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] bg-navy-900 shadow-2xl">
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-3 rounded-lg p-1.5 text-[#c7c4da] hover:bg-navy-800 hover:text-white"
-              aria-label="Мәзірді жабу"
-            >
-              <X size={18} />
-            </button>
-            <SidebarContent onNavigate={() => setMobileOpen(false)} />
-          </div>
-        </div>
-      )}
+export function ToolLayout() {
+  return (
+    <div className="min-h-screen">
+      <Topbar />
+      <main>
+        <Outlet />
+      </main>
+    </div>
+  );
+}
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex items-center gap-3 bg-navy-900 px-4 py-3 lg:hidden print:hidden">
-          <button
-            onClick={() => setMobileOpen(true)}
-            className="rounded-lg border border-navy-700 p-2 text-white"
-            aria-label="Мәзірді ашу"
-          >
-            <Menu size={18} />
-          </button>
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#f4f1ea] p-0.5">
-            <Logo className="h-7 w-7" />
-          </span>
-          <span className="font-bold text-white">Sabaq AI</span>
-        </header>
-
-        <main className="flex-1">
-          <Outlet />
-        </main>
-
-        <footer className="border-t border-slate-200 py-6 text-center text-sm text-slate-500 print:hidden">
-          Sabaq AI — мұғалімге арналған AI студия
-        </footer>
-      </div>
+export function AdminLayout() {
+  return (
+    <div className="min-h-screen">
+      <Topbar admin />
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }

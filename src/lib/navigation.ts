@@ -1,138 +1,41 @@
-import {
-  BookOpen,
-  Bot,
-  CalendarDays,
-  CalendarRange,
-  ClipboardList,
-  Code2,
-  FileQuestion,
-  FlaskConical,
-  FolderOpen,
-  GraduationCap,
-  Headphones,
-  Image,
-  Presentation,
-  Swords,
-  type LucideIcon,
-} from "lucide-react";
+import { ClipboardList, FileCheck2, Image, Presentation, type LucideIcon } from "lucide-react";
 
-export interface NavItem {
+export interface Tool {
   to: string;
   label: string;
+  short: string;
   icon: LucideIcon;
   description: string;
 }
 
-export interface NavGroup {
-  title: string;
-  items: NavItem[];
-}
-
-export const navGroups: NavGroup[] = [
+/** Sabaq AI-дың төрт құралы: бүйір мәзір, жоғарғы мәзір және басты беттегі карталар осыдан құрылады. */
+export const tools: Tool[] = [
   {
-    title: "Сабақ жоспарлау",
-    items: [
-      {
-        to: "/qmzh",
-        label: "ҚМЖ жоспарлау",
-        icon: ClipboardList,
-        description: "Қысқа мерзімді жоспарды пән мен сыныпқа сай бірнеше минутта дайында.",
-      },
-      {
-        to: "/ktj",
-        label: "КТЖ",
-        icon: CalendarRange,
-        description: "Жыл бойғы күнтізбелік-тақырыптық жоспарды тоқсандар мен апталарға автоматты бөлу.",
-      },
-      {
-        to: "/schedule",
-        label: "Сабақ кестесі",
-        icon: CalendarDays,
-        description: "Апталық сабақ кестесі мен күнтізбе: тақырыптар, үй тапсырмасы, өткізілу белгісі.",
-      },
-    ],
+    to: "/qmzh",
+    label: "ҚМЖ жоспарлау",
+    short: "ҚМЖ",
+    icon: ClipboardList,
+    description: "Қысқа мерзімді жоспарды пән мен сыныпқа сай бірнеше минутта дайында.",
   },
   {
-    title: "AI студия",
-    items: [
-      {
-        to: "/presentation",
-        label: "Презентация",
-        icon: Presentation,
-        description: "Тақырыпты жазыңыз — стильді слайдтар автоматты құрастырылады.",
-      },
-      {
-        to: "/images",
-        label: "Сурет генерациясы",
-        icon: Image,
-        description: "Сабаққа арналған иллюстрацияларды стиліне қарай генерациялаңыз.",
-      },
-      {
-        to: "/assistant",
-        label: "Sabaq көмекшісі",
-        icon: Bot,
-        description: "Сабаққа дайындық бойынша кеңес беретін жеке AI-көмекші.",
-      },
-      {
-        to: "/material-questions",
-        label: "Материал бойынша сұрақтар",
-        icon: FileQuestion,
-        description: "Кез келген мәтінді тесттік сұрақтарға автоматты айналдыру.",
-      },
-      {
-        to: "/dictation",
-        label: "ЖИ диктант",
-        icon: Headphones,
-        description: "Мәтінді дауыстап оқитын, жылдамдығы реттелетін диктант режимі.",
-      },
-    ],
+    to: "/presentation",
+    label: "Презентация",
+    short: "Презентация",
+    icon: Presentation,
+    description: "Тақырыпты жазыңыз — стильді слайдтар автоматты құрастырылады.",
   },
   {
-    title: "Интерактивті құралдар",
-    items: [
-      {
-        to: "/doda",
-        label: "Дода",
-        icon: Swords,
-        description: "Топтық викторина-ойын: ұпай тақтасымен сыныпты жарысқа шақыру.",
-      },
-      {
-        to: "/lab",
-        label: "Виртуалды зертхана",
-        icon: FlaskConical,
-        description: "Физика мен биологиядан интерактивті симуляциялар.",
-      },
-      {
-        to: "/compiler",
-        label: "Sabaq Компилятор",
-        icon: Code2,
-        description: "Информатика сабағына арналған браузер ішіндегі код ортасы.",
-      },
-    ],
+    to: "/images",
+    label: "Сурет генерациясы",
+    short: "Сурет",
+    icon: Image,
+    description: "Сабаққа арналған иллюстрацияларды стиліне қарай генерациялаңыз.",
   },
   {
-    title: "Кітапхана және бағалау",
-    items: [
-      {
-        to: "/encyclopedia",
-        label: "ҮОБ Энциклопедиясы",
-        icon: BookOpen,
-        description: "Пәндер бойынша оқу мақсаттары мен таксономия базасы.",
-      },
-      {
-        to: "/library",
-        label: "Материалдар кітапханасы",
-        icon: FolderOpen,
-        description: "Дидактикалық материалдарды бір жерде сақтау және реттеу.",
-      },
-      {
-        to: "/classes",
-        label: "Сыныптар мен тесттер",
-        icon: GraduationCap,
-        description: "Сыныптарды құру, тест тағайындау және нәтижелерді бақылау.",
-      },
-    ],
+    to: "/tests",
+    label: "Тест генерациясы",
+    short: "Тест",
+    icon: FileCheck2,
+    description: "Тақырып бойынша жауап кілті бар тестті бірден құрастырыңыз.",
   },
 ];
-
-export const allNavItems: NavItem[] = navGroups.flatMap((g) => g.items);

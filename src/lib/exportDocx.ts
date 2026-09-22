@@ -17,8 +17,8 @@ import {
   convertMillimetersToTwip,
 } from "docx";
 import { downloadBlob } from "./downloadBlob";
-import type { ClozeQuestion, KtjPlan, LessonPlan, Quiz } from "./generators";
-import type { CtjRow } from "./thematicPlan";
+import type { LessonPlan } from "./generators";
+import type { SavedTest } from "./projects";
 
 // Ресми құжат конвенциясына сай: A4, Times New Roman, 1.5 жол аралығы,
 // брендтік көк/қара түстер кесте шектері мен тақырыптарда (apple.com стилі).
@@ -282,106 +282,24 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
   await buildAndDownload(children, `KMZH-${plan.topic}.docx`);
 }
 
-export async function exportKtjToDocx(plan: KtjPlan) {
-  const headerRow = new TableRow({
-    tableHeader: true,
-    children: ["Тоқсан", "Апта", "Сабақ №", "Тақырып", "Кезең"].map((t) => headerCell(t)),
-  });
-
-  const rows: TableRow[] = [headerRow];
-  plan.weeks.forEach((week) => {
-    week.lessons.forEach((lesson) => {
-      rows.push(
-        new TableRow({
-          children: [
-            tableCellText(week.quarterName),
-            tableCellText(`${week.weekInQuarter}-апта`),
-            tableCellText(String(lesson.globalNumber)),
-            tableCellText(lesson.topic),
-            tableCellText(lesson.stage),
-          ],
-        }),
-      );
-    });
-  });
-
-  const children: (Paragraph | Table)[] = [
-    new Paragraph({ text: `${plan.subject} — ${plan.grade}`, heading: HeadingLevel.HEADING_1 }),
-    body(`Аптасына ${plan.hoursPerWeek} сағат · Барлығы ${plan.totalWeeks} апта · ${plan.totalLessons} сабақ`),
-    heading("Тоқсандар бойынша бөлу"),
-    ...plan.quarters.map((q) => bullet(`${q.name}: ${q.weeks} апта · ${q.lessons} сабақ`)),
-    heading("Толық жоспар"),
-    table(rows),
-  ];
-  await buildAndDownload(children, `KTZH-${plan.subject}-${plan.grade}.docx`);
-}
-
-export async function exportThematicToDocx(subject: string, grade: string, rows: CtjRow[]) {
-  const headers = [
-    "№",
-    "Сабақ күні",
-    "Мұғалім",
-    "Топтар",
-    "Тақырып",
-    "Сабақ түрі",
-    "Тақырып саны",
-    "Үй тапсырмасы",
-    "Орындау уақыты",
-    "Интерактивті сабақ",
-  ];
-  const tableRows: TableRow[] = [new TableRow({ tableHeader: true, children: headers.map((h) => headerCell(h)) })];
-  rows.forEach((r, i) => {
-    tableRows.push(
-      new TableRow({
-        children: [
-          tableCellText(String(i + 1)),
-          tableCellText([r.date, r.time].filter(Boolean).join(" ")),
-          tableCellText(r.teacher),
-          tableCellText(r.groups),
-          tableCellText(r.topic),
-          tableCellText(r.lessonKind),
-          tableCellText(String(r.topicCount)),
-          tableCellText(r.homework),
-          tableCellText(r.executionMinutes !== null ? `${r.executionMinutes} мин` : ""),
-          tableCellText(r.interactive ? "Иә" : "Жоқ"),
-        ],
-      }),
-    );
-  });
-
-  const children: (Paragraph | Table)[] = [
-    new Paragraph({ text: "Күнтізбелік-тақырыптық жоспар", heading: HeadingLevel.HEADING_1 }),
-    body(`${subject} — ${grade} · ${rows.length} сабақ`),
-    table(tableRows),
-  ];
-  await buildAndDownload(children, `KTZH-${subject}-${grade}.docx`);
-}
-
-export async function exportClozeToDocx(questions: ClozeQuestion[]) {
+export async function exportTestToDocx(test: SavedTest) {
+  const letter = (i: number) => String.fromCharCode(65 + i);
   const children: Paragraph[] = [
-    new Paragraph({ text: "Толықтыру сұрақтары", heading: HeadingLevel.HEADING_1 }),
-    ...questions.map((q, i) => body(`${i + 1}. ${q.masked}`)),
-    heading("Жауаптар кілті"),
-    ...questions.map((q, i) => body(`${i + 1}. ${q.answer}`)),
-  ];
-  await buildAndDownload(children, "Materialdyn-suraktary.docx");
-}
-
-export async function exportDodaToDocx(quiz: Quiz) {
-  const children: Paragraph[] = [
-    new Paragraph({ text: `${quiz.topic} — Дода`, heading: HeadingLevel.HEADING_1 }),
-    body(`Деңгей: ${quiz.difficulty} · ${quiz.questions.length} сұрақ`),
-    ...quiz.questions.flatMap((q) => [
+    new Paragraph({ text: `Тест: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
+    body(`${test.subject} · ${test.grade} · Қиындығы: ${test.difficulty} · ${test.questions.length} сұрақ`),
+    body("Оқушының аты-жөні: ____________________________    Сынып: ______    Күні: __________"),
+    ...test.questions.flatMap((q, i) => [
       new Paragraph({
-        children: [new TextRun({ text: q.question, bold: true, color: INK })],
+        children: [new TextRun({ text: `${i + 1}. ${q.question}`, bold: true, color: INK })],
         spacing: { before: 160, after: 60 },
       }),
-      ...q.options.map((opt, oi) => bullet(`${String.fromCharCode(65 + oi)}. ${opt}`)),
+      ...q.options.map((opt, oi) => bullet(`${letter(oi)}) ${opt}`)),
     ]),
-    heading("Жауаптар кілті"),
-    ...quiz.questions.map((q, i) =>
-      body(`${i + 1}. ${String.fromCharCode(65 + q.correctIndex)}. ${q.options[q.correctIndex]}`),
+    new Paragraph({ text: "Жауаптар кілті", heading: HeadingLevel.HEADING_2, pageBreakBefore: true }),
+    ...test.questions.map((q, i) =>
+      body(`${i + 1}. ${letter(q.correctIndex)}) ${q.options[q.correctIndex]}${q.explanation ? ` — ${q.explanation}` : ""}`),
     ),
   ];
-  await buildAndDownload(children, `Doda-${quiz.topic}.docx`);
+  const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Sabaq";
+  await buildAndDownload(children, `Test - ${safe}.docx`);
 }

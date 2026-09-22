@@ -1,6 +1,7 @@
 import { ArrowRight, Download, Sparkles, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { PageHeader } from "../components/PageHeader";
 import { downloadBlob } from "../lib/downloadBlob";
 import { getImages, removeImage, saveImage, svgDataUrl, type SavedImage } from "../lib/projects";
 import { generateIllustration, IMAGE_STYLES } from "../lib/studio";
@@ -72,14 +73,11 @@ export default function ImagesPage() {
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
-      <div className="mb-2 text-[12.5px] text-slate-500">
-        <Link to="/" className="hover:text-violet-600">Басты бет</Link> / Сурет генерациясы
-      </div>
-      <h1 className="text-[28px] font-bold">Сабаққа арналған иллюстрациялар</h1>
-      <p className="mt-1.5 max-w-[680px] text-[14.5px] text-slate-500">
-        Сипаттама мен стильді таңдаңыз — AI векторлық (SVG) иллюстрация салады. Суретті SVG немесе PNG түрінде жүктеп,
-        слайдқа не жұмыс парағына қоя аласыз.
-      </p>
+      <PageHeader
+        crumb="Сурет генерациясы"
+        title="Сабаққа арналған иллюстрациялар"
+        subtitle="Сипаттама мен стильді таңдаңыз — AI векторлық (SVG) иллюстрация салады. Суретті SVG немесе PNG түрінде жүктеп, слайдқа не жұмыс парағына қоя аласыз."
+      />
 
       <form
         onSubmit={handleGenerate}
