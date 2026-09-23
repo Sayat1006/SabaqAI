@@ -2,7 +2,9 @@
 // Барлығы `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
 
 import { aiGenerateJson } from "./ai";
-import type { SlideData, TestQuestion } from "./projects";
+import type { LessonPlan } from "./generators";
+import type { TestQuestion } from "./projects";
+import { normalizeSlide, type SlideData } from "./slides";
 
 export const PRESENTATION_STYLES = [
   { key: "minimal", label: "Минимал" },
@@ -54,16 +56,38 @@ const presentationSchema = {
       items: {
         type: "OBJECT",
         properties: {
-          layout: { type: "STRING", enum: ["title", "bullets", "two_column", "highlight", "quiz", "closing"] },
+          layout: {
+            type: "STRING",
+            enum: ["title", "bullets", "image", "diagram", "chart", "table", "two_column", "highlight", "timeline", "quiz", "task", "closing"],
+          },
           heading: { type: "STRING" },
           subheading: { type: "STRING" },
           bullets: stringArray,
+          notes: { type: "STRING" },
+          image_prompt: { type: "STRING" },
+          diagram_type: { type: "STRING", enum: ["process", "cycle", "hierarchy"] },
+          diagram_nodes: stringArray,
+          chart_type: { type: "STRING", enum: ["bar", "pie"] },
+          chart_labels: stringArray,
+          chart_values: { type: "ARRAY", items: { type: "NUMBER" } },
+          chart_unit: { type: "STRING" },
+          table_headers: stringArray,
+          table_rows: { type: "ARRAY", items: { type: "OBJECT", properties: { cells: stringArray }, required: ["cells"] } },
           left_title: { type: "STRING" },
           left: stringArray,
           right_title: { type: "STRING" },
           right: stringArray,
           highlight: { type: "STRING" },
-          notes: { type: "STRING" },
+          timeline: {
+            type: "ARRAY",
+            items: { type: "OBJECT", properties: { label: { type: "STRING" }, text: { type: "STRING" } }, required: ["label", "text"] },
+          },
+          question: { type: "STRING" },
+          options: stringArray,
+          correct_index: { type: "INTEGER" },
+          explanation: { type: "STRING" },
+          task_text: { type: "STRING" },
+          answer: { type: "STRING" },
         },
         required: ["layout", "heading"],
       },
@@ -72,29 +96,78 @@ const presentationSchema = {
   required: ["title", "slides"],
 };
 
-export async function generatePresentation(topic: string, style: string, count: number) {
+const DECK_RULES = (count: number, styleLabel: string) => `Стиль: ${styleLabel}. Дәл ${count} слайд құрастыр.
+Мәтін қазақ тілінде (шет тілі пәні болмаса), қысқа, оқушыға түсінікті; бір слайдта бір идея; тармақ 12 сөзден аспасын.
+Презентация көрнекі әрі әртүрлі болсын — макеттерді араластыр:
+- "title" — бірінші слайд: heading, subheading, image_prompt.
+- "image" — тақырыптың негізгі нысанын көрсететін иллюстрация + 2–4 тармақ (bullets). image_prompt міндетті.
+- "diagram" — процесс/айналым/құрылым сызбасы: diagram_type ("process" — қадамдар тізбегі, "cycle" — айналым, "hierarchy" — бірінші түйін негізгі ұғым, қалғаны оның бөліктері) және diagram_nodes (3–6 қысқа түйін, әрқайсысы 1–4 сөз).
+- "table" — салыстыру не жіктеу кестесі: table_headers (2–4) және table_rows (3–5 жол, әрқайсысында cells).
+- "chart" — ТЕК тақырыпқа қатысты нақты, ғылыми белгілі сандар болса (мыс. ауаның құрамы: 78, 21, 1): chart_type ("bar"/"pie"), chart_labels, chart_values, chart_unit. Сан ойдан шығаруға ТЫЙЫМ САЛЫНАДЫ; сенімді дерек жоқ болса, chart қолданба.
+- "timeline" — тарихи оқиғалар не кезеңдер: timeline (3–5 элемент: label — жыл/кезең, text — қысқа сипаттама).
+- "highlight" — басты анықтама, ереже не формула (highlight өрісінде).
+- "two_column" — салыстыру: left_title/left және right_title/right.
+- "bullets" — қарапайым тармақтар (тек қажет болса).
+- "quiz" — бір тексеру сұрағы: question, 4 options, correct_index (0-ден), explanation.
+- "task" — практикалық тапсырма: task_text (шарты), bullets (орындау қадамдары, 2–4), answer (жауабы не үлгі шешім).
+- "closing" — соңғы слайд: қорытынды не рефлексия сұрағы (subheading).
+Талаптар: бірінші слайд — title, соңғысы — closing. Кемінде бір "image", бір "diagram", бір "table", бір "quiz" және бір "task" болсын (слайд саны жетсе). Тақырып тарихи болса — timeline қос.
+image_prompt ағылшынша жазылады: суретшіге арналған нақты сипаттама (не бейнеленеді, қандай бөліктер көрінеді), мәтінсіз.
+Әр слайдқа мұғалімге арналған қысқа "notes" жаз. Фактілер дұрыс болсын, ойдан шығарылған статистика қолданба.`;
+
+export async function generatePresentation(topic: string, style: string, count: number, planContext?: string) {
   const styleLabel = PRESENTATION_STYLES.find((s) => s.key === style)?.label ?? "Минимал";
-  const prompt = `Сен мұғалімдерге сабақ презентациясын құрастыратын әдіскер-дизайнерсің.
+  const prompt = `Сен мұғалімдерге сабақ презентациясын құрастыратын тәжірибелі әдіскер-дизайнерсің.
 Тақырып: ${topic}
-Стиль: ${styleLabel}
-Дәл ${count} слайд құрастыр. Мәтін қазақ тілінде (шет тілі пәні болмаса), қысқа, оқушыға түсінікті, бір слайдта бір идея.
-Макеттер: "title" (бірінші слайд), "bullets" (2–5 қысқа тармақ), "two_column" (салыстыру: left_title/left және right_title/right), "highlight" (басты анықтама не формула — highlight өрісінде), "quiz" (тексеру сұрақтары — bullets өрісінде), "closing" (соңғы слайд).
-Бірінші слайд — title, соңғысы — closing. Әр слайдқа мұғалімге арналған қысқа "notes" жаз. Ойдан шығарылған статистика қолданба.`;
+${planContext ? `Презентация мына қысқа мерзімді жоспарға (ҚМЖ) сай болсын — оның мақсаттарын, кезеңдерін, тапсырмаларын және құндылығын көрсет:\n"""\n${planContext}\n"""\n` : ""}${DECK_RULES(count, styleLabel)}`;
   const result = await aiGenerateJson<{ title: string; slides: Partial<SlideData>[] }>(prompt, presentationSchema);
-  const slides: SlideData[] = (result.slides ?? []).map((s) => ({
-    layout: s.layout ?? "bullets",
-    heading: s.heading ?? "",
-    subheading: s.subheading ?? "",
-    bullets: s.bullets ?? [],
-    left_title: s.left_title ?? "",
-    left: s.left ?? [],
-    right_title: s.right_title ?? "",
-    right: s.right ?? [],
-    highlight: s.highlight ?? "",
-    notes: s.notes ?? "",
-  }));
+  const slides = (result.slides ?? []).map((s) => normalizeSlide(s as Partial<SlideData> & Record<string, unknown>));
   if (slides.length === 0) throw new Error("AI слайд қайтармады. Қайталап көріңіз.");
   return { title: result.title || topic, slides };
+}
+
+/** ҚМЖ мазмұнын AI-ға берілетін қысқа мәтінге айналдырады. */
+export function planToContext(plan: LessonPlan): string {
+  const stageLines = plan.stages.map((st) => `${st.name} (${st.timeRange}): ${st.rows.flatMap((r) => r.teacherAction).slice(0, 3).join("; ")}`);
+  const taskLines = plan.tasks.map((t) => `${t.title}: ${t.condition.join(" ")}`);
+  return [
+    `Пән: ${plan.subject}; сынып: ${plan.grade}`,
+    `Оқу мақсаты: ${plan.objectiveCode} — ${plan.objectiveText}`,
+    `Сабақ мақсаттары: ${plan.goals.join("; ")}`,
+    `Құндылық: ${plan.valuesTitle} — ${plan.valuesText}`,
+    `Кезеңдер: ${stageLines.join(" | ")}`,
+    `Тапсырмалар: ${taskLines.join(" | ")}`,
+  ].join("\n").slice(0, 4000);
+}
+
+/** Презентация стиліне сай иллюстрация стилі. */
+const DECK_IMAGE_STYLE: Record<string, string> = { minimal: "iso", colorful: "flat", science: "realistic", kids: "flat" };
+
+/**
+ * title/image слайдтарына иллюстрация салады (ең көбі 4, бір уақытта 2 сұраныс — тегін Gemini
+ * лимитіне сыю үшін). Әр дайын сурет onSlide арқылы бірден көрсетіледі; қате болса, слайд суретсіз қалады.
+ */
+export async function illustrateSlides(
+  slides: SlideData[],
+  deckStyle: string,
+  onSlide: (index: number, svg: string) => void,
+): Promise<void> {
+  const style = DECK_IMAGE_STYLE[deckStyle] ?? "iso";
+  const queue = slides
+    .map((s, i) => ({ s, i }))
+    .filter(({ s }) => (s.layout === "title" || s.layout === "image") && s.image_prompt && !s.image_svg)
+    .slice(0, 4);
+  const worker = async () => {
+    for (let job = queue.shift(); job; job = queue.shift()) {
+      try {
+        const { svg } = await generateIllustration(`${job.s.image_prompt}. Leave generous empty margins; no text labels.`, style);
+        onSlide(job.i, svg);
+      } catch {
+        // сурет шықпаса, слайд безендірілген фонымен қалады
+      }
+    }
+  };
+  await Promise.all([worker(), worker()]);
 }
 
 /* ------------------------------------------------------------------- Сурет */

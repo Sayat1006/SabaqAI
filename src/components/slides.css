@@ -1,0 +1,144 @@
+/* Слайд көрінісі (карусель, толық экран, жобалар). Өлшемдер контейнер енінен (cqw) алынады,
+   сондықтан слайд кез келген өлшемде бірдей пропорциямен көрінеді. */
+
+.slide {
+  container-type: inline-size;
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  box-shadow: 0 30px 60px -22px rgba(27, 26, 46, .28);
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--s-accent) 12%, transparent), transparent 60%),
+    radial-gradient(90% 80% at 0% 100%, color-mix(in srgb, var(--s-accent2) 10%, transparent), transparent 60%),
+    var(--s-bg);
+  color: var(--s-ink);
+  font-family: "Times New Roman", Times, serif;
+}
+.slide-inner { position: absolute; inset: 0; z-index: 1; padding: 5.2cqw 6.4cqw 5.6cqw; display: flex; flex-direction: column; gap: 1.9cqw; }
+.slide.dark {
+  background:
+    radial-gradient(80% 90% at 85% 20%, color-mix(in srgb, var(--s-accent) 45%, transparent), transparent 60%),
+    radial-gradient(70% 70% at 10% 100%, color-mix(in srgb, var(--s-accent2) 40%, transparent), transparent 65%),
+    var(--s-dark);
+  color: #fff;
+}
+.slide.closing {
+  background:
+    radial-gradient(80% 90% at 15% 15%, rgba(255, 255, 255, .22), transparent 60%),
+    radial-gradient(70% 80% at 100% 100%, color-mix(in srgb, var(--s-accent) 55%, transparent), transparent 65%),
+    var(--s-accent2);
+  color: #fff;
+}
+.s-num { position: absolute; right: 2.4cqw; bottom: 1.6cqw; z-index: 2; font-size: 1.6cqw; opacity: .55; }
+
+/* типография */
+.s-kicker { font-size: 1.9cqw; letter-spacing: .3em; text-transform: uppercase; opacity: .75; margin-bottom: 1.2cqw; }
+.s-title { font-size: 5.8cqw; font-weight: 700; line-height: 1.1; }
+.s-sub { font-size: 2.4cqw; opacity: .85; margin-top: .6cqw; }
+.s-rule { width: 7cqw; height: .75cqw; border-radius: 1cqw; background: linear-gradient(90deg, var(--s-accent), var(--s-accent2)); }
+.s-h { font-size: 3.9cqw; font-weight: 700; line-height: 1.15; }
+.s-badge { align-self: flex-start; font-size: 1.7cqw; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .7cqw 1.6cqw; border-radius: 99px; background: var(--s-accent); color: #fff; box-shadow: 0 .8cqw 1.6cqw -.8cqw var(--s-accent); }
+
+.s-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 1.3cqw; font-size: 2.55cqw; line-height: 1.3; }
+.s-list li { position: relative; padding-left: 3.4cqw; }
+.s-list li::before { content: ''; position: absolute; left: .2cqw; top: .9cqw; width: 1.5cqw; height: 1.5cqw; border-radius: .4cqw; background: var(--s-accent); transform: rotate(45deg); box-shadow: .3cqw .3cqw 0 color-mix(in srgb, var(--s-accent) 45%, #000); }
+.s-light li::before { background: #fff; box-shadow: none; }
+.s-quiz { counter-reset: q; }
+.s-quiz li { counter-increment: q; padding-left: 4.6cqw; }
+.s-quiz li::before { display: none; }
+.s-quiz li::after { content: counter(q); position: absolute; left: 0; top: 0; width: 3.4cqw; height: 3.4cqw; border-radius: 50%; background: var(--s-accent2); color: #fff; font-size: 1.9cqw; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+
+/* титул */
+.s-hero { flex: 1; display: grid; grid-template-columns: 1.15fr 1fr; align-items: center; gap: 3cqw; }
+.s-hero-art { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; }
+.s-hero-art .s-img { width: 100%; max-height: 38cqw; border-radius: 2.4cqw; background: rgba(255, 255, 255, .92); box-shadow: 0 3cqw 5cqw -2cqw rgba(0, 0, 0, .45); transform: perspective(60cqw) rotateY(-12deg) rotateX(4deg); }
+.s-center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 1.6cqw; position: relative; z-index: 1; }
+
+/* сурет */
+.s-split { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1.05fr; gap: 3cqw; align-items: center; }
+.s-img-card { height: 100%; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.s-img { width: 100%; height: 100%; max-height: 34cqw; object-fit: contain; border-radius: 2cqw; background: #fff; box-shadow: 0 2.4cqw 4cqw -2cqw rgba(27, 26, 46, .35); transform: perspective(60cqw) rotateY(-8deg); }
+.s-img-pending { display: flex; align-items: center; justify-content: center; font-size: 1.9cqw; color: var(--s-ink); opacity: .7; background: linear-gradient(110deg, rgba(0, 0, 0, .04) 30%, rgba(255, 255, 255, .7) 50%, rgba(0, 0, 0, .04) 70%); background-size: 200% 100%; animation: s-shimmer 1.4s linear infinite; aspect-ratio: 4 / 3; }
+@keyframes s-shimmer { to { background-position: -200% 0; } }
+
+/* сызба / диаграмма */
+.s-figure { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; }
+.s-svg { width: 100%; height: 100%; max-height: 100%; overflow: visible; }
+
+/* кесте */
+.s-table-wrap { flex: 1; min-height: 0; display: flex; align-items: center; }
+.s-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 2.1cqw; line-height: 1.25; border-radius: 1.6cqw; overflow: hidden; box-shadow: 0 1.6cqw 3cqw -1.8cqw rgba(27, 26, 46, .35); background: #fff; }
+.s-table th { background: var(--s-dark); color: #fff; text-align: left; padding: 1.2cqw 1.6cqw; font-weight: 700; }
+.s-table th:first-child { background: var(--s-accent); }
+.s-table td { padding: 1.05cqw 1.6cqw; border-top: .15cqw solid rgba(0, 0, 0, .07); vertical-align: top; }
+.s-table tr:nth-child(even) td { background: color-mix(in srgb, var(--s-accent) 7%, #fff); }
+.s-table td:first-child { font-weight: 700; }
+
+/* екі баған */
+.s-cols { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2.6cqw; align-items: stretch; }
+.s-col { background: #fff; border-radius: 1.8cqw; padding: 2.2cqw 2.4cqw; border-top: .8cqw solid; box-shadow: 0 1.6cqw 3cqw -1.8cqw rgba(27, 26, 46, .3); }
+.s-col-t { font-size: 2.7cqw; font-weight: 700; margin-bottom: 1.2cqw; }
+
+/* анықтама */
+.s-highlight { flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; border-radius: 2.4cqw; background: #fff; color: var(--s-ink); font-size: 3.6cqw; font-weight: 700; padding: 3cqw; line-height: 1.3; border: .35cqw solid var(--s-accent); box-shadow: 1.2cqw 1.2cqw 0 color-mix(in srgb, var(--s-accent) 35%, transparent), 0 2cqw 4cqw -2cqw rgba(27, 26, 46, .35); }
+
+/* уақыт сызығы */
+.s-timeline { flex: 1; display: grid; align-items: center; position: relative; }
+.s-timeline::before { content: ''; position: absolute; left: 3%; right: 3%; top: 50%; height: .5cqw; border-radius: 1cqw; background: linear-gradient(90deg, var(--s-accent), var(--s-accent2)); }
+.s-tl-item { display: grid; grid-template-rows: 1fr auto 1fr; justify-items: center; text-align: center; gap: 1.2cqw; padding: 0 .8cqw; height: 100%; }
+.s-tl-label { align-self: end; font-size: 2.8cqw; font-weight: 700; }
+.s-tl-dot { width: 3cqw; height: 3cqw; border-radius: 50%; border: .6cqw solid #fff; position: relative; z-index: 1; box-shadow: 0 .6cqw 1.2cqw rgba(0, 0, 0, .25); }
+.s-tl-text { align-self: start; font-size: 1.9cqw; line-height: 1.3; }
+
+/* тест */
+.s-options { display: grid; grid-template-columns: 1fr 1fr; gap: 1.6cqw; margin-top: .6cqw; }
+.s-opt { display: flex; align-items: center; gap: 1.4cqw; text-align: left; font: inherit; font-size: 2.3cqw; color: var(--s-ink); background: #fff; border: .25cqw solid rgba(0, 0, 0, .08); border-radius: 1.6cqw; padding: 1.4cqw 1.8cqw; box-shadow: 0 1cqw 2cqw -1.4cqw rgba(27, 26, 46, .35); transition: transform .2s, border-color .2s, background .2s; }
+button.s-opt { cursor: pointer; }
+button.s-opt:hover { transform: translateY(-.3cqw); border-color: var(--s-accent); }
+.s-opt-l { flex: 0 0 auto; width: 3.6cqw; height: 3.6cqw; border-radius: 1cqw; background: var(--s-accent2); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.s-opt.ok { background: #e3f4ec; border-color: #2e8b57; }
+.s-opt.ok .s-opt-l { background: #2e8b57; }
+.s-opt.no { background: #fbe4e2; border-color: #c0392b; }
+.s-opt.no .s-opt-l { background: #c0392b; }
+.s-explain { font-size: 2cqw; background: color-mix(in srgb, var(--s-accent2) 12%, #fff); border-radius: 1.4cqw; padding: 1.2cqw 1.8cqw; }
+
+/* тапсырма */
+.s-task { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2.6cqw; align-items: start; }
+.s-task-text { font-size: 2.45cqw; line-height: 1.35; background: #fff; border-radius: 1.8cqw; padding: 2.2cqw; border-left: .9cqw solid var(--s-accent); box-shadow: 0 1.6cqw 3cqw -1.8cqw rgba(27, 26, 46, .3); }
+.s-steps { margin: 0; padding: 0; list-style: none; counter-reset: st; display: flex; flex-direction: column; gap: 1.2cqw; font-size: 2.2cqw; line-height: 1.3; }
+.s-steps li { counter-increment: st; position: relative; padding-left: 4.4cqw; }
+.s-steps li::before { content: counter(st); position: absolute; left: 0; top: -.2cqw; width: 3.2cqw; height: 3.2cqw; border-radius: 50%; background: var(--s-accent2); color: #fff; font-weight: 700; font-size: 1.8cqw; display: flex; align-items: center; justify-content: center; }
+.s-reveal { align-self: flex-start; font: inherit; font-size: 2cqw; font-weight: 700; color: #fff; background: var(--s-dark); border: 0; border-radius: 1.2cqw; padding: 1.1cqw 2.2cqw; cursor: pointer; }
+
+/* 3D безендіру: айналатын куб, шар және сақина (тек CSS, суретсіз) */
+.s-deco { position: absolute; right: -2cqw; top: -2cqw; width: 18cqw; height: 18cqw; z-index: 0; pointer-events: none; opacity: .5; perspective: 60cqw; }
+.s-deco.big { position: relative; right: auto; top: auto; width: 100%; height: 100%; min-height: 26cqw; opacity: 1; }
+.s-cube { position: absolute; left: 30%; top: 22%; width: 9cqw; height: 9cqw; transform-style: preserve-3d; animation: s-spin 14s linear infinite; }
+.s-deco.big .s-cube { left: 34%; top: 26%; width: 13cqw; height: 13cqw; }
+.s-cube span { position: absolute; inset: 0; border-radius: 1cqw; border: .2cqw solid rgba(255, 255, 255, .5); }
+.s-cube .f1 { background: var(--s-accent); transform: translateZ(4.5cqw); }
+.s-cube .f2 { background: color-mix(in srgb, var(--s-accent) 75%, #000); transform: rotateY(180deg) translateZ(4.5cqw); }
+.s-cube .f3 { background: color-mix(in srgb, var(--s-accent) 85%, #fff); transform: rotateY(90deg) translateZ(4.5cqw); }
+.s-cube .f4 { background: color-mix(in srgb, var(--s-accent) 80%, #000); transform: rotateY(-90deg) translateZ(4.5cqw); }
+.s-cube .f5 { background: color-mix(in srgb, var(--s-accent) 65%, #fff); transform: rotateX(90deg) translateZ(4.5cqw); }
+.s-cube .f6 { background: color-mix(in srgb, var(--s-accent) 70%, #000); transform: rotateX(-90deg) translateZ(4.5cqw); }
+.s-deco.big .s-cube .f1 { transform: translateZ(6.5cqw); }
+.s-deco.big .s-cube .f2 { transform: rotateY(180deg) translateZ(6.5cqw); }
+.s-deco.big .s-cube .f3 { transform: rotateY(90deg) translateZ(6.5cqw); }
+.s-deco.big .s-cube .f4 { transform: rotateY(-90deg) translateZ(6.5cqw); }
+.s-deco.big .s-cube .f5 { transform: rotateX(90deg) translateZ(6.5cqw); }
+.s-deco.big .s-cube .f6 { transform: rotateX(-90deg) translateZ(6.5cqw); }
+.s-sphere { position: absolute; left: 8%; bottom: 8%; width: 8cqw; height: 8cqw; border-radius: 50%; background: radial-gradient(circle at 32% 30%, #fff, color-mix(in srgb, var(--s-accent2) 80%, #fff) 25%, var(--s-accent2) 60%, color-mix(in srgb, var(--s-accent2) 60%, #000)); box-shadow: 0 2cqw 3cqw -1cqw rgba(0, 0, 0, .35); animation: s-float 5s ease-in-out infinite; }
+.s-deco.big .s-sphere { width: 10cqw; height: 10cqw; left: 12%; bottom: 14%; }
+.s-ring { position: absolute; right: 8%; top: 8%; width: 10cqw; height: 10cqw; border-radius: 50%; border: 1.4cqw solid color-mix(in srgb, var(--s-accent) 70%, #fff); transform: rotateX(62deg) rotateZ(20deg); box-shadow: 0 0 0 .3cqw rgba(255, 255, 255, .25) inset; animation: s-tilt 7s ease-in-out infinite; }
+.s-deco.big .s-ring { width: 14cqw; height: 14cqw; right: 10%; top: 12%; }
+@keyframes s-spin { from { transform: rotateX(-22deg) rotateY(0); } to { transform: rotateX(-22deg) rotateY(360deg); } }
+@keyframes s-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.4cqw); } }
+@keyframes s-tilt { 0%, 100% { transform: rotateX(62deg) rotateZ(20deg); } 50% { transform: rotateX(55deg) rotateZ(40deg); } }
+.slide.closing .s-deco.big { position: absolute; inset: 0; opacity: .55; }
+.slide.closing .s-deco.big .s-cube { left: 7%; top: 10%; }
+.slide.closing .s-deco.big .s-sphere { left: auto; right: 9%; bottom: 12%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .s-cube, .s-sphere, .s-ring, .s-img-pending { animation: none; }
+}

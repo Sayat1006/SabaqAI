@@ -5,18 +5,8 @@
 import type { LessonPlan } from "./generators";
 import { supabase } from "./supabaseClient";
 
-export interface SlideData {
-  layout: "title" | "bullets" | "two_column" | "highlight" | "quiz" | "closing";
-  heading: string;
-  subheading: string;
-  bullets: string[];
-  left_title: string;
-  left: string[];
-  right_title: string;
-  right: string[];
-  highlight: string;
-  notes: string;
-}
+export type { SlideData } from "./slides";
+import type { SlideData } from "./slides";
 
 export interface TestQuestion {
   question: string;
