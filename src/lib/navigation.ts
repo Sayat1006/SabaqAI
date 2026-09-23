@@ -1,4 +1,4 @@
-import { ClipboardList, FileCheck2, Image, Presentation, type LucideIcon } from "lucide-react";
+import { ClipboardList, FileCheck2, Image, Presentation, Timer, type LucideIcon } from "lucide-react";
 
 export interface Tool {
   to: string;
@@ -8,7 +8,7 @@ export interface Tool {
   description: string;
 }
 
-/** AI Nur-дың төрт құралы: бүйір мәзір, жоғарғы мәзір және басты беттегі карталар осыдан құрылады. */
+/** AI Nur құралдары: бүйір мәзір, жоғарғы мәзір және басты беттегі карталар осыдан құрылады. */
 export const tools: Tool[] = [
   {
     to: "/qmzh",
@@ -37,5 +37,12 @@ export const tools: Tool[] = [
     short: "Тапсырмалар",
     icon: FileCheck2,
     description: "Деңгейлік тест, PISA, ҰБТ, БЖБ/ТЖБ және шығармашылық тапсырмаларды құрастырыңыз.",
+  },
+  {
+    to: "/tools",
+    label: "Сабақ құралдары",
+    short: "Құралдар",
+    icon: Timer,
+    description: "Таймер, кездейсоқ оқушы таңдау және топқа бөлу — тақтаға толық экранда.",
   },
 ];

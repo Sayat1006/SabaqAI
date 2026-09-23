@@ -12,6 +12,7 @@ import ProfilePage from "./pages/Profile";
 import ProjectsPage from "./pages/Projects";
 import QmzhPage from "./pages/Qmzh";
 import TakeTestPage from "./pages/TakeTest";
+import ClassToolsPage from "./pages/ClassTools";
 import TestsPage from "./pages/Tests";
 
 export default function App() {
@@ -30,6 +31,7 @@ export default function App() {
             <Route path="presentation" element={<PresentationPage />} />
             <Route path="images" element={<ImagesPage />} />
             <Route path="tests" element={<TestsPage />} />
+            <Route path="tools" element={<ClassToolsPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
