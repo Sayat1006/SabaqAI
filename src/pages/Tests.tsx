@@ -7,6 +7,7 @@ import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
 import type { LessonPlan } from "../lib/generators";
 import { getTest, saveTest, type SavedTest, type TaskType } from "../lib/projects";
+import { scrollToResult } from "../lib/scrollToResult";
 import {
   DIFFICULTIES,
   generateTest,
@@ -93,6 +94,7 @@ export default function TestsPage() {
 
   const runGenerate = useCallback(async () => {
     setGenerating(true);
+    scrollToResult();
     setError("");
     try {
       const goal = objective.trim();
@@ -305,7 +307,7 @@ export default function TestsPage() {
           </button>
         </form>
 
-        <section className="min-w-0 flex-[1_1_560px]" aria-live="polite">
+        <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white">
               <Sparkles size={34} className="animate-spin text-violet-500" />

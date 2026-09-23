@@ -92,7 +92,7 @@ export function DashboardLayout() {
 }
 
 const topLink = ({ isActive }: { isActive: boolean }) =>
-  `rounded-[11px] px-4 py-2 text-[13.5px] font-semibold whitespace-nowrap transition-colors ${
+  `rounded-[11px] px-2 py-2 text-center text-[13px] font-semibold whitespace-nowrap transition-colors sm:px-4 sm:text-[13.5px] ${
     isActive ? "bg-navy-900 text-white" : "text-slate-500 hover:bg-violet-100 hover:text-violet-700"
   }`;
 
@@ -107,7 +107,7 @@ function Topbar({ admin = false }: { admin?: boolean }) {
       </NavLink>
       <nav
         aria-label={admin ? "Әкімші мәзірі" : "Құралдар"}
-        className="order-3 flex w-full gap-1 overflow-x-auto rounded-[14px] border border-slate-200 bg-white p-1 md:order-none md:w-auto"
+        className={`order-3 grid w-full gap-1 rounded-[14px] border border-slate-200 bg-white p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto ${admin ? "grid-cols-2" : "grid-cols-3"}`}
       >
         {admin ? (
           <>

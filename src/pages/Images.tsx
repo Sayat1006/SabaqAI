@@ -6,6 +6,7 @@ import { downloadBlob } from "../lib/downloadBlob";
 import { deleteProject, getImages, saveImage, svgDataUrl, type SavedImage } from "../lib/projects";
 import { useLoad } from "../lib/useLoad";
 import { generateIllustration, IMAGE_STYLES } from "../lib/studio";
+import { scrollToResult } from "../lib/scrollToResult";
 
 const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").trim() || "ai-nur";
 
@@ -59,6 +60,7 @@ export default function ImagesPage() {
       return;
     }
     setGenerating(true);
+    scrollToResult();
     setError("");
     try {
       const result = await generateIllustration(prompt.trim(), style);
@@ -140,7 +142,7 @@ export default function ImagesPage() {
         {images.length > 0 && <span className="text-[13.5px] text-slate-500">{images.length} сурет</span>}
       </div>
 
-      <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5" aria-live="polite">
+      <div id="result" className="mt-6 grid scroll-mt-28 grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5" aria-live="polite">
         {generating && (
           <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-white">
             <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2.5 bg-slate-50">

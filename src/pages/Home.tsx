@@ -44,8 +44,8 @@ function greeting(): string {
 function Stat({ value, label }: { value: number; label: string }) {
   const animated = useCountUp(value, 900);
   return (
-    <div className="flex-[1_1_200px] rounded-[18px] border border-slate-200 bg-white px-6 py-5">
-      <div className="text-[28px] font-bold">{animated}</div>
+    <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5">
+      <div className="text-[24px] font-bold sm:text-[28px]">{animated}</div>
       <div className="mt-1 text-[13.5px] text-slate-500">{label}</div>
     </div>
   );
@@ -203,7 +203,7 @@ export default function Home() {
           </div>
 
           {/* Статистика */}
-          <div className="flex flex-wrap gap-5">
+          <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
             <Stat value={stats.qmzh} label="жасалған ҚМЖ жоспары" />
             <Stat value={stats.slides} label="құрастырылған слайд" />
             <Stat value={stats.images} label="генерацияланған сурет" />
