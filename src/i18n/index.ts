@@ -30,7 +30,7 @@ export const uiLang: UiLang = read();
 const DICTS: Record<Exclude<UiLang, "kk">, Record<string, string>> = { ru, en };
 
 /** Аударма. {name} түріндегі орындарға vars мәндері қойылады. */
-export function t(key: string, vars?: Record<string, string | number>): string {
+export function tr(key: string, vars?: Record<string, string | number>): string {
   const s = uiLang === "kk" ? key : (DICTS[uiLang][key] ?? key);
   return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : s;
 }
