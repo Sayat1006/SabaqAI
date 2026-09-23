@@ -2,7 +2,8 @@ import { Maximize, Minimize, Pause, Play, Plus, RotateCcw, Shuffle, Sparkles, Tr
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 
-// Сабақ кезінде тақтаға (проекторға) шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу.
+// Сабақ кезінде тақтаға (проекторға) шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу,
+// бағдаршам, шу өлшегіш, рефлексия.
 // Сынып тізімдері тек осы құрылғының браузерінде сақталады.
 
 const card = "rounded-3xl border border-slate-200 bg-white p-5 sm:p-6";
@@ -434,6 +435,298 @@ function GroupMaker({ students }: { students: string[] }) {
   );
 }
 
+/* -------------------------------------------------------------- бағдаршам */
+
+const LIGHTS = [
+  { key: "green", emoji: "🟢", label: "Түсіндім", bar: "bg-emerald-500", tile: "bg-emerald-50 border-emerald-200 hover:border-emerald-400" },
+  { key: "yellow", emoji: "🟡", label: "Сұрағым бар", bar: "bg-amber-400", tile: "bg-amber-50 border-amber-200 hover:border-amber-400" },
+  { key: "red", emoji: "🔴", label: "Көмек керек", bar: "bg-rose-500", tile: "bg-rose-50 border-rose-200 hover:border-rose-400" },
+] as const;
+
+type LightKey = (typeof LIGHTS)[number]["key"];
+
+function TrafficLight() {
+  const { ref, full, toggle } = useFullscreen();
+  const [counts, setCounts] = useState<Record<LightKey, number>>({ green: 0, yellow: 0, red: 0 });
+  const [question, setQuestion] = useState("");
+  const total = counts.green + counts.yellow + counts.red;
+  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+  const add = (k: LightKey, d: number) => setCounts((c) => ({ ...c, [k]: Math.max(0, c[k] + d) }));
+
+  return (
+    <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "justify-center !rounded-none !border-0 p-10" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">🚦 Бағдаршам</h2>
+        <FullButton full={full} onClick={toggle} />
+      </div>
+      {full ? (
+        question && <div className="text-center text-4xl font-bold">{question}</div>
+      ) : (
+        <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Сұрақ немесе тақырып (міндетті емес)" aria-label="Бағдаршам сұрағы" className={field} />
+      )}
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {LIGHTS.map((l) => (
+          <div key={l.key} className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => add(l.key, 1)}
+              aria-label={`${l.label}: +1`}
+              className={`flex flex-col items-center gap-1 rounded-2xl border-2 px-1 py-3 transition active:scale-95 ${l.tile}`}
+            >
+              <span className={full ? "text-7xl" : "text-4xl"}>{l.emoji}</span>
+              <span className={`font-bold tabular-nums ${full ? "text-7xl" : "text-3xl"}`}>{counts[l.key]}</span>
+              <span className={`text-center font-semibold ${full ? "text-2xl" : "text-xs sm:text-sm"}`}>{l.label}</span>
+            </button>
+            <button type="button" onClick={() => add(l.key, -1)} disabled={!counts[l.key]} aria-label={`${l.label}: −1`} className="rounded-lg py-1 text-sm text-slate-500 hover:bg-slate-100 disabled:opacity-40">
+              −1
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-col gap-2" aria-label="Нәтиже пайызы">
+        {LIGHTS.map((l) => (
+          <div key={l.key} className={`flex items-center gap-3 ${full ? "text-2xl" : "text-sm"}`}>
+            <span className="w-6 text-center">{l.emoji}</span>
+            <div className={`flex-1 overflow-hidden rounded-full bg-slate-100 ${full ? "h-6" : "h-3"}`}>
+              <div className={`h-full rounded-full transition-all duration-300 ${l.bar}`} style={{ width: `${pct(counts[l.key])}%` }} />
+            </div>
+            <span className="w-12 text-right font-bold tabular-nums">{pct(counts[l.key])}%</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm text-slate-500">Барлығы: {total} оқушы</span>
+        <button type="button" onClick={() => setCounts({ green: 0, yellow: 0, red: 0 })} disabled={!total} className={btn}>
+          <RotateCcw size={15} /> Тазалау
+        </button>
+      </div>
+      {!full && total > 0 && counts.red + counts.yellow > counts.green && (
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Оқушылардың көбі әлі толық түсінбеді — тақырыпты басқа мысалмен қайта түсіндірген дұрыс.</p>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------ шу өлшегіш */
+
+// Микрофон дыбысы тек осы құрылғыда өлшенеді, еш жерге жазылмайды және жіберілмейді.
+function NoiseMeter() {
+  const { ref, full, toggle } = useFullscreen();
+  const [on, setOn] = useState(false);
+  const [level, setLevel] = useState(0);
+  const [limit, setLimit] = useState(60);
+  const [loud, setLoud] = useState(false);
+  const [error, setError] = useState("");
+  const stop = useRef<(() => void) | null>(null);
+  const limitRef = useRef(limit);
+
+  useEffect(() => {
+    limitRef.current = limit;
+  }, [limit]);
+  useEffect(() => () => stop.current?.(), []);
+
+  async function start() {
+    setError("");
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Бұл браузер микрофонды қолдамайды. Chrome немесе Safari-дің жаңа нұсқасын қолданыңыз.");
+      return;
+    }
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+    } catch (e) {
+      const name = e instanceof DOMException ? e.name : "";
+      setError(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? "Микрофонға рұқсат берілмеді. Браузердің мекенжай жолағындағы 🔒 белгісін басып, микрофонға рұқсат беріңіз."
+          : name === "NotFoundError"
+            ? "Микрофон табылмады. Құрылғыға микрофон жалғаңыз."
+            : "Микрофонды қосу мүмкін болмады.",
+      );
+      return;
+    }
+    const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new Ctx();
+    // Кейбір браузерлер (әсіресе iOS Safari) AudioContext-ті тоқтатулы күйде ашады.
+    if (ctx.state === "suspended") await ctx.resume().catch(() => undefined);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    ctx.createMediaStreamSource(stream).connect(analyser);
+    const buf = new Float32Array(analyser.fftSize);
+    let smooth = 0;
+    let over = 0;
+    const id = window.setInterval(() => {
+      analyser.getFloatTimeDomainData(buf);
+      let sum = 0;
+      for (const v of buf) sum += v * v;
+      const db = 20 * Math.log10(Math.sqrt(sum / buf.length) || 1e-8);
+      // −70 дБ (тыныш) … −10 дБ (өте шулы) → 0…100
+      const value = Math.min(100, Math.max(0, ((db + 70) / 60) * 100));
+      smooth = smooth * 0.7 + value * 0.3;
+      setLevel(Math.round(smooth));
+      over = smooth > limitRef.current ? Math.min(over + 1, 20) : Math.max(over - 1, 0);
+      setLoud(over >= 6);
+    }, 100);
+    stop.current = () => {
+      window.clearInterval(id);
+      stream.getTracks().forEach((t) => t.stop());
+      void ctx.close();
+      stop.current = null;
+    };
+    setOn(true);
+  }
+
+  function turnOff() {
+    stop.current?.();
+    setOn(false);
+    setLevel(0);
+    setLoud(false);
+  }
+
+  const face = !on ? "🎙️" : loud ? "🙉" : level > limit * 0.75 ? "😐" : "😊";
+  const barColor = level > limit ? "bg-rose-500" : level > limit * 0.75 ? "bg-amber-400" : "bg-emerald-500";
+
+  return (
+    <div
+      ref={ref}
+      className={`${card} flex flex-col gap-4 transition-colors ${loud ? "!border-rose-300 !bg-rose-50" : ""} ${full ? "items-center justify-center !rounded-none !border-0" : ""}`}
+    >
+      <div className="flex w-full items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">🔊 Шу өлшегіш</h2>
+        <FullButton full={full} onClick={toggle} />
+      </div>
+      <div className={`text-center ${full ? "text-[22vh]" : "text-7xl"}`} aria-hidden>
+        {face}
+      </div>
+      <div className={`text-center font-bold ${loud ? "animate-pulse text-rose-600" : "text-slate-700"} ${full ? "text-6xl" : "text-xl"}`} aria-live="polite">
+        {!on ? "Микрофон өшірулі" : loud ? "Тынышырақ, өтінем!" : level > limit * 0.75 ? "Сәл тынышырақ" : "Жақсы, тыныш"}
+      </div>
+      <div className={`relative w-full overflow-hidden rounded-full bg-slate-100 ${full ? "h-12 max-w-[80vw]" : "h-6"}`} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={level} aria-label="Шу деңгейі">
+        <div className={`h-full rounded-full transition-[width] duration-100 ${barColor}`} style={{ width: `${level}%` }} />
+        <div className="absolute top-0 h-full w-1 bg-slate-800" style={{ left: `${limit}%` }} title="Шек" />
+      </div>
+      <div className="flex flex-wrap justify-center gap-2">
+        {on ? (
+          <button type="button" onClick={turnOff} className={primary}>
+            <Pause size={16} /> Тоқтату
+          </button>
+        ) : (
+          <button type="button" onClick={start} className={primary}>
+            <Play size={16} /> Бастау
+          </button>
+        )}
+      </div>
+      {!full && (
+        <>
+          <label className="flex items-center gap-3 text-sm">
+            <span className="shrink-0 text-slate-500">Шек: {limit}</span>
+            <input type="range" min={20} max={95} value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="w-full accent-violet-600" aria-label="Шу шегі" />
+          </label>
+          {error ? (
+            <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
+          ) : (
+            <p className="text-xs text-slate-500">Сынып шуы қара сызықтан асса, экран қызарып ескертеді. Дыбыс жазылмайды және ешқайда жіберілмейді.</p>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* -------------------------------------------------------------- рефлексия */
+
+const REFLECTIONS = [
+  { name: "Екі жұлдыз, бір тілек", prompts: ["⭐ Сабақта маған ұнағаны…", "⭐ Бүгін мен жақсы орындадым…", "🙏 Келесі сабақта қалайтыным…"] },
+  { name: "Аяқталмаған сөйлем", prompts: ["Бүгін мен білдім…", "Маған қиын болды…", "Енді мен … аламын", "Мені таң қалдырғаны…"] },
+  { name: "3-2-1", prompts: ["3️⃣ Бүгін білген үш жаңа нәрсе", "2️⃣ Маған қызық болған екі дерек", "1️⃣ Әлі де қойғым келетін бір сұрақ"] },
+  {
+    name: "Бес саусақ",
+    prompts: ["👍 Бас бармақ — маған не ұнады?", "☝️ Сұқ саусақ — не үйрендім?", "✋ Ортаңғы саусақ — көңіл-күйім қандай болды?", "💍 Атсыз саусақ — кімге көмектестім, маған кім көмектесті?", "🤙 Шынашақ — әлі не білгім келеді?"],
+  },
+  { name: "Бағдаршам", prompts: ["🟢 Бәрін түсіндім, өзгелерге түсіндіре аламын", "🟡 Түсіндім, бірақ сұрақтарым бар", "🔴 Түсінбедім, көмек керек"] },
+  { name: "Бір сөзбен", prompts: ["Бүгінгі сабақты бір сөзбен сипаттаңыз", "Бүгінгі көңіл-күйіңізді бір сөзбен айтыңыз"] },
+];
+
+const QUESTIONS = [
+  "Бүгінгі сабақтың ең маңызды ойы не болды?",
+  "Бүгінгі білімді өмірде қай жерде қолданасыз?",
+  "Қай тапсырма ең қиын болды? Неліктен?",
+  "Бүгін сыныптасыңыздан не үйрендіңіз?",
+  "Тақырыпты інішегіңізге қалай түсіндірер едіңіз?",
+  "Сабақта өзіңізді қалай бағалайсыз: 1-ден 5-ке дейін? Неге?",
+  "Келесі сабақта нені қайталағыңыз келеді?",
+  "Бүгінгі сабақта не сізді таң қалдырды?",
+  "Қателескен жеріңіз болды ма? Одан не түйдіңіз?",
+  "Бүгінгі тақырып бойынша өзіңізге бір сұрақ қойыңыз.",
+  "Бүгін қандай дағдыңыз дамыды?",
+  "Сабақты жақсарту үшін мұғалімге не ұсынар едіңіз?",
+];
+
+function Reflection() {
+  const { ref, full, toggle } = useFullscreen();
+  const [idx, setIdx] = useState(0);
+  const [question, setQuestion] = useState("");
+  const tech = REFLECTIONS[idx];
+
+  function randomQuestion() {
+    const rest = QUESTIONS.filter((q) => q !== question);
+    setQuestion(rest[Math.floor(Math.random() * rest.length)]);
+  }
+
+  return (
+    <div ref={ref} className={`${card} flex flex-col gap-4 lg:col-span-2 ${full ? "justify-center !rounded-none !border-0 p-12" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">💬 Рефлексия</h2>
+        <FullButton full={full} onClick={toggle} />
+      </div>
+      {!full && (
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Рефлексия әдісі">
+          {REFLECTIONS.map((r, i) => (
+            <button
+              key={r.name}
+              type="button"
+              aria-pressed={idx === i}
+              onClick={() => {
+                setIdx(i);
+                setQuestion("");
+              }}
+              className={`rounded-full border px-3 py-1.5 text-sm ${idx === i ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 hover:border-violet-500"}`}
+            >
+              {r.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {question ? (
+        <div className={`rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 px-5 py-8 text-center font-bold ${full ? "text-6xl leading-tight" : "text-2xl"}`} aria-live="polite">
+          {question}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-3">
+          <div className={`text-center font-bold text-violet-700 ${full ? "text-5xl" : "text-xl"}`}>«{tech.name}»</div>
+          <div className={`grid gap-3 ${tech.prompts.length > 3 ? "sm:grid-cols-2" : ""}`}>
+            {tech.prompts.map((p) => (
+              <div key={p} className={`rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4 font-semibold ${full ? "text-4xl" : "text-lg"}`}>
+                {p}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+      <div className="flex flex-wrap justify-center gap-2">
+        <button type="button" onClick={randomQuestion} className={primary}>
+          <Shuffle size={16} /> Кездейсоқ сұрақ
+        </button>
+        {question && (
+          <button type="button" onClick={() => setQuestion("")} className={btn}>
+            «{tech.name}» әдісіне оралу
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- бет */
 
 export default function ClassToolsPage() {
@@ -451,13 +744,16 @@ export default function ClassToolsPage() {
       <PageHeader
         crumb="Сабақ құралдары"
         title="Сабақ құралдары"
-        subtitle="Сабақ кезінде тақтаға шығаратын құралдар: таймер, кездейсоқ оқушы таңдау және топқа бөлу. «Толық экран» батырмасымен проекторға үлкейтіп көрсетіңіз."
+        subtitle="Сабақ кезінде тақтаға шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, шу өлшегіш және рефлексия. «Толық экран» батырмасымен проекторға үлкейтіп көрсетіңіз."
       />
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <Timer />
         <ClassListEditor key={activeId} lists={lists} activeId={activeId} onSelect={setActiveId} onChange={change} />
         <RandomPicker key={`p-${activeId}`} students={students} />
         <GroupMaker key={`g-${activeId}`} students={students} />
+        <TrafficLight />
+        <NoiseMeter />
+        <Reflection />
       </div>
     </div>
   );
