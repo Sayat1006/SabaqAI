@@ -157,10 +157,21 @@ export async function getAudit(): Promise<AuditEntry[]> {
   }));
 }
 
+const isFetchError = (e: unknown) => (e as { name?: string } | null)?.name === "FunctionsFetchError";
+
 async function callAdminAction<T>(action: string, payload: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("admin-actions", {
-    body: { action, ...payload },
-  });
+  const invoke = () => supabase.functions.invoke("admin-actions", { body: { action, ...payload } });
+  let { data, error } = await invoke();
+  // Байланыс бір рет үзілсе (мыс. функция «суық» іске қосылғанда) — қайта көреміз.
+  if (isFetchError(error)) {
+    await new Promise((r) => setTimeout(r, 1500));
+    ({ data, error } = await invoke());
+  }
+  if (isFetchError(error)) {
+    throw new Error(
+      "Сервер функциясына (admin-actions) қосылу мүмкін болмады. Supabase → Edge Functions бөлімінде «admin-actions» функциясы жарияланғанын тексеріңіз (supabase/README.md, 4-қадам).",
+    );
+  }
   if (error) {
     let message = error.message;
     const context = (error as { context?: Response }).context;

@@ -2,10 +2,12 @@ import { ClipboardList, Download, ListChecks, Presentation, Printer, RotateCcw, 
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { PlanningTable, ResourcesSection, TaskBlock, VocabularyTable } from "../components/QmzhSections";
 import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
-import { generateLessonPlan, type LessonPlan, type QmzhTask } from "../lib/generators";
-import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, type SavedQmzh } from "../lib/projects";
+import { generateLessonPlan, LESSON_TYPES, TASK_KINDS, type LessonPlan } from "../lib/generators";
+import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, updateQmzh, type SavedQmzh } from "../lib/projects";
+import type { QmzhResource } from "../lib/resources";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 
@@ -40,113 +42,6 @@ function ActionList({ items }: { items: string[] }) {
   );
 }
 
-function TaskBlock({ task }: { task: QmzhTask }) {
-  return (
-    <div className="mt-8 border-t-2 border-violet-200 pt-6 print:break-before-page">
-      <h3 className="mb-3 text-xl font-semibold text-slate-900">{task.title}</h3>
-
-      <p className="mb-1 font-semibold text-violet-700">Шарты:</p>
-      <div className="mb-4 space-y-1 text-sm text-slate-700">
-        {task.condition.map((c, i) => (
-          <p key={i}>{c}</p>
-        ))}
-      </div>
-
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{task.tableTitle}</p>
-      <div className="mb-4 overflow-x-auto rounded-lg border border-violet-100">
-        <table className="w-full text-sm">
-          <thead className="bg-violet-50 text-slate-600">
-            <tr>
-              {task.tableHeaders.map((h) => (
-                <th key={h} className="px-3 py-2 text-left font-medium">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {task.tableRows.map((row, ri) => (
-              <tr key={ri} className="border-t border-violet-50">
-                {row.map((cell, ci) => (
-                  <td key={ci} className="px-3 py-2 text-slate-700">
-                    {cell || " "}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="mb-1 font-semibold text-violet-700">Орындау қадамдары:</p>
-      <div className="mb-4 text-sm text-slate-700">
-        <ActionList items={task.steps} />
-      </div>
-
-      <p className="mb-1 font-semibold text-violet-700">Бағалау критерийлері мен дескрипторлары</p>
-      <div className="mb-4 overflow-x-auto rounded-lg border border-violet-100">
-        <table className="w-full text-sm">
-          <thead className="bg-violet-50 text-slate-600">
-            <tr>
-              <th className="px-3 py-2 text-left font-medium">Бағалау критерийі</th>
-              <th className="px-3 py-2 text-left font-medium">Дескрипторлар</th>
-              <th className="w-16 px-3 py-2 text-left font-medium">Ұпай</th>
-            </tr>
-          </thead>
-          <tbody>
-            {task.criteria.map((c, ci) =>
-              c.descriptors.map((d, di) => (
-                <tr key={`${ci}-${di}`} className="border-t border-violet-50">
-                  {di === 0 && (
-                    <td
-                      className="px-3 py-2 align-top text-slate-800"
-                      rowSpan={c.descriptors.length}
-                    >
-                      {c.criterion}
-                    </td>
-                  )}
-                  <td className="px-3 py-2 text-slate-700">{d}</td>
-                  <td className="px-3 py-2 text-slate-400"></td>
-                </tr>
-              )),
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      <p className="mb-1 font-semibold text-violet-700">Саралау</p>
-      <p className="mb-4 text-sm text-slate-700">{task.differentiation}</p>
-
-      <p className="mb-1 font-semibold text-violet-700">Күтілетін нәтиже</p>
-      <div className="mb-2 overflow-x-auto rounded-lg border border-violet-100">
-        <table className="w-full text-sm">
-          <thead className="bg-violet-50 text-slate-600">
-            <tr>
-              {task.tableHeaders.map((h) => (
-                <th key={h} className="px-3 py-2 text-left font-medium">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {task.expectedResultRows.map((row, ri) => (
-              <tr key={ri} className="border-t border-violet-50">
-                {row.map((cell, ci) => (
-                  <td key={ci} className="px-3 py-2 text-slate-700">
-                    {cell || " "}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <p className="text-sm text-slate-700">{task.expectedConclusion}</p>
-    </div>
-  );
-}
-
 export default function QmzhPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -159,12 +54,20 @@ export default function QmzhPage() {
   const [date, setDate] = useState("");
   const [objectivesInput, setObjectivesInput] = useState("");
   const [plan, setPlan] = useState<LessonPlan | null>(null);
+  const [planId, setPlanId] = useState<string | null>(null);
+  const [lessonType, setLessonType] = useState<string>(LESSON_TYPES[0]);
+  const [taskKinds, setTaskKinds] = useState<string[]>(["Жұптық жұмыс", "Топтық жұмыс", "Функционалдық сауаттылық"]);
+  const [taskCount, setTaskCount] = useState(3);
+  const [notes, setNotes] = useState("");
+  const [savingResources, setSavingResources] = useState(false);
   const [exportingDocx, setExportingDocx] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
   const [history, setHistory] = useState<SavedQmzh[]>([]);
 
-  function fillForm(p: LessonPlan) {
+  function fillForm(p: LessonPlan, id: string | null = null) {
+    setPlanId(id);
+    if (p.lessonType) setLessonType(p.lessonType);
     setSubject(p.subject);
     setGrade(p.grade);
     setTopic(p.topic);
@@ -186,7 +89,7 @@ export default function QmzhPage() {
   useEffect(() => {
     if (!openedId) return;
     getQmzh(openedId)
-      .then((entry) => entry && fillForm(entry.plan))
+      .then((entry) => entry && fillForm(entry.plan, entry.id))
       .catch((e) => setError(e instanceof Error ? e.message : "Жоспарды ашу мүмкін болмады."));
   }, [openedId]);
 
@@ -200,10 +103,17 @@ export default function QmzhPage() {
     setGenerating(true);
     setError("");
     try {
-      const newPlan = await generateLessonPlan(subject, grade, topic.trim(), duration, teacherName.trim(), date.trim(), objectivesInput.trim());
+      const newPlan = await generateLessonPlan(subject, grade, topic.trim(), duration, teacherName.trim(), date.trim(), objectivesInput.trim(), {
+        lessonType,
+        taskKinds,
+        taskCount,
+        notes: notes.trim(),
+      });
       setPlan(newPlan);
+      setPlanId(null);
       try {
         const saved = await saveQmzh(newPlan);
+        setPlanId(saved.id);
         setHistory((h) => [saved, ...h].slice(0, 8));
       } catch (err) {
         setError(err instanceof Error ? `Жоспар дайын, бірақ сақталмады: ${err.message}` : "Жоспар сақталмады.");
@@ -213,6 +123,26 @@ export default function QmzhPage() {
     } finally {
       setGenerating(false);
     }
+  }
+
+  async function changeResources(next: QmzhResource[]) {
+    if (!plan) return;
+    const updated = { ...plan, resources: next };
+    setPlan(updated);
+    if (!planId) return;
+    setSavingResources(true);
+    try {
+      await updateQmzh(planId, updated);
+      setHistory((h) => h.map((x) => (x.id === planId ? { ...x, plan: updated } : x)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Сілтемелер сақталмады.");
+    } finally {
+      setSavingResources(false);
+    }
+  }
+
+  function toggleKind(k: string) {
+    setTaskKinds((list) => (list.includes(k) ? list.filter((x) => x !== k) : [...list, k]));
   }
 
   async function handleDeleteHistory(id: string) {
@@ -281,6 +211,51 @@ export default function QmzhPage() {
                 className={`${fieldClass} resize-y`}
               />
             </FormField>
+            <FormField label="Сабақ түрі">
+              <select value={lessonType} onChange={(e) => setLessonType(e.target.value)} className={fieldClass}>
+                {LESSON_TYPES.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
+            </FormField>
+            <fieldset>
+              <legend className="mb-2 block text-[13px] font-semibold text-slate-500">Тапсырма түрлері</legend>
+              <div className="flex flex-wrap gap-1.5">
+                {TASK_KINDS.map((k) => {
+                  const on = taskKinds.includes(k);
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => toggleKind(k)}
+                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-violet-500"}`}
+                    >
+                      {k}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="mt-1.5 block text-xs text-slate-500">Таңдамасаңыз, AI өзі әртүрлі жұмыс түрлерін ұсынады.</span>
+            </fieldset>
+            <FormField label="Тапсырма саны">
+              <div className="grid grid-cols-4 gap-2">
+                {[2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    aria-pressed={taskCount === n}
+                    onClick={() => setTaskCount(n)}
+                    className={`min-h-10 rounded-xl border text-[13.5px] ${taskCount === n ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"}`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </FormField>
+            <FormField label="Қосымша тілек" hint="Міндетті емес: мыс. «STEM элементі болсын», «ерекше білім беру қажеттілігі бар оқушы бар».">
+              <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={`${fieldClass} resize-y`} />
+            </FormField>
             <FormField label="Педагогтің аты-жөні">
               <input value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder="мыс.: Айтбаев Саят" className={fieldClass} />
             </FormField>
@@ -315,7 +290,7 @@ export default function QmzhPage() {
                   <li key={entry.id} className="flex items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => fillForm(entry.plan)}
+                      onClick={() => fillForm(entry.plan, entry.id)}
                       className="min-w-0 flex-1 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-slate-50"
                     >
                       <span className="block truncate font-semibold">{entry.plan.topic}</span>
@@ -388,10 +363,25 @@ export default function QmzhPage() {
                         ))}
                       </ul>
                     </InfoRow>
+                    {plan.successCriteria && plan.successCriteria.length > 0 && (
+                      <InfoRow label="Бағалау критерийі">
+                        <ul className="list-disc space-y-1 pl-4">
+                          {plan.successCriteria.map((g, i) => (
+                            <li key={i}>{g}</li>
+                          ))}
+                        </ul>
+                      </InfoRow>
+                    )}
+                    {plan.lessonType && <InfoRow label="Сабақтың түрі">{plan.lessonType}</InfoRow>}
+                    {plan.methods && plan.methods.length > 0 && <InfoRow label="Әдіс-тәсілдер">{plan.methods.join(", ")}</InfoRow>}
                     <InfoRow label="Құндылықтарды дарыту">{plan.valuesText}</InfoRow>
+                    {plan.interdisciplinary && <InfoRow label="Пәнаралық байланыс">{plan.interdisciplinary}</InfoRow>}
+                    {plan.priorKnowledge && <InfoRow label="Алдыңғы білім">{plan.priorKnowledge}</InfoRow>}
                   </tbody>
                 </table>
               </div>
+
+              {plan.vocabulary && <VocabularyTable items={plan.vocabulary} />}
 
               <h3 className="mb-2 text-center text-lg font-bold">Сабақтың барысы</h3>
               <div className="mb-4 overflow-x-auto rounded-lg border border-violet-100">
@@ -435,8 +425,33 @@ export default function QmzhPage() {
               </div>
 
               {plan.tasks.map((task, i) => (
-                <TaskBlock key={i} task={task} />
+                <TaskBlock key={i} task={task} index={i} />
               ))}
+
+              {plan.planning && <PlanningTable planning={plan.planning} />}
+
+              {(plan.reflection?.length || plan.homework) && (
+                <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                  {plan.reflection && plan.reflection.length > 0 && (
+                    <div className="rounded-xl border border-violet-100 p-4">
+                      <div className="mb-1.5 font-semibold text-violet-700">Рефлексия</div>
+                      <ul className="list-disc space-y-1 pl-4 text-sm">
+                        {plan.reflection.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {plan.homework && (
+                    <div className="rounded-xl border border-violet-100 p-4">
+                      <div className="mb-1.5 font-semibold text-violet-700">Үй тапсырмасы</div>
+                      <p className="text-sm">{plan.homework}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <ResourcesSection resources={plan.resources ?? []} onChange={changeResources} saving={savingResources} />
 
               <div className="mt-8 flex flex-wrap gap-2.5 border-t border-slate-200 pt-5 print:hidden">
                 <button type="button" onClick={handleExportDocx} disabled={exportingDocx} className={ghost}>
@@ -455,6 +470,7 @@ export default function QmzhPage() {
                   type="button"
                   onClick={() => {
                     setPlan(null);
+                    setPlanId(null);
                     setTopic("");
                     setObjectivesInput("");
                     window.scrollTo({ top: 0, behavior: "smooth" });

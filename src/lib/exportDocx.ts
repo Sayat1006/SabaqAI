@@ -3,6 +3,7 @@ import {
   Bookmark,
   BorderStyle,
   Document,
+  ExternalHyperlink,
   Footer,
   HeadingLevel,
   Packer,
@@ -18,6 +19,7 @@ import {
 } from "docx";
 import { downloadBlob } from "./downloadBlob";
 import type { LessonPlan } from "./generators";
+import { platformKind, platformLabel } from "./resources";
 import type { SavedTest } from "./projects";
 
 // Ресми құжат конвенциясына сай: A4, Times New Roman, 1.5 жол аралығы,
@@ -187,7 +189,12 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
     labelRow("Сабақтың тақырыбы", [body(plan.topic)]),
     labelRow("Оқу бағдарламасына сәйкес оқыту мақсаттары", [body(`${plan.objectiveCode} — ${plan.objectiveText}`)]),
     labelRow("Сабақтың мақсаты", plan.goals.map((g) => bullet(g))),
+    ...(plan.successCriteria?.length ? [labelRow("Бағалау критерийі", plan.successCriteria.map((g) => bullet(g)))] : []),
+    ...(plan.lessonType ? [labelRow("Сабақтың түрі", [body(plan.lessonType)])] : []),
+    ...(plan.methods?.length ? [labelRow("Әдіс-тәсілдер", [body(plan.methods.join(", "))])] : []),
     labelRow("Құндылықтарды дарыту", [body(plan.valuesText)]),
+    ...(plan.interdisciplinary ? [labelRow("Пәнаралық байланыс", [body(plan.interdisciplinary)])] : []),
+    ...(plan.priorKnowledge ? [labelRow("Алдыңғы білім", [body(plan.priorKnowledge)])] : []),
   ]);
 
   const flowRows: TableRow[] = [
@@ -223,25 +230,48 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
     new Paragraph({ text: `Қысқа мерзімді сабақ жоспары — ${plan.subject}`, heading: HeadingLevel.HEADING_1 }),
     infoTable,
     spacer(),
+    ...(plan.vocabulary?.length
+      ? [
+          heading("Пәндік лексика және терминология", HeadingLevel.HEADING_2),
+          table([
+            new TableRow({ tableHeader: true, children: [headerCell("Термин", 30), headerCell("Анықтамасы", 70)] }),
+            ...plan.vocabulary.map((v) => new TableRow({ children: [tableCellText(v.term), tableCellText(v.definition)] })),
+          ]),
+          spacer(),
+        ]
+      : []),
     heading("Сабақтың барысы", HeadingLevel.HEADING_2),
     flowTable,
     spacer(),
   ];
 
   plan.tasks.forEach((task, taskIndex) => {
-    children.push(taskHeading(task.title, `task-T${taskIndex + 1}`));
+    children.push(taskHeading(/^\d|тапсырма/i.test(task.title) ? task.title : `${taskIndex + 1}-тапсырма. ${task.title}`, `task-T${taskIndex + 1}`));
+    const meta = [
+      task.kind,
+      task.method && `Әдіс: ${task.method}`,
+      task.level && `Деңгейі: ${task.level}`,
+      task.time && `Уақыты: ${task.time}`,
+    ].filter(Boolean);
+    if (meta.length) children.push(new Paragraph({ children: [new TextRun({ text: meta.join(" · "), italics: true, color: BLUE })] }));
     children.push(heading("Шарты", HeadingLevel.HEADING_3));
     task.condition.forEach((c) => children.push(body(c)));
 
-    const materialRows: TableRow[] = [
-      new TableRow({ tableHeader: true, children: task.tableHeaders.map((h) => headerCell(h)) }),
-      ...task.tableRows.map((row) => new TableRow({ children: row.map((cellText) => tableCellText(cellText)) })),
-    ];
-    children.push(table(materialRows));
-    children.push(spacer());
+    const width = task.tableHeaders.length;
+    const fit = (row: string[]) => Array.from({ length: width }, (_, i) => row[i] ?? "");
+    if (width && task.tableRows.length) {
+      if (task.tableTitle) children.push(new Paragraph({ children: [new TextRun({ text: task.tableTitle, bold: true })] }));
+      children.push(
+        table([
+          new TableRow({ tableHeader: true, children: task.tableHeaders.map((h) => headerCell(h)) }),
+          ...task.tableRows.map((row) => new TableRow({ children: fit(row).map((cellText) => tableCellText(cellText)) })),
+        ]),
+      );
+      children.push(spacer());
+    }
 
     children.push(heading("Орындау қадамдары", HeadingLevel.HEADING_3));
-    task.steps.forEach((s, i) => children.push(body(`${i + 1}. ${s}`)));
+    task.steps.forEach((st, i) => children.push(body(`${i + 1}. ${st}`)));
 
     children.push(heading("Бағалау критерийлері мен дескрипторлары", HeadingLevel.HEADING_3));
     const criteriaRows: TableRow[] = [
@@ -270,14 +300,76 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
     children.push(body(task.differentiation));
 
     children.push(heading("Күтілетін нәтиже", HeadingLevel.HEADING_3));
-    const resultRows: TableRow[] = [
-      new TableRow({ tableHeader: true, children: task.tableHeaders.map((h) => headerCell(h)) }),
-      ...task.expectedResultRows.map((row) => new TableRow({ children: row.map((cellText) => tableCellText(cellText)) })),
-    ];
-    children.push(table(resultRows));
-    children.push(spacer());
+    if (width && task.expectedResultRows.length) {
+      children.push(
+        table([
+          new TableRow({ tableHeader: true, children: task.tableHeaders.map((h) => headerCell(h)) }),
+          ...task.expectedResultRows.map((row) => new TableRow({ children: fit(row).map((cellText) => tableCellText(cellText)) })),
+        ]),
+      );
+      children.push(spacer());
+    }
     children.push(body(task.expectedConclusion));
   });
+
+  if (plan.planning) {
+    children.push(spacer());
+    children.push(
+      table([
+        new TableRow({
+          tableHeader: true,
+          children: [
+            headerCell("Саралау — оқушыларға қалай көбірек қолдау көрсетуді жоспарлайсыз?", 34),
+            headerCell("Бағалау — оқушылардың материалды меңгеру деңгейін қалай тексеруді жоспарлайсыз?", 33),
+            headerCell("Денсаулық және қауіпсіздік техникасының сақталуы", 33),
+          ],
+        }),
+        new TableRow({
+          children: [tableCellText(plan.planning.differentiation), tableCellText(plan.planning.assessment), tableCellText(plan.planning.safety)],
+        }),
+      ]),
+    );
+  }
+
+  if (plan.reflection?.length) {
+    children.push(heading("Рефлексия", HeadingLevel.HEADING_2));
+    plan.reflection.forEach((r) => children.push(bullet(r)));
+  }
+  if (plan.homework) {
+    children.push(heading("Үй тапсырмасы", HeadingLevel.HEADING_2));
+    children.push(body(plan.homework));
+  }
+
+  if (plan.resources?.length) {
+    children.push(heading("Ресурстар мен сілтемелер", HeadingLevel.HEADING_2));
+    children.push(
+      table([
+        new TableRow({
+          tableHeader: true,
+          children: [headerCell("№", 6), headerCell("Ресурс (сілтеме)", 44), headerCell("Түрі / платформа", 20), headerCell("Қолданылуы", 30)],
+        }),
+        ...plan.resources.map(
+          (r, i) =>
+            new TableRow({
+              children: [
+                tableCellText(String(i + 1)),
+                cell([
+                  new Paragraph({
+                    children: [
+                      /^https?:\/\//i.test(r.url)
+                        ? new ExternalHyperlink({ link: r.url, children: [new TextRun({ text: r.title, style: "Hyperlink", color: "0563C1", underline: {} })] })
+                        : new TextRun(r.title),
+                    ],
+                  }),
+                ]),
+                tableCellText(`${platformLabel(r.platform)} — ${platformKind(r.platform)}`),
+                tableCellText(r.note),
+              ],
+            }),
+        ),
+      ]),
+    );
+  }
 
   await buildAndDownload(children, `KMZH-${plan.topic}.docx`);
 }

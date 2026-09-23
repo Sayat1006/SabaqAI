@@ -6,9 +6,17 @@ import { supabase } from "./supabaseClient";
 export class AiGenerationError extends Error {}
 
 export async function aiGenerate(prompt: string, schema?: object): Promise<string> {
-  const { data, error } = await supabase.functions.invoke("ai-generate", {
-    body: schema ? { prompt, schema } : { prompt },
-  });
+  const invoke = () => supabase.functions.invoke("ai-generate", { body: schema ? { prompt, schema } : { prompt } });
+  let { data, error } = await invoke();
+  if (error?.name === "FunctionsFetchError") {
+    await new Promise((r) => setTimeout(r, 1500));
+    ({ data, error } = await invoke());
+  }
+  if (error?.name === "FunctionsFetchError") {
+    throw new AiGenerationError(
+      "AI серверіне (ai-generate) қосылу мүмкін болмады. Интернетті тексеріңіз; қайталанса, Supabase → Edge Functions бөлімінде «ai-generate» функциясы жарияланғанын тексеріңіз.",
+    );
+  }
   if (error) {
     let message = error.message;
     const context = (error as { context?: Response }).context;
