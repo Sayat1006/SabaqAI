@@ -6,6 +6,7 @@ import { useAuth } from "../context/useAuth";
 import { changeMyPassword, updateMyProfile, type ProfileInput, type UserAccount } from "../lib/auth";
 import { CATEGORIES, GRADES, SUBJECTS } from "../lib/catalog";
 import { TelegramCard } from "../components/TelegramCard";
+import { InstallApp } from "../components/InstallApp";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 const cardClass = "rounded-[22px] border border-slate-200 bg-white p-6 sm:p-7";
@@ -324,6 +325,7 @@ export default function ProfilePage() {
         </form>
 
         <TelegramCard userId={user.id} isAdmin={user.role === "admin"} />
+        <InstallApp variant="card" />
       </div>
     </div>
   );
