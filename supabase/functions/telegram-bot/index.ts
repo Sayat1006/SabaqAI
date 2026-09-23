@@ -93,7 +93,12 @@ function parseRequest(raw: string, prof: { subject?: string; grades?: string[] }
       break;
     }
   }
-  const topic = text.replace(/^[\s,.:;—-]+|[\s,.:;—-]+$/g, "").replace(/\s{2,}/g, " ").trim();
+  const topic = text
+    .replace(/(^|[\s,.:;])(пәні|пәнінен|пәнi|сыныбы|сыныбына|тақырыбы|тақырып)(?=[\s,.:;]|$)/gi, " ")
+    .replace(/\s*([,.:;])(\s*[,.:;])+/g, "$1")
+    .replace(/^[\s,.:;—-]+|[\s,.:;—-]+$/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
   return {
     grade: grade || prof.grades?.[0] || "5-сынып",
     subject: subject || (prof.subject && SUBJECTS.includes(prof.subject) ? prof.subject : "Математика"),
@@ -138,7 +143,6 @@ const planSchema = {
   type: "OBJECT",
   properties: {
     objectiveCode: S, objectiveText: S, goals: SA, valuesText: S,
-    successCriteria: SA, methods: SA, interdisciplinary: S, priorKnowledge: S,
     vocabulary: { type: "ARRAY", items: { type: "OBJECT", properties: { term: S, definition: S }, required: ["term", "definition"] } },
     stages: {
       type: "ARRAY",
@@ -169,7 +173,7 @@ const planSchema = {
     reflection: SA,
     homework: S,
   },
-  required: ["objectiveCode", "objectiveText", "goals", "valuesText", "successCriteria", "methods", "interdisciplinary", "priorKnowledge", "vocabulary", "stages", "tasks", "resources", "planning", "reflection", "homework"],
+  required: ["objectiveCode", "objectiveText", "goals", "valuesText", "vocabulary", "stages", "tasks", "resources", "planning", "reflection", "homework"],
 };
 
 const MONTH_VALUE: Record<number, string> = {
@@ -203,10 +207,10 @@ async function generatePlan(subject: string, grade: string, topic: string, teach
   const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, 45 минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр. Сабақ түрі: аралас сабақ.
 Оқу мақсатын ҮОБ-қа сай код (мыс. "5.1.2.3") және мазмұнымен бер.
 ҚҰНДЫЛЫҚ: осы айдың құндылығы — «${value}»; "valuesText" осы құндылықтың сабақта қалай дарытылатынын 1–2 сөйлеммен сипатта.
-"goals" — 3 саралау мақсаты ("Барлық оқушылар...", "Оқушылардың көбі...", "Кейбір оқушылар..."). "successCriteria" — 3 критерий.
+"goals" — 3 саралау мақсаты ("Барлық оқушылар...", "Оқушылардың көбі...", "Кейбір оқушылар...").
 "stages" — дәл 3 кезең: "Сабақтың басы", "Сабақтың ортасы", "Сабақтың соңы" (45 минут); педагог пен оқушы әрекеттері нақты, белсенді әдістер аталсын.
 "tasks" — дәл 3 ТҮРЛІ тапсырма (жұптық, топтық, функционалдық сауаттылық): әдіс-тәсіл, деңгей A→C, уақыт, толық шарты, қажет болса кестесі (толтыратын ұяшықтар бос), 1–2 критерий және "Білім алушы ..." деп басталатын дескрипторлар, саралау, күтілетін нәтиже.
-"methods" — 4–6 әдіс; "vocabulary" — 4–6 термин; "interdisciplinary", "priorKnowledge".
+"vocabulary" — 4–6 пәндік термин және анықтамасы.
 "resources" — 5 цифрлық ресурс: URL ЖАЗБА, тек "platform" (тізімнен) мен "query" (іздеу сөзі) және "note" (қай кезеңде).
 "planning" — саралау, бағалау, денсаулық және қауіпсіздік; "reflection" — 3 сұрақ; "homework" — саралап берілген үй тапсырмасы.
 Барлығы қазақ тілінде, фактілері дұрыс.`;
@@ -220,8 +224,8 @@ async function generatePlan(subject: string, grade: string, topic: string, teach
     valuesText: String(ai.valuesText ?? "").includes(value) ? ai.valuesText : `«${value}» — ${ai.valuesText ?? ""}`,
     stages: ai.stages ?? [],
     tasks: (ai.tasks ?? []).map((t: Json) => ({ ...t, tableHeaders: t.tableHeaders ?? [], tableRows: t.tableRows ?? [], expectedResultRows: t.expectedResultRows ?? [] })),
-    lessonType: "Аралас сабақ", methods: ai.methods ?? [], successCriteria: ai.successCriteria ?? [],
-    vocabulary: ai.vocabulary ?? [], interdisciplinary: ai.interdisciplinary ?? "", priorKnowledge: ai.priorKnowledge ?? "",
+    lessonType: "Аралас сабақ",
+    vocabulary: ai.vocabulary ?? [],
     resources: (ai.resources ?? [])
       .filter((r: Json) => PLATFORM_URL[r.platform] && r.title)
       .map((r: Json) => ({ title: r.title, platform: r.platform, url: PLATFORM_URL[r.platform](r.query || r.title), note: r.note ?? "" })),
@@ -269,6 +273,13 @@ const tbl = (rows: TableRow[]) => new Table({ width: { size: 100, type: WidthTyp
 const headRow = (cols: string[]) => new TableRow({ tableHeader: true, children: cols.map((c) => cell([p(c, true)], true)) });
 const textRow = (cols: string[]) => new TableRow({ children: cols.map((c) => cell([p(c)])) });
 
+// A4, барлық шеті 1 см (567 twip) — кестелер парақтың енін толық алады.
+const makeDoc = (children: (Paragraph | Table)[]) =>
+  new Document({
+    styles: { default: { document: { run: { font: "Times New Roman", size: 24 } } } },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 567, bottom: 567, left: 567, right: 567 } } }, children }],
+  });
+
 async function planDocx(plan: Json): Promise<Blob> {
   const kids: (Paragraph | Table)[] = [
     new Paragraph({ text: `Қысқа мерзімді сабақ жоспары — ${plan.subject}`, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
@@ -277,9 +288,8 @@ async function planDocx(plan: Json): Promise<Blob> {
         ["Бөлім", plan.section], ["Педагогтің аты-жөні", plan.teacherName], ["Күні", plan.date],
         [`Сынып ${plan.gradeNumber}`, "Қатысушылар саны ____   Қатыспағандар саны ____"], ["Сабақтың тақырыбы", plan.topic],
         ["Оқу бағдарламасына сәйкес оқыту мақсаттары", `${plan.objectiveCode} — ${plan.objectiveText}`],
-        ["Сабақтың мақсаты", plan.goals.join("\n")], ["Бағалау критерийі", plan.successCriteria.join("\n")],
-        ["Сабақтың түрі", plan.lessonType], ["Әдіс-тәсілдер", plan.methods.join(", ")],
-        ["Құндылықтарды дарыту", plan.valuesText], ["Пәнаралық байланыс", plan.interdisciplinary], ["Алдыңғы білім", plan.priorKnowledge],
+        ["Сабақтың мақсаты", plan.goals.join("\n")],
+        ["Құндылықтарды дарыту", plan.valuesText],
       ].map(([a, b]) => new TableRow({ children: [cell([p(a, true)], true, 32), cell(String(b ?? "").split("\n").map((x) => p(x)), false, 68)] })),
     ),
   ];
@@ -316,8 +326,7 @@ async function planDocx(plan: Json): Promise<Blob> {
       kids.push(new Paragraph({ children: [new TextRun(`${i + 1}. `), new ExternalHyperlink({ link: r.url, children: [new TextRun({ text: r.title, style: "Hyperlink", color: "0563C1", underline: {} })] }), new TextRun(r.note ? ` — ${r.note}` : "")] })),
     );
   }
-  const doc = new Document({ styles: { default: { document: { run: { font: "Times New Roman", size: 24 } } } }, sections: [{ children: kids }] });
-  return await Packer.toBlob(doc);
+  return await Packer.toBlob(makeDoc(kids));
 }
 
 async function testDocx(test: Json): Promise<Blob> {
@@ -333,8 +342,7 @@ async function testDocx(test: Json): Promise<Blob> {
   });
   kids.push(new Paragraph({ text: "Жауаптар кілті", heading: HeadingLevel.HEADING_2, pageBreakBefore: true }));
   test.questions.forEach((q: Json, i: number) => kids.push(p(`${i + 1} — ${L(q.correctIndex)}) ${q.options[q.correctIndex]}. ${q.explanation}`)));
-  const doc = new Document({ styles: { default: { document: { run: { font: "Times New Roman", size: 24 } } } }, sections: [{ children: kids }] });
-  return await Packer.toBlob(doc);
+  return await Packer.toBlob(makeDoc(kids));
 }
 
 async function sendDoc(token: string, chatId: number, blob: Blob, filename: string, caption: string) {

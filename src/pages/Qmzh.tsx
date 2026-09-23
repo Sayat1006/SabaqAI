@@ -406,20 +406,7 @@ export default function QmzhPage() {
                         ))}
                       </ul>
                     </InfoRow>
-                    {plan.successCriteria && plan.successCriteria.length > 0 && (
-                      <InfoRow label="Бағалау критерийі">
-                        <ul className="list-disc space-y-1 pl-4">
-                          {plan.successCriteria.map((g, i) => (
-                            <li key={i}>{g}</li>
-                          ))}
-                        </ul>
-                      </InfoRow>
-                    )}
-                    {plan.lessonType && <InfoRow label="Сабақтың түрі">{plan.lessonType}</InfoRow>}
-                    {plan.methods && plan.methods.length > 0 && <InfoRow label="Әдіс-тәсілдер">{plan.methods.join(", ")}</InfoRow>}
                     <InfoRow label="Құндылықтарды дарыту">{plan.valuesText}</InfoRow>
-                    {plan.interdisciplinary && <InfoRow label="Пәнаралық байланыс">{plan.interdisciplinary}</InfoRow>}
-                    {plan.priorKnowledge && <InfoRow label="Алдыңғы білім">{plan.priorKnowledge}</InfoRow>}
                   </tbody>
                 </table>
               </div>

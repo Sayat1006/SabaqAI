@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { LESSON_TYPES, TASK_KINDS, type LessonPlan, type QmzhActivityRow, type QmzhStage, type QmzhTask } from "../lib/generators";
+import { TASK_KINDS, type LessonPlan, type QmzhActivityRow, type QmzhStage, type QmzhTask } from "../lib/generators";
 
 // ҚМЖ өңдегіші: жоспардың көшірмесімен (draft) жұмыс істейді, «Сақтау» басылғанда ғана
 // сыртқа береді. Тізім өрістері «әр жол — бір пункт» мәтіні ретінде өңделеді.
@@ -124,21 +124,10 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
           <Text title="Педагогтің аты-жөні" value={d.teacherName} onChange={(teacherName) => set({ teacherName })} />
           <Text title="Күні" value={d.date} onChange={(date) => set({ date })} />
           <Text title="Оқу мақсатының коды" value={d.objectiveCode} onChange={(objectiveCode) => set({ objectiveCode })} />
-          <Label title="Сабақтың түрі">
-            <select value={d.lessonType ?? LESSON_TYPES[0]} onChange={(e) => set({ lessonType: e.target.value })} className={field}>
-              {LESSON_TYPES.map((t) => (
-                <option key={t}>{t}</option>
-              ))}
-            </select>
-          </Label>
         </div>
         <Text title="Оқыту мақсаты" value={d.objectiveText} onChange={(objectiveText) => set({ objectiveText })} rows={2} />
         <Lines title="Сабақтың мақсаты" initial={d.goals.join("\n")} parse={lines} onChange={(goals) => set({ goals })} />
-        <Lines title="Бағалау критерийі" initial={(d.successCriteria ?? []).join("\n")} parse={lines} onChange={(successCriteria) => set({ successCriteria })} />
-        <Text title="Әдіс-тәсілдер" hint="үтір арқылы" value={(d.methods ?? []).join(", ")} onChange={(v) => set({ methods: v.split(",").map((x) => x.trim()).filter(Boolean) })} />
         <Text title="Құндылықтарды дарыту" value={d.valuesText} onChange={(valuesText) => set({ valuesText })} rows={2} />
-        <Text title="Пәнаралық байланыс" value={d.interdisciplinary ?? ""} onChange={(interdisciplinary) => set({ interdisciplinary })} rows={2} />
-        <Text title="Алдыңғы білім" value={d.priorKnowledge ?? ""} onChange={(priorKnowledge) => set({ priorKnowledge })} rows={2} />
         <Lines
           title="Пәндік лексика"
           hint="әр жол: термин — анықтамасы"
