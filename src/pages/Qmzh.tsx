@@ -1,4 +1,4 @@
-import { ClipboardList, Download, Presentation, Printer, RotateCcw, Sparkles, X } from "lucide-react";
+import { ClipboardList, Download, ListChecks, Presentation, Printer, RotateCcw, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -447,6 +447,9 @@ export default function QmzhPage() {
                 </button>
                 <button type="button" onClick={() => navigate("/presentation", { state: { plan } })} className={ghost}>
                   <Presentation size={15} /> Презентация жасау
+                </button>
+                <button type="button" onClick={() => navigate("/tests", { state: { plan } })} className={ghost}>
+                  <ListChecks size={15} /> Тест жасау
                 </button>
                 <button
                   type="button"

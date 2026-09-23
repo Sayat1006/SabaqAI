@@ -147,6 +147,12 @@ const DECK_IMAGE_STYLE: Record<string, string> = { minimal: "iso", colorful: "fl
  * title/image слайдтарына иллюстрация салады (ең көбі 4, бір уақытта 2 сұраныс — тегін Gemini
  * лимитіне сыю үшін). Әр дайын сурет onSlide арқылы бірден көрсетіледі; қате болса, слайд суретсіз қалады.
  */
+/** Бір слайдқа иллюстрацияны қайта салады (өңдеу режимі). */
+export async function illustrateSlide(prompt: string, deckStyle: string): Promise<string> {
+  const { svg } = await generateIllustration(`${prompt}. Leave generous empty margins; no text labels.`, DECK_IMAGE_STYLE[deckStyle] ?? "iso");
+  return svg;
+}
+
 export async function illustrateSlides(
   slides: SlideData[],
   deckStyle: string,
@@ -274,13 +280,19 @@ export async function generateTest(input: {
   difficulty: string;
   count: number;
   notes: string;
+  /** ҚМЖ-дан жасалса: сабақ жоспарының қысқаша мазмұны. */
+  planContext?: string;
 }): Promise<TestQuestion[]> {
   const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің.
 Пән: ${input.subject}
 Сынып: ${input.grade}
 Тақырып: ${input.topic}
 Қиындық деңгейі: ${input.difficulty}
-${input.notes ? `Мұғалімнің тілегі: ${input.notes}\n` : ""}Осы тақырып бойынша дәл ${input.count} тест сұрағын құрастыр.
+${input.notes ? `Мұғалімнің тілегі: ${input.notes}\n` : ""}${
+    input.planContext
+      ? `Тест осы сабақтың қысқа мерзімді жоспарына (ҚМЖ) сай болсын: оқу мақсаттары мен сабақ мақсаттарының орындалуын тексерсін.\nҚМЖ мазмұны:\n${input.planContext}\n`
+      : ""
+  }Осы тақырып бойынша дәл ${input.count} тест сұрағын құрастыр.
 - Әр сұрақта 4 жауап нұсқасы, тек біреуі дұрыс; дұрыс жауаптың орны сұрақтан сұраққа әртүрлі болсын.
 - "correctIndex" — дұрыс нұсқаның "options" ішіндегі реттік нөмірі (0-ден бастап).
 - Нұсқаларда "A)" сияқты әріп белгілерін жазба, сұрақтың алдына нөмір қойма.

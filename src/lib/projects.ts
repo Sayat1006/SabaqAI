@@ -179,6 +179,18 @@ const toQmzh = (r: ProjectRow): SavedQmzh => ({ id: r.id, savedAt: savedAt(r), p
 export async function savePresentation(p: PresentationData): Promise<SavedPresentation> {
   return toPresentation(await create("presentation", p.title, `${p.slides.length} слайд`, p));
 }
+/** Өңделген презентацияны сол жобаның үстіне сақтайды. */
+export async function updatePresentation(id: string, p: PresentationData): Promise<void> {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ title: p.title.slice(0, 300), detail: `${p.slides.length} слайд`, data: p })
+    .eq("id", id)
+    .select("id");
+  if (error) throw wrapError(error);
+  if (!data?.length) {
+    throw new ProjectsError("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек.");
+  }
+}
 export async function getPresentation(id: string): Promise<SavedPresentation | null> {
   const row = await getRow(id, "presentation");
   return row && toPresentation(row);
@@ -275,4 +287,92 @@ export function timeAgo(ts: number): string {
   if (days === 1) return "Кеше";
   if (days < 7) return `${days} күн бұрын`;
   return new Date(ts).toLocaleDateString("ru-RU");
+}
+
+/* ------------------------------------------------- тестті оқушыларға жіберу */
+
+export interface TestShare {
+  code: string;
+  isOpen: boolean;
+}
+
+export interface TestSubmission {
+  id: string;
+  studentName: string;
+  studentClass: string;
+  answers: (number | null)[];
+  score: number;
+  total: number;
+  createdAt: number;
+}
+
+export interface SharedTest {
+  title: string;
+  subject: string;
+  grade: string;
+  topic: string;
+  questions: { question: string; options: string[] }[];
+}
+
+function sharingError(error: { message: string; code?: string }): ProjectsError {
+  if (error.code === "42P01" || error.code === "PGRST202" || /does not exist|Could not find the (table|function)/i.test(error.message)) {
+    return new ProjectsError("Тест жіберу әлі қосылмаған. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек.");
+  }
+  return new ProjectsError(error.message);
+}
+
+export const shareLink = (code: string) => `${window.location.origin}/t/${code}`;
+
+export async function getTestShare(projectId: string): Promise<TestShare | null> {
+  const { data, error } = await supabase.from("test_shares").select("code, is_open").eq("project_id", projectId).maybeSingle();
+  if (error) throw sharingError(error);
+  return data ? { code: data.code as string, isOpen: data.is_open as boolean } : null;
+}
+
+export async function shareTest(projectId: string): Promise<TestShare> {
+  const { data, error } = await supabase.rpc("share_test", { p_project_id: projectId });
+  if (error) throw sharingError(error);
+  return { code: data as string, isOpen: true };
+}
+
+export async function setTestShareOpen(projectId: string, open: boolean): Promise<void> {
+  const { error } = await supabase.rpc("set_test_share_open", { p_project_id: projectId, p_open: open });
+  if (error) throw sharingError(error);
+}
+
+export async function getSubmissions(projectId: string): Promise<TestSubmission[]> {
+  const { data, error } = await supabase
+    .from("test_submissions")
+    .select("id, student_name, student_class, answers, score, total, created_at")
+    .eq("project_id", projectId)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw sharingError(error);
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    studentName: r.student_name as string,
+    studentClass: r.student_class as string,
+    answers: (r.answers as (number | null)[]) ?? [],
+    score: r.score as number,
+    total: r.total as number,
+    createdAt: new Date(r.created_at as string).getTime(),
+  }));
+}
+
+export async function deleteSubmission(id: string): Promise<void> {
+  const { error } = await supabase.from("test_submissions").delete().eq("id", id);
+  if (error) throw sharingError(error);
+}
+
+/** Оқушы беті (жүйеге кірмей): сұрақтар дұрыс жауаптарсыз келеді. */
+export async function getSharedTest(code: string): Promise<SharedTest | null> {
+  const { data, error } = await supabase.rpc("get_shared_test", { p_code: code });
+  if (error) throw sharingError(error);
+  return (data as SharedTest | null) ?? null;
+}
+
+export async function submitSharedTest(code: string, name: string, className: string, answers: (number | null)[]): Promise<{ score: number; total: number }> {
+  const { data, error } = await supabase.rpc("submit_test", { p_code: code, p_name: name, p_class: className, p_answers: answers });
+  if (error) throw sharingError(error);
+  return data as { score: number; total: number };
 }

@@ -1,11 +1,13 @@
-import { Check, Download, Eye, EyeOff, FileText, Printer, Sparkles } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, Download, Eye, EyeOff, FileText, Printer, Sparkles, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { TestSharePanel } from "../components/TestSharePanel";
 import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
 import { getTest, saveTest, type SavedTest } from "../lib/projects";
-import { DIFFICULTIES, generateTest, QUESTION_COUNTS } from "../lib/studio";
+import type { LessonPlan } from "../lib/generators";
+import { DIFFICULTIES, generateTest, planToContext, QUESTION_COUNTS } from "../lib/studio";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 
@@ -20,16 +22,22 @@ const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5
 export default function TestsPage() {
   const { user } = useAuth();
   const location = useLocation();
+  const navState = location.state as { testId?: string; plan?: LessonPlan } | null;
+  const plan = navState?.plan;
   const [test, setTest] = useState<SavedTest | null>(null);
   const [error, setError] = useState("");
-  const [subject, setSubject] = useState(() => (user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]));
-  const [grade, setGrade] = useState(() => user?.grades?.[0] ?? GRADES[4]);
-  const [topic, setTopic] = useState("");
+  const [subject, setSubject] = useState(() =>
+    plan && SUBJECTS.includes(plan.subject) ? plan.subject : user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0],
+  );
+  const [grade, setGrade] = useState(() => (plan && GRADES.includes(plan.grade) ? plan.grade : (user?.grades?.[0] ?? GRADES[4])));
+  const [topic, setTopic] = useState(plan?.topic ?? "");
+  // ҚМЖ-дан ашылса, тест сол жоспардың мақсаттарына сай құрастырылады.
+  const [planContext, setPlanContext] = useState(() => (plan ? planToContext(plan) : ""));
   const [count, setCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>("Орташа");
 
   // «Жобалар» тізімінен ашылса, сақталған тестті жүктейміз.
-  const openedId = (location.state as { testId?: string } | null)?.testId;
+  const openedId = navState?.testId;
   useEffect(() => {
     if (!openedId) return;
     getTest(openedId)
@@ -48,17 +56,11 @@ export default function TestsPage() {
   const [showAnswers, setShowAnswers] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  async function handleGenerate(e: React.FormEvent) {
-    e.preventDefault();
-    if (generating) return;
-    if (topic.trim().length < 3) {
-      setError("Тест тақырыбын жазыңыз.");
-      return;
-    }
+  const runGenerate = useCallback(async () => {
     setGenerating(true);
     setError("");
     try {
-      const questions = await generateTest({ subject, grade, topic: topic.trim(), difficulty, count, notes: notes.trim() });
+      const questions = await generateTest({ subject, grade, topic: topic.trim(), difficulty, count, notes: notes.trim(), planContext: planContext || undefined });
       setTest(await saveTest({ subject, grade, topic: topic.trim(), difficulty, questions }));
       setShowAnswers(false);
     } catch (err) {
@@ -66,6 +68,24 @@ export default function TestsPage() {
     } finally {
       setGenerating(false);
     }
+  }, [subject, grade, topic, difficulty, count, notes, planContext]);
+
+  // ҚМЖ бетінен «Тест жасау» басылса — бірден генерациялаймыз.
+  const startedFromPlan = useRef(false);
+  useEffect(() => {
+    if (!plan || startedFromPlan.current || topic.trim().length < 3) return;
+    startedFromPlan.current = true;
+    void runGenerate();
+  }, [plan, topic, runGenerate]);
+
+  function handleGenerate(e: React.FormEvent) {
+    e.preventDefault();
+    if (generating) return;
+    if (topic.trim().length < 3) {
+      setError("Тест тақырыбын жазыңыз.");
+      return;
+    }
+    void runGenerate();
   }
 
   async function handleDocx() {
@@ -93,6 +113,16 @@ export default function TestsPage() {
           noValidate
           className="flex w-full flex-col gap-5 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl lg:sticky lg:top-24 lg:w-[380px] print:hidden"
         >
+          {planContext && (
+            <div className="flex items-start gap-2 rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-[13px] text-fuchsia-800">
+              <span className="flex-1">
+                ҚМЖ негізінде{plan ? <>: <b>{plan.topic}</b></> : ""} — сұрақтар сабақ мақсаттарының орындалуын тексереді.
+              </span>
+              <button type="button" aria-label="ҚМЖ-сыз жасау" title="ҚМЖ-сыз жасау" onClick={() => setPlanContext("")} className="rounded-md p-0.5 hover:bg-fuchsia-200">
+                <X size={15} />
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="mb-2 block text-[13px] font-semibold text-slate-500">Пән</span>
@@ -258,6 +288,9 @@ export default function TestsPage() {
                 </Link>
               </div>
             </article>
+          )}
+          {test && !generating && (
+            <TestSharePanel key={test.id} test={test} />
           )}
         </section>
       </div>

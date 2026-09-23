@@ -11,6 +11,7 @@ import PresentationPage from "./pages/Presentation";
 import ProfilePage from "./pages/Profile";
 import ProjectsPage from "./pages/Projects";
 import QmzhPage from "./pages/Qmzh";
+import TakeTestPage from "./pages/TakeTest";
 import TestsPage from "./pages/Tests";
 
 export default function App() {
@@ -18,6 +19,8 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="login" element={<LoginPage />} />
+        {/* Оқушы беті: жүйеге кірусіз, мұғалім жіберген сілтеме арқылы. */}
+        <Route path="t/:code" element={<TakeTestPage />} />
         <Route element={<RequireAuth />}>
           <Route element={<DashboardLayout />}>
             <Route index element={<Home />} />
