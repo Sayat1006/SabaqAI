@@ -7,7 +7,7 @@ import { deleteProject, getImages, saveImage, svgDataUrl, type SavedImage } from
 import { useLoad } from "../lib/useLoad";
 import { generateIllustration, IMAGE_STYLES } from "../lib/studio";
 
-const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").trim() || "sabaq";
+const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").trim() || "ai-nur";
 
 /** SVG-ді браузерде растрлайды: мұғалім PNG-ні Word-қа не слайдқа қоя алады. */
 async function downloadPng(img: SavedImage) {

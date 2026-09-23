@@ -6,7 +6,7 @@ import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
 
-/* Sabaq AI құрылымы: басты бетте — қою көк бүйір мәзір, құрал беттерінде — жоғарғы мәзір. */
+/* AI Nur құрылымы: басты бетте — қою көк бүйір мәзір, құрал беттерінде — жоғарғы мәзір. */
 
 const sideLink = ({ isActive }: { isActive: boolean }) =>
   `flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] whitespace-nowrap transition-colors ${
@@ -34,7 +34,7 @@ export function DashboardLayout() {
           <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f4f1ea] p-1 lg:h-[42px] lg:w-[42px]">
             <Logo className="h-full w-full" />
           </span>
-          <span className="hidden text-[19px] font-bold lg:inline">Sabaq AI</span>
+          <span className="hidden text-[19px] font-bold lg:inline">AI Nur</span>
         </NavLink>
 
         <div className="flex gap-1 lg:flex-col">
@@ -102,7 +102,7 @@ function Topbar({ admin = false }: { admin?: boolean }) {
       <NavLink to={admin ? "/admin" : "/"} className="flex items-center gap-3 font-bold">
         <Logo className="h-9 w-9" />
         <span className="text-[16.5px]">
-          Sabaq AI{admin && <span className="text-[13.5px] font-semibold text-slate-500"> · Әкімші</span>}
+          AI Nur{admin && <span className="text-[13.5px] font-semibold text-slate-500"> · Әкімші</span>}
         </span>
       </NavLink>
       <nav

@@ -1,4 +1,4 @@
--- Sabaq AI аутентификация схемасы (Supabase Postgres).
+-- AI Nur аутентификация схемасы (Supabase Postgres).
 -- Supabase жобаңыздың SQL Editor-інде осы файлдың толық мазмұнын бір рет орындаңыз.
 
 create table if not exists public.profiles (

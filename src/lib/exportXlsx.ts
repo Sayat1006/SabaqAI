@@ -18,7 +18,7 @@ function formatKzDate(ts: string): string {
 
 export async function exportUsersToXlsx(users: UserAccount[]) {
   const wb = new ExcelJS.Workbook();
-  wb.creator = "Sabaq AI";
+  wb.creator = "AI Nur";
   wb.created = new Date();
 
   const sheet = wb.addWorksheet("Аккаунттар");
@@ -53,5 +53,5 @@ export async function exportUsersToXlsx(users: UserAccount[]) {
 
   const buffer = await wb.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-  downloadBlob(blob, "Sabaq-AI-akkauntlar.xlsx");
+  downloadBlob(blob, "AI-Nur-akkauntlar.xlsx");
 }

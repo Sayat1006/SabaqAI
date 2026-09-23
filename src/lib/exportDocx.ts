@@ -302,6 +302,6 @@ export async function exportTestToDocx(test: SavedTest) {
       body(`${i + 1}. ${letter(q.correctIndex)}) ${q.options[q.correctIndex]}${q.explanation ? ` — ${q.explanation}` : ""}`),
     ),
   ];
-  const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Sabaq";
+  const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "AI Nur";
   await buildAndDownload(children, `Test - ${safe}.docx`);
 }

@@ -107,7 +107,7 @@ export default function LoginPage() {
         >
           <div className="flex items-center gap-3">
             <Logo className="h-[42px] w-[42px]" />
-            <span className="text-[19px] font-bold">Sabaq AI</span>
+            <span className="text-[19px] font-bold">AI Nur</span>
           </div>
           <div>
             <h1 className="text-[26px] leading-snug font-bold">Қайта қош келдіңіз</h1>
@@ -140,7 +140,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="aigerim@sabaq.ai"
+              placeholder="aigerim@mektep.kz"
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500"
             />
           </label>

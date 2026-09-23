@@ -69,7 +69,7 @@ export default function TakeTestPage() {
       <div className="mx-auto flex max-w-[760px] flex-col gap-6">
         <header className="flex items-center gap-2.5">
           <Logo className="h-9 w-9" />
-          <span className="text-lg font-bold">Sabaq AI</span>
+          <span className="text-lg font-bold">AI Nur</span>
           <span className="text-sm text-slate-500">· Онлайн тест</span>
         </header>
 

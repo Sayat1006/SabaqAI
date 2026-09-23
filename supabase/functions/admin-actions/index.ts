@@ -1,4 +1,4 @@
-// Sabaq AI Admin Actions Edge Function
+// AI Nur Admin Actions Edge Function
 //
 // Тек осы функция service_role кілтін қолданады (ол ешқашан браузерге
 // шықпайды). Мұнда: жаңа мұғалім/әкімші аккаунтын Auth-та құру, кез
