@@ -10,7 +10,7 @@ const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "tes
 const partsOf = (p: RecentProject) => p.detail.split(" · ").map((x) => x.trim());
 const subjectOf = (p: RecentProject) => (p.kind === "qmzh" || p.kind === "test" ? partsOf(p)[0] ?? "" : "");
 const gradeOf = (p: RecentProject) => partsOf(p).find((x) => /сынып/.test(x)) ?? "";
-const selectClass = "rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-violet-500";
+const selectClass = "rounded-xl border border-slate-200 bg-surface px-3 py-2.5 text-sm outline-none focus:border-violet-500";
 
 type SortKey = "new" | "old" | "az";
 
@@ -72,7 +72,7 @@ export default function ProjectsPage() {
               aria-pressed={kind === f}
               onClick={() => setKind(f)}
               className={`min-h-10 rounded-full border px-4 py-2 text-[13.5px] transition ${
-                kind === f ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"
+                kind === f ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"
               }`}
             >
               {f ? KIND_LABEL[f] : "Барлығы"}
@@ -87,7 +87,7 @@ export default function ProjectsPage() {
           onChange={(e) => setQuery(e.target.value)}
           aria-label="Іздеу"
           placeholder="Атауы немесе пәні бойынша іздеу"
-          className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 sm:max-w-[320px]"
+          className="w-full rounded-xl border border-slate-200 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 sm:max-w-[320px]"
         />
       </div>
       <div className="mb-6 -mt-2 flex flex-wrap items-center gap-2.5">
@@ -131,9 +131,9 @@ export default function ProjectsPage() {
       {error ? (
         <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}</div>
       ) : loading ? (
-        <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">Жүктелуде...</div>
+        <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">Жүктелуде...</div>
       ) : shown.length === 0 ? (
-        <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">
+        <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
           {filtered ? "Ештеңе табылмады." : "Әзірге жоба жоқ."}
         </div>
       ) : (

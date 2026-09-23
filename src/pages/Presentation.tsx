@@ -52,7 +52,7 @@ function place(i: number, active: number): React.CSSProperties {
 
 function chipClass(active: boolean) {
   return `min-h-10 rounded-xl border px-2 py-2.5 text-[13.5px] transition hover:-translate-y-px ${
-    active ? "border-fuchsia-500 bg-fuchsia-500 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-fuchsia-500"
+    active ? "border-fuchsia-500 bg-fuchsia-500 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-fuchsia-500"
   }`;
 }
 
@@ -325,7 +325,7 @@ export default function PresentationPage() {
         <form
           onSubmit={handleGenerate}
           noValidate
-          className="flex w-full flex-col gap-5 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl lg:sticky lg:top-24 lg:w-[380px]"
+          className="flex w-full flex-col gap-5 rounded-3xl border border-surface/70 bg-surface/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl lg:sticky lg:top-24 lg:w-[380px]"
         >
           {plan && (
             <div className="rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-[13px] text-fuchsia-800">
@@ -384,7 +384,7 @@ export default function PresentationPage() {
 
         <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-center">
+            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface p-6 text-center">
               <Sparkles size={34} className="animate-spin text-fuchsia-500" />
               <div className="text-base">{PHASES[phase]}</div>
               <div className="text-[12.5px] text-slate-500">Әдетте 20–60 секунд алады, иллюстрациялар кейін бірінен соң бірі қосылады</div>
@@ -421,7 +421,7 @@ export default function PresentationPage() {
                 ))}
               </div>
               <div className="flex items-center gap-4">
-                <button type="button" aria-label="Алдыңғы слайд" onClick={() => go(active - 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-white hover:border-fuchsia-500 hover:bg-fuchsia-100">
+                <button type="button" aria-label="Алдыңғы слайд" onClick={() => go(active - 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-surface hover:border-fuchsia-500 hover:bg-fuchsia-100">
                   <ChevronLeft size={18} />
                 </button>
                 <div className="dots">
@@ -429,12 +429,12 @@ export default function PresentationPage() {
                     <button key={i} type="button" aria-label={`${i + 1}-слайдқа өту`} aria-current={i === active} onClick={() => go(i)} className="dot" />
                   ))}
                 </div>
-                <button type="button" aria-label="Келесі слайд" onClick={() => go(active + 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-white hover:border-fuchsia-500 hover:bg-fuchsia-100">
+                <button type="button" aria-label="Келесі слайд" onClick={() => go(active + 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-surface hover:border-fuchsia-500 hover:bg-fuchsia-100">
                   <ChevronRight size={18} />
                 </button>
               </div>
               {current?.notes && (
-                <div className="w-full max-w-[720px] rounded-[14px] border border-slate-200 bg-white px-4 py-3.5 text-sm">
+                <div className="w-full max-w-[720px] rounded-[14px] border border-slate-200 bg-surface px-4 py-3.5 text-sm">
                   <b>Мұғалімге жазба:</b> {current.notes}
                 </div>
               )}
@@ -448,7 +448,7 @@ export default function PresentationPage() {
                   disabled={busy}
                   aria-pressed={editing}
                   className={`inline-flex items-center gap-2 rounded-[11px] border px-4 py-2.5 text-sm font-semibold disabled:opacity-60 ${
-                    editing ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white hover:border-violet-500 hover:text-violet-600"
+                    editing ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface hover:border-violet-500 hover:text-violet-600"
                   }`}
                 >
                   <Pencil size={15} /> {editing ? "Өңдеуді жабу" : "Өңдеу"}
@@ -458,18 +458,18 @@ export default function PresentationPage() {
                     type="button"
                     onClick={handleSave}
                     disabled={!dirty || saveState === "saving" || regenIndex !== null}
-                    className="inline-flex items-center gap-2 rounded-[11px] border border-violet-600 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-[11px] border border-violet-600 bg-surface px-4 py-2.5 text-sm font-semibold text-violet-700 disabled:opacity-50"
                   >
                     <Save size={15} /> {saveState === "saving" ? "Сақталуда..." : "Сақтау"}
                   </button>
                 )}
-                <button type="button" onClick={handleExport} disabled={exporting || pending.size > 0} className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60">
+                <button type="button" onClick={handleExport} disabled={exporting || pending.size > 0} className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-4 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60">
                   <Download size={15} /> {exporting ? "Дайындалуда..." : "PowerPoint (.pptx)"}
                 </button>
               </div>
 
               {editing && current && (
-                <div className="w-full rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)]">
+                <div className="w-full rounded-[20px] border border-slate-200 bg-surface p-5 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)]">
                   <label className="mb-4 block">
                     <span className="mb-1.5 block text-[12.5px] font-semibold text-slate-500">Презентация атауы</span>
                     <input
@@ -485,7 +485,7 @@ export default function PresentationPage() {
                       aria-label="Слайд түрі"
                       value={current.layout}
                       onChange={(e) => updateSlide(active, { layout: e.target.value as SlideLayout })}
-                      className="rounded-[10px] border border-slate-200 bg-white px-2.5 py-2 text-[13px]"
+                      className="rounded-[10px] border border-slate-200 bg-surface px-2.5 py-2 text-[13px]"
                     >
                       {(Object.keys(LAYOUT_LABELS) as SlideLayout[]).map((l) => (
                         <option key={l} value={l}>

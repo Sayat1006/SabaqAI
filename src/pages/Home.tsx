@@ -45,7 +45,7 @@ function greeting(): string {
 function Stat({ value, label }: { value: number; label: string }) {
   const animated = useCountUp(value, 900);
   return (
-    <div className="rounded-[18px] border border-slate-200 bg-white px-4 py-4 sm:px-6 sm:py-5">
+    <div className="rounded-[18px] border border-slate-200 bg-surface px-4 py-4 sm:px-6 sm:py-5">
       <div className="text-[24px] font-bold sm:text-[28px]">{animated}</div>
       <div className="mt-1 text-[13.5px] text-slate-500">{label}</div>
     </div>
@@ -103,7 +103,7 @@ export default function Home() {
           <p className="mt-1.5 text-[15.5px] text-slate-500">Бүгін қандай сабаққа дайындаласыз?</p>
         </div>
         <div className="flex w-full items-center gap-3 sm:w-auto">
-          <label className="flex h-11 flex-1 items-center gap-2.5 rounded-[14px] border border-slate-200 bg-white px-4 sm:w-[260px] sm:flex-none">
+          <label className="flex h-11 flex-1 items-center gap-2.5 rounded-[14px] border border-slate-200 bg-surface px-4 sm:w-[260px] sm:flex-none">
             <Search size={17} className="text-slate-500" />
             <span className="sr-only">Жобалар мен құралдарды іздеу</span>
             <input
@@ -118,10 +118,10 @@ export default function Home() {
             type="button"
             onClick={() => setDrawerOpen(true)}
             aria-label="Хабарландырулар"
-            className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-slate-200 bg-white transition hover:-translate-y-0.5"
+            className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-slate-200 bg-surface transition hover:-translate-y-0.5"
           >
             <Bell size={19} strokeWidth={1.8} />
-            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full border-2 border-white bg-violet-500" />
+            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full border-2 border-surface bg-violet-500" />
           </button>
           <UserMenu />
         </div>
@@ -136,7 +136,7 @@ export default function Home() {
                 <Link
                   key={t.to}
                   to={t.to}
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm hover:border-violet-500"
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-surface px-4 py-2 text-sm hover:border-violet-500"
                 >
                   <t.icon size={15} /> {t.label}
                 </Link>
@@ -154,7 +154,7 @@ export default function Home() {
           <InstallApp />
           {/* AI көмекшісі */}
           <div className="flex flex-wrap items-stretch gap-7">
-            <div className="flex flex-[1_1_420px] flex-col gap-4 rounded-3xl border border-white/70 bg-white/70 p-8 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl">
+            <div className="flex flex-[1_1_420px] flex-col gap-4 rounded-3xl border border-surface/70 bg-surface/70 p-8 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl">
               <div className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-violet-600 uppercase">
                 <Sparkles size={15} /> AI көмекшісі
               </div>
@@ -165,7 +165,7 @@ export default function Home() {
                   ["Оқу мақсаты", "Қолмен жазасыз — мыс.: «5.1.2.7 — жай бөлшектерді салыстыру»"],
                   ["Құндылық", "AI сабақ мазмұнына сай құндылықты өзі енгізеді"],
                 ].map(([t, d]) => (
-                  <div key={t} className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                  <div key={t} className="rounded-xl border border-slate-200 bg-surface px-4 py-3">
                     <div className="mb-0.5 text-[13px] font-bold">{t}</div>
                     <div className="text-sm text-slate-500">{d}</div>
                   </div>
@@ -187,7 +187,7 @@ export default function Home() {
                 <div className="mt-2.5 h-2 w-3/5 rounded bg-violet-500" />
                 <div className="mt-2 h-2 w-4/5 rounded bg-[#3a4568]" />
               </div>
-              <div className="absolute top-[30%] left-[30%] h-[150px] w-[230px] animate-[floatB_5.2s_ease-in-out_infinite] rounded-[18px] border border-slate-200 bg-white p-[18px] shadow-[0_30px_50px_-18px_rgba(27,26,46,.19)]">
+              <div className="absolute top-[30%] left-[30%] h-[150px] w-[230px] animate-[floatB_5.2s_ease-in-out_infinite] rounded-[18px] border border-slate-200 bg-surface p-[18px] shadow-[0_30px_50px_-18px_rgba(27,26,46,.19)]">
                 <div className="text-[11px] text-slate-500">ПРЕЗЕНТАЦИЯ</div>
                 <div className="mt-2.5 h-2 w-[70%] rounded bg-fuchsia-500" />
                 <div className="mt-2 flex gap-1.5">
@@ -197,9 +197,9 @@ export default function Home() {
               </div>
               <div className="absolute top-[2%] left-[52%] h-[150px] w-[230px] animate-[floatA_4.6s_ease-in-out_infinite] rounded-[18px] bg-violet-500 p-[18px] shadow-[0_30px_55px_-18px_rgba(224,115,61,.28)]">
                 <div className="text-[11px] text-white/85">ҚМЖ</div>
-                <div className="mt-2.5 h-2 w-3/5 rounded bg-white/85" />
-                <div className="mt-2 h-2 w-[85%] rounded bg-white/55" />
-                <div className="mt-2 h-2 w-[45%] rounded bg-white/55" />
+                <div className="mt-2.5 h-2 w-3/5 rounded bg-surface/85" />
+                <div className="mt-2 h-2 w-[85%] rounded bg-surface/55" />
+                <div className="mt-2 h-2 w-[45%] rounded bg-surface/55" />
               </div>
             </div>
           </div>
@@ -221,7 +221,7 @@ export default function Home() {
                   key={c.to}
                   to={c.to}
                   style={{ animationDelay: `${i * 0.1}s` }}
-                  className="group flex flex-[1_1_230px] animate-[fadeUp_.6s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-3.5 rounded-[20px] border border-slate-200 bg-white p-[26px] transition duration-300 hover:-translate-y-2 hover:shadow-[0_26px_44px_-18px_rgba(27,26,46,.22)]"
+                  className="group flex flex-[1_1_230px] animate-[fadeUp_.6s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-3.5 rounded-[20px] border border-slate-200 bg-surface p-[26px] transition duration-300 hover:-translate-y-2 hover:shadow-[0_26px_44px_-18px_rgba(27,26,46,.22)]"
                 >
                   <span className={`flex h-12 w-12 items-center justify-center rounded-[14px] ${TONES[i % 2].tone}`}>
                     <c.icon size={22} strokeWidth={1.8} />
@@ -250,9 +250,9 @@ export default function Home() {
         {loadError ? (
           <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
         ) : loading ? (
-          <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">Жүктелуде...</div>
+          <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">Жүктелуде...</div>
         ) : shownProjects.length === 0 ? (
-          <div className="rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">
+          <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
             {q ? "Жоба табылмады." : "Әзірге жоба жоқ. Жоғарыдағы құралдардың бірін таңдап, алғашқы материалыңызды жасаңыз."}
           </div>
         ) : (
@@ -269,7 +269,7 @@ export default function Home() {
       <aside
         aria-label="Хабарландырулар"
         aria-hidden={!drawerOpen}
-        className={`fixed top-0 right-0 z-50 flex h-screen w-full max-w-[380px] flex-col gap-4 overflow-y-auto border-l border-slate-200 bg-white/95 px-6 py-7 shadow-[-24px_0_60px_-20px_rgba(27,26,46,.22)] backdrop-blur-xl transition-transform duration-500 ${
+        className={`fixed top-0 right-0 z-50 flex h-screen w-full max-w-[380px] flex-col gap-4 overflow-y-auto border-l border-slate-200 bg-surface/95 px-6 py-7 shadow-[-24px_0_60px_-20px_rgba(27,26,46,.22)] backdrop-blur-xl transition-transform duration-500 ${
           drawerOpen ? "translate-x-0" : "invisible translate-x-[105%]"
         }`}
       >
@@ -285,7 +285,7 @@ export default function Home() {
           </button>
         </div>
         {announcements.map((a) => (
-          <div key={a.id} className="rounded-[14px] border border-slate-200 bg-white px-4 py-3.5">
+          <div key={a.id} className="rounded-[14px] border border-slate-200 bg-surface px-4 py-3.5">
             <div className="text-sm font-semibold">{a.title}</div>
             <div className="mt-1 text-[13px] text-slate-500">{a.body}</div>
             <div className="mt-2 text-xs text-slate-500">{a.date}</div>

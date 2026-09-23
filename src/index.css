@@ -41,6 +41,9 @@
   --color-slate-900: #1c1b2e;
   --color-slate-950: #121120;
 
+  /* Карта/форма беттерінің фоны: түнгі режимде қою түске ауысады (bg-white орнына). */
+  --color-surface: #ffffff;
+
   --color-navy-700: #37415c;
   --color-navy-800: #28324c;
   --color-navy-900: #1b2438;
@@ -68,8 +71,8 @@ body {
   font-family: "Times New Roman", Times, serif;
   font-size: 16px;
   font-weight: 400;
-  background: #fbf7f0;
-  color: #1c1b2e;
+  background: var(--color-slate-50);
+  color: var(--color-slate-900);
 }
 
 h1, h2, h3 {

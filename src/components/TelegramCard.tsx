@@ -10,7 +10,7 @@ import {
   unlinkTelegram,
 } from "../lib/telegram";
 
-const btn = "inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 disabled:opacity-60";
+const btn = "inline-flex items-center gap-2 rounded-[12px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 disabled:opacity-60";
 
 /** «Жеке бет»: мұғалімнің Telegram хабарламалары; әкімшіге — ботты іске қосу. */
 export function TelegramCard({ userId, isAdmin }: { userId: string; isAdmin: boolean }) {
@@ -87,7 +87,7 @@ export function TelegramCard({ userId, isAdmin }: { userId: string; isAdmin: boo
     });
 
   return (
-    <section className="rounded-[22px] border border-slate-200 bg-white p-6 sm:p-7">
+    <section className="rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-7">
       <h2 className="flex items-center gap-2 text-lg font-bold">
         <Send size={18} className="text-violet-600" /> Telegram хабарламалары
       </h2>

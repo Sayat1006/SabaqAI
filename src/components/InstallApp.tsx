@@ -34,7 +34,7 @@ export function InstallApp({ variant = "banner" }: { variant?: "banner" | "card"
   if (standalone || done) {
     if (variant === "card")
       return (
-        <section className="rounded-[22px] border border-slate-200 bg-white p-6 sm:p-7">
+        <section className="rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-7">
           <h2 className="flex items-center gap-2 text-lg font-bold">
             <Smartphone size={18} className="text-violet-600" /> AI Nur қосымшасы
           </h2>
@@ -84,7 +84,7 @@ export function InstallApp({ variant = "banner" }: { variant?: "banner" | "card"
 
   if (variant === "card")
     return (
-      <section className="rounded-[22px] border border-slate-200 bg-white p-6 sm:p-7">
+      <section className="rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-7">
         <h2 className="flex items-center gap-2 text-lg font-bold">
           <Smartphone size={18} className="text-violet-600" /> Телефонға орнату
         </h2>
@@ -107,7 +107,7 @@ export function InstallApp({ variant = "banner" }: { variant?: "banner" | "card"
 
   return (
     <div className="relative rounded-3xl border border-violet-200 bg-violet-50 p-5 pr-12">
-      <button type="button" onClick={hide} aria-label="Жабу" className="absolute top-3 right-3 rounded-full p-1.5 text-slate-500 hover:bg-white">
+      <button type="button" onClick={hide} aria-label="Жабу" className="absolute top-3 right-3 rounded-full p-1.5 text-slate-500 hover:bg-surface">
         <X size={16} />
       </button>
       <div className="flex flex-wrap items-center gap-4">

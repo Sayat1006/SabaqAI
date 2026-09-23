@@ -10,7 +10,7 @@ import { useFullscreen } from "../lib/useFullscreen";
 // жауаптар таралуы және көшбасшылар кестесі.
 
 const primary = "inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3.5 text-lg font-bold text-white shadow-[0_14px_26px_-12px_rgba(184,90,42,.55)] transition hover:-translate-y-0.5 disabled:opacity-60";
-const ghost = "inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold hover:border-violet-500";
+const ghost = "inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-surface px-4 py-3 text-sm font-semibold hover:border-violet-500";
 
 export default function LiveHostPage() {
   const { id = "" } = useParams();
@@ -122,7 +122,7 @@ export default function LiveHostPage() {
 
   return (
     <div ref={ref} className="flex min-h-screen flex-col bg-slate-50">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-8">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-surface px-4 py-3 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Logo className="h-9 w-9" />
           <div className="min-w-0">
@@ -155,7 +155,7 @@ export default function LiveHostPage() {
       <main className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-6 px-4 py-6 sm:px-8">
         {hs.state === "lobby" && (
           <div className="grid flex-1 items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-white p-8 text-center">
+            <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-surface p-8 text-center">
               <div className="text-lg text-slate-500">{T.goTo}</div>
               <div className="text-2xl font-bold break-all text-violet-700 sm:text-3xl">{liveJoinUrl().replace(/^https?:\/\//, "")}</div>
               <div className="text-sm tracking-wide text-slate-500 uppercase">{T.code}</div>
@@ -169,7 +169,7 @@ export default function LiveHostPage() {
                   {T.players}: {players}
                 </h2>
               </div>
-              <div className="flex min-h-[160px] flex-wrap content-start gap-2 rounded-[22px] border border-dashed border-slate-300 bg-white/60 p-4">
+              <div className="flex min-h-[160px] flex-wrap content-start gap-2 rounded-[22px] border border-dashed border-slate-300 bg-surface/60 p-4">
                 {players === 0 ? (
                   <span className="m-auto animate-pulse text-slate-500">{T.waitingPlayers}</span>
                 ) : (
@@ -191,7 +191,7 @@ export default function LiveHostPage() {
         {(hs.state === "question" || hs.state === "reveal") && q && (
           <div className="flex flex-1 flex-col gap-5">
             <div className="flex items-center justify-between gap-3">
-              <span className="rounded-full bg-white px-4 py-2 text-sm font-bold shadow-sm">
+              <span className="rounded-full bg-surface px-4 py-2 text-sm font-bold shadow-sm">
                 {T.question} {hs.current + 1} / {hs.total}
               </span>
               {hs.state === "question" ? (
@@ -204,12 +204,12 @@ export default function LiveHostPage() {
               ) : (
                 <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-800">✓ {T.correctWas}</span>
               )}
-              <span className="rounded-full bg-white px-4 py-2 text-sm font-bold shadow-sm">
+              <span className="rounded-full bg-surface px-4 py-2 text-sm font-bold shadow-sm">
                 {answeredCount} / {players} {T.answered}
               </span>
             </div>
 
-            <h1 className="rounded-[26px] border border-slate-200 bg-white px-6 py-8 text-center text-2xl leading-snug font-bold sm:text-4xl">{q.question}</h1>
+            <h1 className="rounded-[26px] border border-slate-200 bg-surface px-6 py-8 text-center text-2xl leading-snug font-bold sm:text-4xl">{q.question}</h1>
 
             <div className="grid gap-3 sm:grid-cols-2">
               {q.options.map((o, i) => {
@@ -234,7 +234,7 @@ export default function LiveHostPage() {
 
             {hs.state === "reveal" && (
               <div className="grid gap-5 lg:grid-cols-2">
-                <div className="flex h-44 items-end justify-around gap-3 rounded-[22px] border border-slate-200 bg-white p-5" aria-label="Жауаптар таралуы">
+                <div className="flex h-44 items-end justify-around gap-3 rounded-[22px] border border-slate-200 bg-surface p-5" aria-label="Жауаптар таралуы">
                   {dist.map((n, i) => (
                     <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
                       <span className="text-sm font-bold">{n}</span>
@@ -289,7 +289,7 @@ export default function LiveHostPage() {
 function Leaderboard({ hs, title, points, limit }: { hs: HostState; title: string; points: string; limit?: number }) {
   const rows = limit ? hs.players.slice(0, limit) : hs.players;
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-white p-5">
+    <div className="rounded-[22px] border border-slate-200 bg-surface p-5">
       <h2 className="mb-3 text-lg font-bold">{title}</h2>
       {rows.length === 0 ? (
         <p className="text-sm text-slate-500">—</p>

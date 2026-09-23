@@ -37,13 +37,13 @@ const TYPE_ICONS: Record<TaskType, LucideIcon> = {
 
 function chipClass(active: boolean) {
   return `min-h-10 rounded-xl border px-2 py-2.5 text-[13.5px] transition hover:-translate-y-px ${
-    active ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"
+    active ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"
   }`;
 }
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 const ghostBtn =
-  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600";
+  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600";
 
 export default function TestsPage() {
   const { user } = useAuth();
@@ -174,7 +174,7 @@ export default function TestsPage() {
         <form
           onSubmit={handleGenerate}
           noValidate
-          className="flex w-full flex-col gap-5 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl lg:sticky lg:top-24 lg:w-[400px] print:hidden"
+          className="flex w-full flex-col gap-5 rounded-3xl border border-surface/70 bg-surface/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl lg:sticky lg:top-24 lg:w-[400px] print:hidden"
         >
           {planContext && (
             <div className="flex items-start gap-2 rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-[13px] text-fuchsia-800">
@@ -200,7 +200,7 @@ export default function TestsPage() {
                     aria-pressed={active}
                     onClick={() => chooseType(t.key)}
                     className={`flex items-start gap-3 rounded-xl border px-3 py-2.5 text-left transition ${
-                      active ? "border-violet-600 bg-violet-100" : "border-slate-200 bg-white hover:border-violet-500"
+                      active ? "border-violet-600 bg-violet-100" : "border-slate-200 bg-surface hover:border-violet-500"
                     }`}
                   >
                     <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${active ? "bg-violet-600 text-white" : "bg-slate-100 text-slate-500"}`}>
@@ -317,7 +317,7 @@ export default function TestsPage() {
 
         <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white">
+            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface">
               <Sparkles size={34} className="animate-spin text-violet-500" />
               <div className="text-base">{typeDef.label} құрастырылуда...</div>
               <div className="text-[12.5px] text-slate-500">Әдетте 10–40 секунд алады</div>
@@ -331,7 +331,7 @@ export default function TestsPage() {
               <div className="text-[13.5px]">Дайын тапсырмалар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.</div>
             </div>
           ) : (
-            <article className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-6 rounded-[22px] border border-slate-200 bg-white p-6 sm:p-8 print:border-0 print:p-0">
+            <article className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-6 rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-8 print:border-0 print:p-0">
               <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-slate-900 pb-4">
                 <div>
                   <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{shownType.label}</div>

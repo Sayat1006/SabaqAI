@@ -18,7 +18,7 @@ import { QrDialog } from "./QrDialog";
 import { ClassInsights, StudentDetail } from "./ResultsInsights";
 
 const btn =
-  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
+  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
 
 const pct = (score: number, total: number) => (total ? Math.round((score / total) * 100) : 0);
 
@@ -117,7 +117,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   );
 
   return (
-    <section className="mt-6 flex flex-col gap-5 rounded-[22px] border border-slate-200 bg-white p-6 sm:p-8 print:hidden" aria-labelledby="share-title">
+    <section className="mt-6 flex flex-col gap-5 rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-8 print:hidden" aria-labelledby="share-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id="share-title" className="flex items-center gap-2 text-lg font-bold">

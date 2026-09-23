@@ -32,7 +32,7 @@ function CopyButton({ text }: { text: string }) {
           () => {},
         )
       }
-      className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 bg-white px-3 py-2 text-[13px] font-semibold hover:border-violet-500"
+      className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 bg-surface px-3 py-2 text-[13px] font-semibold hover:border-violet-500"
     >
       {done ? <Check size={14} /> : <Copy size={14} />} {done ? "Көшірілді" : "Көшіру"}
     </button>
@@ -92,7 +92,7 @@ export function StudentDetail({ test, sub }: { test: SavedTest; sub: TestSubmiss
       )}
       {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
       {plan && (
-        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4">
+        <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-surface p-4">
           <div className="text-[14.5px]">
             <b>Кері байланыс:</b> {plan.feedback}
           </div>
@@ -215,7 +215,7 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
             </div>
           )}
           <div>
-            <button type="button" onClick={analyze} disabled={busy} className="rounded-[10px] border border-slate-300 bg-white px-3 py-2 text-[13px] font-semibold disabled:opacity-60">
+            <button type="button" onClick={analyze} disabled={busy} className="rounded-[10px] border border-slate-300 bg-surface px-3 py-2 text-[13px] font-semibold disabled:opacity-60">
               {busy ? "Талдауда..." : "Қайта талдау"}
             </button>
           </div>

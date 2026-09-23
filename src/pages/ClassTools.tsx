@@ -7,8 +7,8 @@ import { useFullscreen } from "../lib/useFullscreen";
 // бағдаршам, шу өлшегіш, рефлексия.
 // Сынып тізімдері тек осы құрылғының браузерінде сақталады.
 
-const card = "rounded-3xl border border-slate-200 bg-white p-5 sm:p-6";
-const btn = "inline-flex items-center justify-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 disabled:opacity-50";
+const card = "rounded-3xl border border-slate-200 bg-surface p-5 sm:p-6";
+const btn = "inline-flex items-center justify-center gap-2 rounded-[12px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 disabled:opacity-50";
 const primary = "inline-flex items-center justify-center gap-2 rounded-[12px] bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60";
 const field = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-violet-500";
 
@@ -239,7 +239,7 @@ function ClassListEditor({ lists, activeId, onSelect, onChange }: { lists: Class
         <h2 className="flex items-center gap-2 text-lg font-bold">
           <Users size={18} className="text-violet-600" /> Сынып тізімі
         </h2>
-        <select value={activeId} onChange={(e) => onSelect(e.target.value)} aria-label="Сыныпты таңдау" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
+        <select value={activeId} onChange={(e) => onSelect(e.target.value)} aria-label="Сыныпты таңдау" className="rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm">
           <option value="">+ Жаңа тізім</option>
           {lists.map((l) => (
             <option key={l.id} value={l.id}>

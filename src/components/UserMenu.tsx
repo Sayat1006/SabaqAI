@@ -44,7 +44,7 @@ export function UserMenu() {
         <Avatar user={user} />
       </button>
       {open && (
-        <div className="absolute top-[calc(100%+8px)] right-0 z-50 min-w-[230px] rounded-[14px] border border-slate-200 bg-white p-1.5 shadow-[0_18px_36px_-18px_rgba(27,26,46,.25)]">
+        <div className="absolute top-[calc(100%+8px)] right-0 z-50 min-w-[230px] rounded-[14px] border border-slate-200 bg-surface p-1.5 shadow-[0_18px_36px_-18px_rgba(27,26,46,.25)]">
           <div className="mb-1 flex items-center gap-3 border-b border-slate-200 px-3 py-2.5">
             <Avatar user={user} className="h-9 w-9 rounded-lg text-xs" />
             <div className="min-w-0">

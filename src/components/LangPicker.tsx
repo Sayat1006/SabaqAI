@@ -12,7 +12,7 @@ export function LangPicker({ value, onChange }: { value: Lang; onChange: (l: Lan
             type="button"
             aria-pressed={value === l.id}
             onClick={() => onChange(l.id)}
-            className={`min-h-10 rounded-xl border px-3 py-2 text-[13.5px] transition ${value === l.id ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-violet-500"}`}
+            className={`min-h-10 rounded-xl border px-3 py-2 text-[13.5px] transition ${value === l.id ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-600 hover:border-violet-500"}`}
           >
             {l.label}
           </button>

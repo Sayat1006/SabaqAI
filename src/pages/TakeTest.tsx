@@ -96,7 +96,7 @@ const TT = {
 };
 type TakeText = (typeof TT)["kk"];
 
-const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[15px] outline-none focus:border-violet-500";
+const fieldClass = "w-full rounded-xl border border-slate-200 bg-surface px-3.5 py-3 text-[15px] outline-none focus:border-violet-500";
 
 /** Оқушы беті: мұғалім жіберген сілтеме арқылы жүйеге кірмей тест тапсырады. */
 export default function TakeTestPage() {
@@ -165,9 +165,9 @@ export default function TakeTestPage() {
           <span className="text-sm text-slate-500">· {T.online}</span>
         </header>
 
-        {state === "loading" && <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">{T.loading}</div>}
+        {state === "loading" && <div className="rounded-3xl border border-slate-200 bg-surface p-8 text-center text-slate-500">{T.loading}</div>}
         {(state === "missing" || state === "error") && (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
+          <div className="rounded-3xl border border-slate-200 bg-surface p-8 text-center">
             <div className="text-lg font-bold">{state === "missing" ? T.missing : T.failed}</div>
             <p className="mt-2 text-slate-500">
               {state === "missing" ? T.missingHint : T.failedHint}
@@ -177,7 +177,7 @@ export default function TakeTestPage() {
 
         {test && result && (
           <>
-            <div className="flex flex-col items-center gap-3 rounded-3xl border border-slate-200 bg-white p-8 text-center">
+            <div className="flex flex-col items-center gap-3 rounded-3xl border border-slate-200 bg-surface p-8 text-center">
               <CheckCircle2 size={48} className="text-fuchsia-600" />
               <div className="text-lg font-bold">{T.sent}</div>
               <div className="text-[44px] font-bold leading-none text-violet-600">
@@ -203,7 +203,7 @@ export default function TakeTestPage() {
 
         {test && !result && (
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6">
+            <div className="rounded-3xl border border-slate-200 bg-surface p-6">
               {test.taskType && test.taskType !== "levels" && (
                 <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{test.lang === "ru" ? testLabels("ru").types[test.taskType] : taskTypeOf(test.taskType).label}</div>
               )}
@@ -232,7 +232,7 @@ export default function TakeTestPage() {
               {test.questions.map((q, qi) => (
                 <li key={qi} className="flex flex-col gap-3">
                   {q.context && q.context !== test.questions[qi - 1]?.context && <ContextBox text={q.context} label={T.context} />}
-                  <div className="rounded-[18px] border border-slate-200 bg-white p-5">
+                  <div className="rounded-[18px] border border-slate-200 bg-surface p-5">
                   <fieldset>
                     <legend className="font-semibold">
                       {qi + 1}. {q.question}
@@ -273,7 +273,7 @@ export default function TakeTestPage() {
                 {error}
               </p>
             )}
-            <div className="sticky bottom-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 pl-5 shadow-lg backdrop-blur">
+            <div className="sticky bottom-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-surface/90 p-3 pl-5 shadow-lg backdrop-blur">
               <span className="text-sm text-slate-500">
                 {T.answered}: <b className="text-slate-900">{answered}</b> / {test.questions.length}
               </span>
@@ -293,7 +293,7 @@ type Review = NonNullable<SubmitResult["review"]>;
 /** PISA: бірнеше сұраққа ортақ өмірлік жағдаят мәтіні. */
 function ContextBox({ text, label }: { text: string; label: string }) {
   return (
-    <div className="whitespace-pre-line rounded-[18px] border-l-4 border-violet-600 bg-white px-5 py-4 text-[15px]">
+    <div className="whitespace-pre-line rounded-[18px] border-l-4 border-violet-600 bg-surface px-5 py-4 text-[15px]">
       <div className="mb-1 text-[12px] font-bold uppercase tracking-wide text-violet-700">{label}</div>
       {text}
     </div>
@@ -339,7 +339,7 @@ function Review({ test, answers, review, T }: { test: SharedTest; answers: (numb
       {test.questions.map((q, i) => {
         const ok = answers[i] === review[i]?.correct;
         return (
-          <div key={i} className={`rounded-[18px] border bg-white p-4 ${ok ? "border-fuchsia-300" : "border-rose-300"}`}>
+          <div key={i} className={`rounded-[18px] border bg-surface p-4 ${ok ? "border-fuchsia-300" : "border-rose-300"}`}>
             <div className="flex items-start gap-2 font-semibold">
               {ok ? <CheckCircle2 size={19} className="mt-0.5 shrink-0 text-fuchsia-600" /> : <XCircle size={19} className="mt-0.5 shrink-0 text-rose-600" />}
               <span>
@@ -386,7 +386,7 @@ function MistakePractice({ test, answers, review, T }: { test: SharedTest; answe
         return (
           <div key={i} className="flex flex-col gap-2">
           {q.context && <ContextBox text={q.context} label={T.context} />}
-          <div className="rounded-[18px] border border-slate-200 bg-white p-4">
+          <div className="rounded-[18px] border border-slate-200 bg-surface p-4">
             <div className="font-semibold">
               {i + 1}. {q.question}
             </div>

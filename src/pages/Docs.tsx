@@ -12,7 +12,7 @@ import { scrollToResult } from "../lib/scrollToResult";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 const ghost =
-  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
+  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
 
 function FormField({ label, hint, children }: { label: React.ReactNode; hint?: string; children: React.ReactNode }) {
   return (
@@ -167,7 +167,7 @@ export default function DocsPage() {
           <form
             onSubmit={handleGenerate}
             noValidate
-            className="flex flex-col gap-5 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl"
+            className="flex flex-col gap-5 rounded-3xl border border-surface/70 bg-surface/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl"
           >
             <fieldset>
               <legend className="mb-2 block text-[13px] font-semibold text-slate-500">Құжат түрі</legend>
@@ -178,7 +178,7 @@ export default function DocsPage() {
                     type="button"
                     aria-pressed={type === d.id}
                     onClick={() => setType(d.id)}
-                    className={`flex flex-col items-start gap-0.5 rounded-2xl border px-3 py-2.5 text-left transition ${type === d.id ? "border-violet-600 bg-violet-50 ring-2 ring-violet-600/20" : "border-slate-200 bg-white hover:border-violet-400"}`}
+                    className={`flex flex-col items-start gap-0.5 rounded-2xl border px-3 py-2.5 text-left transition ${type === d.id ? "border-violet-600 bg-violet-50 ring-2 ring-violet-600/20" : "border-slate-200 bg-surface hover:border-violet-400"}`}
                   >
                     <span className="text-[13px] leading-snug font-semibold">
                       {d.emoji} {d.label}
@@ -260,7 +260,7 @@ export default function DocsPage() {
           </form>
 
           {history.length > 0 && (
-            <div className="rounded-[18px] border border-slate-200 bg-white p-5">
+            <div className="rounded-[18px] border border-slate-200 bg-surface p-5">
               <div className="mb-3 text-sm font-bold">Соңғы құжаттар</div>
               <ul className="flex flex-col gap-1">
                 {history.map((d) => (
@@ -283,7 +283,7 @@ export default function DocsPage() {
 
         <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white">
+            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface">
               <Sparkles size={34} className="animate-spin text-violet-500" />
               <div className="text-base">Құжат дайындалуда...</div>
               <div className="text-[12.5px] text-slate-500">Әдетте 15–40 секунд алады</div>
@@ -322,7 +322,7 @@ export default function DocsPage() {
 
 function DocView({ doc }: { doc: DocData }) {
   return (
-    <article lang={doc.lang === "ru" ? "ru" : "kk"} className="animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-white p-6 text-[15.5px] leading-relaxed sm:p-10 print:border-0 print:p-0">
+    <article lang={doc.lang === "ru" ? "ru" : "kk"} className="animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-surface p-6 text-[15.5px] leading-relaxed sm:p-10 print:border-0 print:p-0">
       <h1 className="text-center text-2xl font-bold">{doc.title}</h1>
       {doc.subtitle && <p className="mt-1 text-center text-slate-500">{doc.subtitle}</p>}
       <div className="mt-6 flex flex-col gap-5">
@@ -419,7 +419,7 @@ function DocEditor({ doc, saving, onSave, onCancel }: { doc: DocData; saving: bo
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-[22px] border border-slate-200 bg-white p-5 sm:p-7">
+    <div className="flex flex-col gap-4 rounded-[22px] border border-slate-200 bg-surface p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-bold">Құжатты өңдеу</h2>
         <div className="flex gap-2">

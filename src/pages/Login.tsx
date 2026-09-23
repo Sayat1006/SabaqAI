@@ -60,7 +60,7 @@ export default function LoginPage() {
 
   const tabClass = (r: Role) =>
     `flex-1 rounded-[11px] py-2.5 text-sm font-semibold transition-all ${
-      role === r ? "bg-white text-slate-900 shadow-[0_8px_18px_-10px_rgba(27,26,46,.25)]" : "text-slate-500"
+      role === r ? "bg-surface text-slate-900 shadow-[0_8px_18px_-10px_rgba(27,26,46,.25)]" : "text-slate-500"
     }`;
 
   return (
@@ -72,7 +72,7 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-[440px] animate-[fadeUp_.6s_cubic-bezier(.16,1,.3,1)_both]">
         <div className="mb-6 flex flex-col items-center text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-[20px] border border-slate-200 bg-white shadow-[0_14px_30px_-18px_rgba(184,90,42,.45)]">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[20px] border border-slate-200 bg-surface shadow-[0_14px_30px_-18px_rgba(184,90,42,.45)]">
             <Logo className="h-10 w-10" />
           </div>
           <div className="mt-3 text-[22px] font-bold tracking-wide">AI Nur</div>
@@ -82,7 +82,7 @@ export default function LoginPage() {
         <form
           onSubmit={handleSubmit}
           noValidate
-          className="flex flex-col gap-5 rounded-[26px] border border-white/80 bg-white/90 p-6 shadow-[0_30px_60px_-34px_rgba(28,27,46,.35)] backdrop-blur-xl sm:p-8"
+          className="flex flex-col gap-5 rounded-[26px] border border-surface/80 bg-surface/90 p-6 shadow-[0_30px_60px_-34px_rgba(28,27,46,.35)] backdrop-blur-xl sm:p-8"
         >
           <div className="text-center">
             <h1 className="text-[26px] leading-snug font-bold">Қайта қош келдіңіз</h1>
@@ -162,7 +162,7 @@ export default function LoginPage() {
 
         <div aria-hidden className="mt-6 flex flex-wrap justify-center gap-2 sm:-mx-16">
           {features.map(({ icon: Icon, label }) => (
-            <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[12.5px] text-slate-600">
+            <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-surface/70 px-3 py-1.5 text-[12.5px] text-slate-600">
               <Icon size={13} className="text-violet-600" /> {label}
             </span>
           ))}

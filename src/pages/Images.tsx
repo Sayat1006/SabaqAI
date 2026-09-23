@@ -96,10 +96,10 @@ export default function ImagesPage() {
       <form
         onSubmit={handleGenerate}
         noValidate
-        className="mt-7 flex flex-col gap-4 rounded-3xl border border-white/70 bg-white/75 p-5.5 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl sm:p-6"
+        className="mt-7 flex flex-col gap-4 rounded-3xl border border-surface/70 bg-surface/75 p-5.5 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl sm:p-6"
       >
         <div className="flex flex-wrap gap-3">
-          <label className="flex min-h-[52px] flex-[1_1_420px] items-center gap-2.5 rounded-[14px] border border-slate-200 bg-white px-4 focus-within:border-violet-500">
+          <label className="flex min-h-[52px] flex-[1_1_420px] items-center gap-2.5 rounded-[14px] border border-slate-200 bg-surface px-4 focus-within:border-violet-500">
             <Sparkles size={17} className="text-slate-500" />
             <span className="sr-only">Иллюстрация сипаттамасы</span>
             <input
@@ -127,7 +127,7 @@ export default function ImagesPage() {
               aria-pressed={style === s.key}
               onClick={() => setStyle(s.key)}
               className={`min-h-10 rounded-full border px-4 py-2 text-[13.5px] transition ${
-                style === s.key ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"
+                style === s.key ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"
               }`}
             >
               {s.label}
@@ -144,7 +144,7 @@ export default function ImagesPage() {
 
       <div id="result" className="mt-6 grid scroll-mt-28 grid-cols-[repeat(auto-fill,minmax(250px,1fr))] gap-5" aria-live="polite">
         {generating && (
-          <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-white">
+          <article className="overflow-hidden rounded-[20px] border border-slate-200 bg-surface">
             <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2.5 bg-slate-50">
               <Sparkles size={28} className="animate-spin text-violet-500" />
               <div className="text-[13.5px] text-slate-500">Сурет салынуда...</div>
@@ -156,10 +156,10 @@ export default function ImagesPage() {
           <div role="alert" className="col-span-full rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
         )}
         {loading && !loadError && (
-          <div className="col-span-full rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">Жүктелуде...</div>
+          <div className="col-span-full rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">Жүктелуде...</div>
         )}
         {!loading && !loadError && images.length === 0 && !generating && (
-          <div className="col-span-full rounded-[18px] border border-slate-200 bg-white p-7 text-center text-slate-500">
+          <div className="col-span-full rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
             Әзірге сурет жоқ. Жоғарыда сипаттама жазып, алғашқы иллюстрацияңызды жасаңыз.
           </div>
         )}
@@ -167,7 +167,7 @@ export default function ImagesPage() {
           <article
             key={img.id}
             style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }}
-            className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-white transition hover:-translate-y-1 hover:shadow-[0_20px_36px_-20px_rgba(27,26,46,.25)]"
+            className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col overflow-hidden rounded-[20px] border border-slate-200 bg-surface transition hover:-translate-y-1 hover:shadow-[0_20px_36px_-20px_rgba(27,26,46,.25)]"
           >
             <button type="button" onClick={() => setViewing(img)} aria-label={`Үлкейту: ${img.title}`} className="block aspect-[4/3] w-full cursor-zoom-in bg-slate-50">
               <img src={svgDataUrl(img.svg)} alt={img.title} loading="lazy" className="h-full w-full object-contain" />
@@ -192,7 +192,7 @@ export default function ImagesPage() {
 
       {viewing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-900/45 p-4" onClick={(e) => e.target === e.currentTarget && setViewing(null)}>
-          <div role="dialog" aria-modal="true" aria-label={viewing.title} className="flex max-h-[calc(100vh-32px)] w-full max-w-[760px] animate-[fadeUp_.35s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-3.5 overflow-auto rounded-[22px] bg-white p-7">
+          <div role="dialog" aria-modal="true" aria-label={viewing.title} className="flex max-h-[calc(100vh-32px)] w-full max-w-[760px] animate-[fadeUp_.35s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-3.5 overflow-auto rounded-[22px] bg-surface p-7">
             <img src={svgDataUrl(viewing.svg)} alt={viewing.title} className="w-full rounded-[14px] bg-slate-50" />
             <div>
               <h2 className="text-[21px] font-bold">{viewing.title}</h2>

@@ -9,7 +9,7 @@ export function ProjectCard({ project: p, index, onDelete }: { project: RecentPr
   return (
     <article
       style={{ animationDelay: `${Math.min(index, 8) * 0.05}s` }}
-      className="relative flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-3.5 rounded-[18px] border border-slate-200 bg-white p-5 transition hover:-translate-y-1 hover:shadow-[0_18px_32px_-18px_rgba(27,26,46,.2)]"
+      className="relative flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-3.5 rounded-[18px] border border-slate-200 bg-surface p-5 transition hover:-translate-y-1 hover:shadow-[0_18px_32px_-18px_rgba(27,26,46,.2)]"
     >
       {p.thumb && (
         <div className="flex h-[140px] items-center justify-center overflow-hidden rounded-xl bg-slate-50">

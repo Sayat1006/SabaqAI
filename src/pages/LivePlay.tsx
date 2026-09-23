@@ -28,7 +28,7 @@ function saveSeat(code: string, seat: LiveSeat | null) {
 }
 
 const guessLang = (): Lang => (navigator.language?.toLowerCase().startsWith("ru") ? "ru" : "kk");
-const field = "w-full rounded-2xl border-2 border-slate-200 bg-white px-4 py-3.5 text-center text-lg outline-none focus:border-violet-500";
+const field = "w-full rounded-2xl border-2 border-slate-200 bg-surface px-4 py-3.5 text-center text-lg outline-none focus:border-violet-500";
 
 export default function LivePlayPage() {
   const params = useParams();
@@ -134,9 +134,9 @@ export default function LivePlayPage() {
           <span className="font-bold">AI Nur</span>
         </div>
         {st ? (
-          <span className="max-w-[55%] truncate rounded-full bg-white/80 px-3 py-1.5 text-sm font-semibold">{st.name}</span>
+          <span className="max-w-[55%] truncate rounded-full bg-surface/80 px-3 py-1.5 text-sm font-semibold">{st.name}</span>
         ) : (
-          <div className="flex rounded-full border border-slate-200 bg-white p-0.5 text-xs font-semibold" role="group" aria-label="Тіл / Язык">
+          <div className="flex rounded-full border border-slate-200 bg-surface p-0.5 text-xs font-semibold" role="group" aria-label="Тіл / Язык">
             {(["kk", "ru"] as const).map((l) => (
               <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)} className={`rounded-full px-3 py-1 ${lang === l ? "bg-violet-600 text-white" : "text-slate-500"}`}>
                 {l === "kk" ? "Қаз" : "Рус"}
@@ -165,7 +165,7 @@ export default function LivePlayPage() {
           if (c.length === 6) navigate(`/l/${c}`);
           else setError(T.errors.not_found);
         }}
-        className="flex flex-col gap-4 rounded-[28px] bg-white p-6 shadow-[0_24px_48px_-30px_rgba(28,27,46,.35)]"
+        className="flex flex-col gap-4 rounded-[28px] bg-surface p-6 shadow-[0_24px_48px_-30px_rgba(28,27,46,.35)]"
       >
         <h1 className="text-center text-2xl font-bold">🎮 {T.liveQuiz}</h1>
         <input value={codeInput} onChange={(e) => setCodeInput(e.target.value)} inputMode="numeric" autoComplete="off" placeholder={T.codePh} aria-label={T.code} className={`${field} font-mono text-3xl tracking-[0.3em]`} />
@@ -180,7 +180,7 @@ export default function LivePlayPage() {
   // 2. Атын жазу
   if (!seat) {
     return shell(
-      <form onSubmit={join} className="flex flex-col gap-4 rounded-[28px] bg-white p-6 shadow-[0_24px_48px_-30px_rgba(28,27,46,.35)]">
+      <form onSubmit={join} className="flex flex-col gap-4 rounded-[28px] bg-surface p-6 shadow-[0_24px_48px_-30px_rgba(28,27,46,.35)]">
         <div className="text-center">
           <div className="text-sm text-slate-500">{T.code}</div>
           <div className="font-mono text-3xl font-bold tracking-[0.25em]">{code}</div>
@@ -209,7 +209,7 @@ export default function LivePlayPage() {
         <div className="text-6xl">🙌</div>
         <h1 className="text-3xl font-bold">{T.youAreIn}</h1>
         <p className="text-lg text-slate-600">{T.waitStart}</p>
-        <div className="mt-2 animate-pulse rounded-full bg-white px-4 py-2 text-sm text-slate-500">
+        <div className="mt-2 animate-pulse rounded-full bg-surface px-4 py-2 text-sm text-slate-500">
           {T.players}: {st.players}
         </div>
         {errorBox}
@@ -245,7 +245,7 @@ export default function LivePlayPage() {
           </span>
           <span className={`flex h-11 w-11 items-center justify-center rounded-full text-lg font-bold text-white tabular-nums ${left !== null && left <= 5 ? "bg-rose-500" : "bg-violet-600"}`}>{left ?? st.timeLimit}</span>
         </div>
-        <h1 className="rounded-3xl bg-white px-5 py-5 text-center text-xl leading-snug font-bold">{st.question.question}</h1>
+        <h1 className="rounded-3xl bg-surface px-5 py-5 text-center text-xl leading-snug font-bold">{st.question.question}</h1>
         <div className="grid gap-3">
           {st.question.options.map((o, i) => {
             const s = OPTION_STYLES[i % OPTION_STYLES.length];
@@ -276,16 +276,16 @@ export default function LivePlayPage() {
         <h1 className={`text-3xl font-bold ${ok ? "text-emerald-700" : a ? "text-rose-700" : ""}`}>{!a ? T.noAnswer : ok ? T.correct : T.wrong}</h1>
         {ok && <div className="text-2xl font-bold text-emerald-700">+{a?.points}</div>}
         {!ok && correctText && (
-          <p className="rounded-2xl bg-white px-4 py-3 text-lg">
+          <p className="rounded-2xl bg-surface px-4 py-3 text-lg">
             {T.correctWas}: <b>{correctText}</b>
           </p>
         )}
         <div className="flex gap-3">
-          <span className="rounded-2xl bg-white px-4 py-3 text-lg font-bold">
+          <span className="rounded-2xl bg-surface px-4 py-3 text-lg font-bold">
             {st.score ?? 0} <span className="text-sm font-normal text-slate-500">{T.points}</span>
           </span>
           {st.rank !== null && (
-            <span className="rounded-2xl bg-white px-4 py-3 text-lg font-bold">
+            <span className="rounded-2xl bg-surface px-4 py-3 text-lg font-bold">
               {st.rank}-{T.place} <span className="text-sm font-normal text-slate-500">/ {st.players}</span>
             </span>
           )}
@@ -310,7 +310,7 @@ export default function LivePlayPage() {
         {T.yourScore}: <b>{st.score ?? 0}</b>
       </p>
       <p className="text-slate-500">{T.thanks}</p>
-      <button type="button" onClick={leave} className="mt-2 rounded-2xl border border-slate-200 bg-white px-5 py-3 font-semibold">
+      <button type="button" onClick={leave} className="mt-2 rounded-2xl border border-slate-200 bg-surface px-5 py-3 font-semibold">
         {T.leave}
       </button>
     </div>,

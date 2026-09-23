@@ -53,7 +53,7 @@ function Lines<T>({ title, hint = "әр жол — бір пункт", initial, 
 
 function Section({ title, children, open = false }: { title: string; children: React.ReactNode; open?: boolean }) {
   return (
-    <details open={open} className="group rounded-2xl border border-slate-200 bg-white">
+    <details open={open} className="group rounded-2xl border border-slate-200 bg-surface">
       <summary className="cursor-pointer select-none px-4 py-3 font-semibold marker:text-violet-600">{title}</summary>
       <div className="flex flex-col gap-3 border-t border-slate-100 p-4">{children}</div>
     </details>
@@ -108,7 +108,7 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
       <div className="sticky top-20 z-10 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-violet-200 bg-violet-100/90 px-4 py-3 backdrop-blur">
         <span className="text-sm font-semibold text-violet-800">Өңдеу режимі — өзгерістерді «Сақтау» арқылы сақтаңыз</span>
         <div className="flex gap-2">
-          <button type="button" onClick={onCancel} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-300 bg-white px-3 py-2 text-sm font-semibold">
+          <button type="button" onClick={onCancel} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-300 bg-surface px-3 py-2 text-sm font-semibold">
             <X size={15} /> Болдырмау
           </button>
           <button type="button" onClick={() => onSave(d)} disabled={saving} className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-600 px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-60">

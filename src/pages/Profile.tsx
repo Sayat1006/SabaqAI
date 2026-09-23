@@ -9,7 +9,7 @@ import { TelegramCard } from "../components/TelegramCard";
 import { InstallApp } from "../components/InstallApp";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
-const cardClass = "rounded-[22px] border border-slate-200 bg-white p-6 sm:p-7";
+const cardClass = "rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-7";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -189,7 +189,7 @@ export default function ProfilePage() {
               onClick={() => fileRef.current?.click()}
               disabled={avatarBusy}
               aria-label="Аватарды өзгерту"
-              className="absolute -right-2 -bottom-2 flex h-10 w-10 items-center justify-center rounded-full border-4 border-white bg-navy-900 text-white disabled:opacity-60"
+              className="absolute -right-2 -bottom-2 flex h-10 w-10 items-center justify-center rounded-full border-4 border-surface bg-navy-900 text-white disabled:opacity-60"
             >
               <Camera size={16} className={avatarBusy ? "animate-pulse" : ""} />
             </button>
@@ -209,7 +209,7 @@ export default function ProfilePage() {
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={avatarBusy}
-              className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600"
+              className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600"
             >
               <Camera size={15} /> {avatarBusy ? "Жүктелуде..." : "Сурет жүктеу"}
             </button>
@@ -218,7 +218,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={removeAvatar}
                 disabled={avatarBusy}
-                className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-rose-600 hover:text-rose-700"
+                className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-rose-600 hover:text-rose-700"
               >
                 <Trash2 size={15} /> Өшіру
               </button>
@@ -279,7 +279,7 @@ export default function ProfilePage() {
                     aria-pressed={on}
                     aria-label={g}
                     onClick={() => toggleGrade(g)}
-                    className={`min-h-10 rounded-xl border text-sm transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"}`}
+                    className={`min-h-10 rounded-xl border text-sm transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"}`}
                   >
                     {Number.parseInt(g, 10)}
                   </button>

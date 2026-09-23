@@ -47,7 +47,7 @@ export function LiveLauncher({ test }: { test: SavedTest }) {
             type="button"
             aria-pressed={time === t}
             onClick={() => setTime(t)}
-            className={`rounded-full border px-3 py-1.5 text-sm ${time === t ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white hover:border-violet-500"}`}
+            className={`rounded-full border px-3 py-1.5 text-sm ${time === t ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface hover:border-violet-500"}`}
           >
             {t} сек
           </button>

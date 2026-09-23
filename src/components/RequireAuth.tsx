@@ -7,7 +7,7 @@ export default function RequireAuth() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-400 dark:text-slate-500">
+      <div className="flex min-h-screen items-center justify-center text-slate-400">
         Жүктелуде...
       </div>
     );

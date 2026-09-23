@@ -164,25 +164,25 @@ export default function AdminPage() {
 
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <Card className="text-center">
-          <p className="text-3xl font-bold text-violet-600 dark:text-violet-300">{stats.total}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Барлық аккаунт</p>
+          <p className="text-3xl font-bold text-violet-600">{stats.total}</p>
+          <p className="text-sm text-slate-500">Барлық аккаунт</p>
         </Card>
         <Card className="text-center">
-          <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">{stats.active}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Белсенді</p>
+          <p className="text-3xl font-bold text-emerald-600">{stats.active}</p>
+          <p className="text-sm text-slate-500">Белсенді</p>
         </Card>
         <Card className="text-center">
-          <p className="text-3xl font-bold text-rose-600 dark:text-rose-400">{stats.disabled}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Өшірілген</p>
+          <p className="text-3xl font-bold text-rose-600">{stats.disabled}</p>
+          <p className="text-sm text-slate-500">Өшірілген</p>
         </Card>
         <Card className="text-center">
-          <p className="text-3xl font-bold text-fuchsia-600 dark:text-fuchsia-400">{stats.admins}</p>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Әкімшілер</p>
+          <p className="text-3xl font-bold text-fuchsia-600">{stats.admins}</p>
+          <p className="text-sm text-slate-500">Әкімшілер</p>
         </Card>
       </div>
 
       <Card className="mb-6">
-        <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Жаңа аккаунт құру</h3>
+        <h3 className="mb-3 font-semibold text-slate-900">Жаңа аккаунт құру</h3>
         <form onSubmit={handleCreate} className="grid gap-1 sm:grid-cols-3 sm:gap-x-6">
           <Field>
             Аты-жөні
@@ -216,7 +216,7 @@ export default function AdminPage() {
             Мектеп (міндетті емес)
             <TextInput placeholder="мысалы: №25 мектеп-гимназия" value={school} onChange={(e) => setSchool(e.target.value)} />
           </Field>
-          {createError && <p className="text-sm text-rose-600 dark:text-rose-400 sm:col-span-3">{createError}</p>}
+          {createError && <p className="text-sm text-rose-600 sm:col-span-3">{createError}</p>}
           <div className="pb-4 sm:col-span-3">
             <Button type="submit" disabled={creating}>
               {creating ? "Құрылуда..." : "Аккаунт құру"}
@@ -227,7 +227,7 @@ export default function AdminPage() {
 
       <Card className="mb-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-semibold text-slate-900 dark:text-white">Аккаунттар ({filtered.length})</h3>
+          <h3 className="font-semibold text-slate-900">Аккаунттар ({filtered.length})</h3>
           <Button variant="ghost" type="button" onClick={handleExport} disabled={exporting}>
             {exporting ? "Дайындалуда..." : "📊 Excel-ге экспорттау"}
           </Button>
@@ -241,9 +241,9 @@ export default function AdminPage() {
           </Select>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border border-violet-100 dark:border-violet-900/50">
+        <div className="overflow-x-auto rounded-lg border border-violet-100">
           <table className="w-full text-sm">
-            <thead className="bg-violet-50 text-slate-600 dark:bg-violet-950/60 dark:text-slate-300">
+            <thead className="bg-violet-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Аты-жөні / Email</th>
                 <th className="px-3 py-2 text-left font-medium">Рөлі</th>
@@ -255,38 +255,38 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {filtered.map((u) => (
-                <tr key={u.id} className="border-t border-violet-50 align-top dark:border-violet-900/30">
+                <tr key={u.id} className="border-t border-violet-50 align-top">
                   <td className="px-3 py-2">
-                    <p className="font-medium text-slate-900 dark:text-white">
+                    <p className="font-medium text-slate-900">
                       {u.name} {u.id === currentUser?.id && <span className="text-xs text-violet-500">(сіз)</span>}
                     </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{u.email}</p>
+                    <p className="text-xs text-slate-500">{u.email}</p>
                   </td>
                   <td className="px-3 py-2">
                     <Badge>{u.role === "admin" ? "Әкімші" : "Мұғалім"}</Badge>
                   </td>
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-300">
+                  <td className="px-3 py-2 text-slate-600">
                     {u.subject || "—"} {u.school && <span className="text-xs text-slate-400">· {u.school}</span>}
                   </td>
                   <td className="px-3 py-2">
                     <span
                       className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         u.status === "active"
-                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
-                          : "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-rose-100 text-rose-700"
                       }`}
                     >
                       {u.status === "active" ? "Белсенді" : "Өшірілген"}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">{formatDate(u.lastLoginAt)}</td>
+                  <td className="px-3 py-2 text-xs text-slate-500">{formatDate(u.lastLoginAt)}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(u)}
                         disabled={u.id === currentUser?.id || busyId === u.id}
-                        className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40 dark:border-violet-800 dark:text-violet-300"
+                        className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                       >
                         {u.status === "active" ? "Өшіру" : "Қосу"}
                       </button>
@@ -294,7 +294,7 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => handleToggleRole(u)}
                         disabled={u.id === currentUser?.id || busyId === u.id}
-                        className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40 dark:border-violet-800 dark:text-violet-300"
+                        className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                       >
                         {u.role === "admin" ? "Мұғалім ету" : "Әкімші ету"}
                       </button>
@@ -302,7 +302,7 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => handleResetPassword(u)}
                         disabled={busyId === u.id}
-                        className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40 dark:border-violet-800 dark:text-violet-300"
+                        className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                       >
                         Құпия сөзді ысырту
                       </button>
@@ -310,13 +310,13 @@ export default function AdminPage() {
                         type="button"
                         onClick={() => handleDelete(u)}
                         disabled={u.id === currentUser?.id || busyId === u.id}
-                        className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 disabled:opacity-40 dark:border-rose-900"
+                        className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 disabled:opacity-40"
                       >
                         Жою
                       </button>
                     </div>
                     {revealedPassword?.id === u.id && (
-                      <p className="mt-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                      <p className="mt-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">
                         Жаңа құпия сөз: <code className="font-mono">{revealedPassword.value}</code>{" "}
                         <button type="button" className="ml-1 underline" onClick={() => setRevealedPassword(null)}>
                           жасыру
@@ -328,14 +328,14 @@ export default function AdminPage() {
               ))}
               {loadingList && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
                     Жүктелуде...
                   </td>
                 </tr>
               )}
               {!loadingList && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
                     Ешнәрсе табылмады.
                   </td>
                 </tr>
@@ -346,10 +346,10 @@ export default function AdminPage() {
       </Card>
 
       <Card>
-        <h3 className="mb-3 font-semibold text-slate-900 dark:text-white">Әрекеттер журналы</h3>
-        <div className="max-h-72 overflow-y-auto rounded-lg border border-violet-100 dark:border-violet-900/50">
+        <h3 className="mb-3 font-semibold text-slate-900">Әрекеттер журналы</h3>
+        <div className="max-h-72 overflow-y-auto rounded-lg border border-violet-100">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-violet-50 text-slate-600 dark:bg-violet-950/60 dark:text-slate-300">
+            <thead className="sticky top-0 bg-violet-50 text-slate-600">
               <tr>
                 <th className="px-3 py-2 text-left font-medium">Уақыты</th>
                 <th className="px-3 py-2 text-left font-medium">Кім</th>
@@ -359,16 +359,16 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {audit.map((entry) => (
-                <tr key={entry.id} className="border-t border-violet-50 dark:border-violet-900/30">
-                  <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">{formatDate(entry.ts)}</td>
-                  <td className="px-3 py-2 text-slate-700 dark:text-slate-200">{entry.actorEmail}</td>
-                  <td className="px-3 py-2 text-slate-900 dark:text-white">{entry.action}</td>
-                  <td className="px-3 py-2 text-slate-600 dark:text-slate-300">{entry.detail}</td>
+                <tr key={entry.id} className="border-t border-violet-50">
+                  <td className="px-3 py-2 text-xs text-slate-500">{formatDate(entry.ts)}</td>
+                  <td className="px-3 py-2 text-slate-700">{entry.actorEmail}</td>
+                  <td className="px-3 py-2 text-slate-900">{entry.action}</td>
+                  <td className="px-3 py-2 text-slate-600">{entry.detail}</td>
                 </tr>
               ))}
               {audit.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-3 py-6 text-center text-slate-500 dark:text-slate-400">
+                  <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
                     Әзірге жазба жоқ.
                   </td>
                 </tr>

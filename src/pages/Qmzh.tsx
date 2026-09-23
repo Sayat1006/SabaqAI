@@ -203,7 +203,7 @@ export default function QmzhPage() {
   }
 
   const ghost =
-    "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
+    "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
   const L = qmzhLabels(plan?.lang);
 
   return (
@@ -219,7 +219,7 @@ export default function QmzhPage() {
           <form
             onSubmit={handleGenerate}
             noValidate
-            className="flex flex-col gap-5 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl"
+            className="flex flex-col gap-5 rounded-3xl border border-surface/70 bg-surface/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl"
           >
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Пән">
@@ -268,7 +268,7 @@ export default function QmzhPage() {
                       type="button"
                       aria-pressed={on}
                       onClick={() => toggleKind(k)}
-                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-violet-500"}`}
+                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-600 hover:border-violet-500"}`}
                     >
                       {k}
                     </button>
@@ -285,7 +285,7 @@ export default function QmzhPage() {
                     type="button"
                     aria-pressed={taskCount === n}
                     onClick={() => setTaskCount(n)}
-                    className={`min-h-10 rounded-xl border text-[13.5px] ${taskCount === n ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"}`}
+                    className={`min-h-10 rounded-xl border text-[13.5px] ${taskCount === n ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"}`}
                   >
                     {n}
                   </button>
@@ -322,7 +322,7 @@ export default function QmzhPage() {
           </form>
 
           {history.length > 0 && (
-            <div className="rounded-[18px] border border-slate-200 bg-white p-5">
+            <div className="rounded-[18px] border border-slate-200 bg-surface p-5">
               <div className="mb-3 text-sm font-bold">Соңғы жоспарлар</div>
               <ul className="flex flex-col gap-1">
                 {history.map((entry) => (
@@ -354,7 +354,7 @@ export default function QmzhPage() {
 
         <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white">
+            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface">
               <Sparkles size={34} className="animate-spin text-violet-500" />
               <div className="text-base">ҚМЖ дайындалуда...</div>
               <div className="text-[12.5px] text-slate-500">Әдетте 20–60 секунд алады</div>
@@ -377,7 +377,7 @@ export default function QmzhPage() {
               <div className="text-[13.5px]">Дайын жоспар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.</div>
             </div>
           ) : (
-            <article className="print-card animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-white p-6 text-left sm:p-8 print:border-0 print:p-0">
+            <article className="print-card animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-surface p-6 text-left sm:p-8 print:border-0 print:p-0">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b-2 border-slate-900 pb-4">
                 <div>
                   <h2 className="text-[22px] font-bold">{L.docTitle}</h2>

@@ -31,7 +31,7 @@ export function DashboardLayout() {
         className="flex items-center gap-3 overflow-x-auto bg-navy-900 px-4 py-3 text-[#f4f1ea] lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-visible lg:px-5 lg:py-8"
       >
         <NavLink to="/" className="flex shrink-0 items-center gap-3 lg:mb-11 lg:px-1.5">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#f4f1ea] p-1 lg:h-[42px] lg:w-[42px]">
+          <span className="flex h-10 w-10 items-center justify-center logo-keep rounded-xl bg-[#f4f1ea] p-1 lg:h-[42px] lg:w-[42px]">
             <Logo className="h-full w-full" />
           </span>
           <span className="hidden text-[19px] font-bold lg:inline">AI Nur</span>
@@ -107,7 +107,7 @@ function Topbar({ admin = false }: { admin?: boolean }) {
       </NavLink>
       <nav
         aria-label={admin ? "Әкімші мәзірі" : "Құралдар"}
-        className={`order-3 grid w-full gap-1 rounded-[14px] border border-slate-200 bg-white p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto ${admin ? "grid-cols-2" : "grid-cols-4"}`}
+        className={`order-3 grid w-full gap-1 rounded-[14px] border border-slate-200 bg-surface p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto ${admin ? "grid-cols-2" : "grid-cols-4"}`}
       >
         {admin ? (
           <>
