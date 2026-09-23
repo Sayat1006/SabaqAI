@@ -113,7 +113,8 @@ export default function QmzhPage() {
   }, []);
 
   // Басты беттегі «Соңғы жобалар» тізімінен ашылғанда сақталған жоспарды жүктейміз.
-  const openedId = (location.state as { qmzhId?: string } | null)?.qmzhId;
+  // «Жобалар» тізімінен (state) немесе Telegram боттағы сілтемеден (?id=) ашылады.
+  const openedId = (location.state as { qmzhId?: string } | null)?.qmzhId ?? new URLSearchParams(location.search).get("id") ?? undefined;
   useEffect(() => {
     if (!openedId) return;
     getQmzh(openedId)

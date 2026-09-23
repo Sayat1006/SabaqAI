@@ -22,7 +22,8 @@ async function call<T>(body: Record<string, unknown>): Promise<T> {
 }
 
 export const getBotUsername = () => call<{ username?: string }>({ action: "info" }).then((r) => r.username ?? "");
-export const setupTelegramWebhook = () => call<{ username?: string }>({ action: "setup" }).then((r) => r.username ?? "");
+/** Webhook-ты орнатады; бот хабарламаларындағы «Сайтта ашу» сілтемелері үшін сайт мекенжайын да береді. */
+export const setupTelegramWebhook = () => call<{ username?: string }>({ action: "setup", site: window.location.origin }).then((r) => r.username ?? "");
 export const sendTestSummary = (projectId: string) => call<{ ok: boolean }>({ action: "summary", projectId });
 
 /** Оқушы беті: тапсырған соң мұғалімге хабарлама (қате болса — үнсіз). */
