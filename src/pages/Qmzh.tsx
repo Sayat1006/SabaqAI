@@ -449,7 +449,7 @@ export default function QmzhPage() {
                   <Presentation size={15} /> Презентация жасау
                 </button>
                 <button type="button" onClick={() => navigate("/tests", { state: { plan } })} className={ghost}>
-                  <ListChecks size={15} /> Тест жасау
+                  <ListChecks size={15} /> Тапсырма жасау
                 </button>
                 <button
                   type="button"

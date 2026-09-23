@@ -282,15 +282,84 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
   await buildAndDownload(children, `KMZH-${plan.topic}.docx`);
 }
 
+const TASK_TYPE_TITLES: Record<string, string> = {
+  levels: "Деңгейлік тест",
+  pisa: "Функционалдық сауаттылық тапсырмалары",
+  ubt: "ҰБТ форматындағы тест",
+  bzb: "Жиынтық бағалау (БЖБ/ТЖБ)",
+  open: "Ашық және шығармашылық тапсырмалар",
+};
+
+async function exportWrittenTasksToDocx(test: SavedTest) {
+  const tasks = test.tasks ?? [];
+  const total = tasks.reduce((s, t) => s + t.points, 0);
+  const children: (Paragraph | Table)[] = [
+    new Paragraph({ text: `${TASK_TYPE_TITLES[test.taskType ?? "bzb"]}: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
+    body(`${test.subject} · ${test.grade} · ${tasks.length} тапсырма · Жалпы балл: ${total}`),
+    ...(test.objective ? [body(`Оқу мақсаты: ${test.objective}`)] : []),
+    body("Білім алушының аты-жөні: ____________________________    Сынып: ______    Күні: __________"),
+    ...tasks.flatMap((t, i) => [
+      new Paragraph({
+        children: [new TextRun({ text: `${i + 1}-тапсырма. ${t.title} (${t.level} деңгей, ${t.points} балл)`, bold: true, color: INK })],
+        spacing: { before: 200, after: 80 },
+      }),
+      ...t.text.split("\n").filter(Boolean).map((line) => body(line)),
+      body("______________________________________________________________________________"),
+    ]),
+    new Paragraph({ text: "Бағалау критерийлері мен дескрипторлар", heading: HeadingLevel.HEADING_2, pageBreakBefore: true }),
+    table([
+      new TableRow({
+        tableHeader: true,
+        children: [
+          cell([new Paragraph({ children: [new TextRun({ text: "№", bold: true })] })], { header: true, widthPct: 6 }),
+          cell([new Paragraph({ children: [new TextRun({ text: "Бағалау критерийі", bold: true })] })], { header: true, widthPct: 30 }),
+          cell([new Paragraph({ children: [new TextRun({ text: "Дескриптор", bold: true })] })], { header: true, widthPct: 52 }),
+          cell([new Paragraph({ children: [new TextRun({ text: "Балл", bold: true })] })], { header: true, widthPct: 12 }),
+        ],
+      }),
+      ...tasks.map(
+        (t, i) =>
+          new TableRow({
+            children: [
+              cell([new Paragraph(String(i + 1))]),
+              cell([new Paragraph(t.criterion || t.title)]),
+              cell(t.descriptors.length ? t.descriptors.map((d) => new Paragraph({ text: d, bullet: { level: 0 } })) : [new Paragraph("")]),
+              cell([new Paragraph(String(t.points))]),
+            ],
+          }),
+      ),
+      new TableRow({
+        children: [
+          cell([new Paragraph("")]),
+          cell([new Paragraph({ children: [new TextRun({ text: "Жалпы балл", bold: true })] })]),
+          cell([new Paragraph("")]),
+          cell([new Paragraph({ children: [new TextRun({ text: String(total), bold: true })] })]),
+        ],
+      }),
+    ]),
+    new Paragraph({ text: "Үлгі жауаптар (мұғалімге)", heading: HeadingLevel.HEADING_2 }),
+    ...tasks.map((t, i) => body(`${i + 1}. ${t.answer}`)),
+  ];
+  const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "AI Nur";
+  await buildAndDownload(children, `Tapsyrmalar - ${safe}.docx`);
+}
+
 export async function exportTestToDocx(test: SavedTest) {
+  if (test.tasks?.length) return exportWrittenTasksToDocx(test);
   const letter = (i: number) => String.fromCharCode(65 + i);
   const children: Paragraph[] = [
-    new Paragraph({ text: `Тест: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
+    new Paragraph({ text: `${TASK_TYPE_TITLES[test.taskType ?? "levels"]}: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
     body(`${test.subject} · ${test.grade} · Қиындығы: ${test.difficulty} · ${test.questions.length} сұрақ`),
     ...(test.objective ? [body(`Оқу мақсаты: ${test.objective}`)] : []),
     ...(test.questions.some((q) => q.level) ? [body("Деңгейлер: A — білу және түсіну, B — қолдану, C — жоғары деңгей дағдылары")] : []),
     body("Оқушының аты-жөні: ____________________________    Сынып: ______    Күні: __________"),
     ...test.questions.flatMap((q, i) => [
+      ...(q.context && q.context !== test.questions[i - 1]?.context
+        ? [
+            new Paragraph({ children: [new TextRun({ text: "Жағдаят", bold: true, color: BLUE })], spacing: { before: 240, after: 60 } }),
+            ...q.context.split("\n").filter(Boolean).map((line) => body(line)),
+          ]
+        : []),
       new Paragraph({
         children: [new TextRun({ text: `${i + 1}. ${q.question}${q.level ? ` (${q.level})` : ""}`, bold: true, color: INK })],
         spacing: { before: 160, after: 60 },

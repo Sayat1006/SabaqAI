@@ -29,7 +29,7 @@
 ## Тегін орнату
 
 ### 1. Supabase
-[supabase/README.md](supabase/README.md) нұсқаулығы бойынша: жоба құру → `schema.sql`, `update-2-projects-profile.sql` `update-3-editing-sharing.sql` және `update-4-feedback.sql` орындау → бірінші әкімші → `admin-actions` және `ai-generate` функцияларын жариялау → `GEMINI_API_KEY` секретін қою ([aistudio.google.com/apikey](https://aistudio.google.com/apikey) сайтынан тегін алынады).
+[supabase/README.md](supabase/README.md) нұсқаулығы бойынша: жоба құру → `schema.sql`, `update-2-projects-profile.sql` `update-3-editing-sharing.sql`, `update-4-feedback.sql` және `update-5-task-types.sql` орындау → бірінші әкімші → `admin-actions` және `ai-generate` функцияларын жариялау → `GEMINI_API_KEY` секретін қою ([aistudio.google.com/apikey](https://aistudio.google.com/apikey) сайтынан тегін алынады).
 
 ### 2. Vercel
 1. [vercel.com](https://vercel.com) → GitHub арқылы кіру → **Add New → Project** → осы репозиторийді таңдау.
