@@ -1,13 +1,15 @@
-import { ClipboardList, Download, ListChecks, Presentation, Printer, RotateCcw, Sparkles, X } from "lucide-react";
+import { ClipboardList, Download, ListChecks, Pencil, Presentation, Printer, RotateCcw, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { QmzhEditor } from "../components/QmzhEditor";
 import { PlanningTable, ResourcesSection, TaskBlock, VocabularyTable } from "../components/QmzhSections";
 import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
 import { generateLessonPlan, LESSON_TYPES, TASK_KINDS, type LessonPlan } from "../lib/generators";
 import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, updateQmzh, type SavedQmzh } from "../lib/projects";
 import type { QmzhResource } from "../lib/resources";
+import { scrollToResult } from "../lib/scrollToResult";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 
@@ -60,6 +62,31 @@ export default function QmzhPage() {
   const [taskCount, setTaskCount] = useState(3);
   const [notes, setNotes] = useState("");
   const [savingResources, setSavingResources] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [savingPlan, setSavingPlan] = useState(false);
+
+  async function saveEdited(next: LessonPlan) {
+    setSavingPlan(true);
+    setError("");
+    try {
+      if (planId) {
+        await updateQmzh(planId, next);
+        setHistory((h) => h.map((x) => (x.id === planId ? { ...x, plan: next } : x)));
+      } else {
+        const saved = await saveQmzh(next);
+        setPlanId(saved.id);
+        setHistory((h) => [saved, ...h].slice(0, 8));
+      }
+      setPlan(next);
+      setTopic(next.topic);
+      setEditing(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Өзгерістер сақталмады.");
+    } finally {
+      setSavingPlan(false);
+    }
+  }
   const [exportingDocx, setExportingDocx] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState("");
@@ -67,6 +94,7 @@ export default function QmzhPage() {
 
   function fillForm(p: LessonPlan, id: string | null = null) {
     setPlanId(id);
+    setEditing(false);
     if (p.lessonType) setLessonType(p.lessonType);
     setSubject(p.subject);
     setGrade(p.grade);
@@ -101,6 +129,7 @@ export default function QmzhPage() {
       return;
     }
     setGenerating(true);
+    scrollToResult();
     setError("");
     try {
       const newPlan = await generateLessonPlan(subject, grade, topic.trim(), duration, teacherName.trim(), date.trim(), objectivesInput.trim(), {
@@ -111,6 +140,7 @@ export default function QmzhPage() {
       });
       setPlan(newPlan);
       setPlanId(null);
+      setEditing(false);
       try {
         const saved = await saveQmzh(newPlan);
         setPlanId(saved.id);
@@ -313,13 +343,22 @@ export default function QmzhPage() {
           )}
         </div>
 
-        <section className="min-w-0 flex-[1_1_560px]" aria-live="polite">
+        <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white">
               <Sparkles size={34} className="animate-spin text-violet-500" />
               <div className="text-base">ҚМЖ дайындалуда...</div>
               <div className="text-[12.5px] text-slate-500">Әдетте 20–60 секунд алады</div>
             </div>
+          ) : plan && editing ? (
+            <>
+              {error && (
+                <p role="alert" className="mb-3 rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">
+                  {error}
+                </p>
+              )}
+              <QmzhEditor plan={plan} saving={savingPlan} onSave={saveEdited} onCancel={() => setEditing(false)} />
+            </>
           ) : !plan ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3.5 rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center text-slate-500">
               <span className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-violet-100 text-violet-500">
@@ -337,9 +376,12 @@ export default function QmzhPage() {
                     {plan.subject} · {plan.grade}
                   </div>
                 </div>
-                <span className="rounded-full bg-fuchsia-100 px-3 py-1.5 text-xs font-semibold text-fuchsia-700 print:hidden">
-                  Ресми үлгі бойынша
-                </span>
+                <div className="flex items-center gap-2 print:hidden">
+                  <span className="rounded-full bg-fuchsia-100 px-3 py-1.5 text-xs font-semibold text-fuchsia-700">Ресми үлгі бойынша</span>
+                  <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 rounded-full border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100">
+                    <Pencil size={13} /> Өңдеу
+                  </button>
+                </div>
               </div>
 
               <div className="mb-8 overflow-hidden rounded-lg border border-violet-100">
@@ -454,6 +496,9 @@ export default function QmzhPage() {
               <ResourcesSection resources={plan.resources ?? []} onChange={changeResources} saving={savingResources} />
 
               <div className="mt-8 flex flex-wrap gap-2.5 border-t border-slate-200 pt-5 print:hidden">
+                <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-[11px] bg-violet-600 px-3.5 py-2.5 text-sm font-semibold text-white">
+                  <Pencil size={15} /> Өңдеу
+                </button>
                 <button type="button" onClick={handleExportDocx} disabled={exportingDocx} className={ghost}>
                   <Download size={15} /> {exportingDocx ? "Дайындалуда..." : "Word түрінде жүктеу"}
                 </button>

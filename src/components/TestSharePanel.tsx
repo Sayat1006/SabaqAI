@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Copy, Link2, Lock, RefreshCw, Send, Trash2, Unlock, Users } from "lucide-react";
+import { Check, ChevronDown, Copy, FileSpreadsheet, Link2, Lock, QrCode, RefreshCw, Send, Trash2, Unlock, Users } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import {
   deleteSubmission,
@@ -13,6 +13,7 @@ import {
   type TestSubmission,
   timeAgo,
 } from "../lib/projects";
+import { QrDialog } from "./QrDialog";
 import { ClassInsights, StudentDetail } from "./ResultsInsights";
 
 const btn =
@@ -29,6 +30,20 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [qrOpen, setQrOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  async function exportExcel() {
+    setExporting(true);
+    try {
+      const { exportResultsToXlsx } = await import("../lib/exportXlsx");
+      await exportResultsToXlsx(test, subs);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Excel файлын жасау мүмкін болмады.");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -141,6 +156,9 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
             <button type="button" onClick={copy} className={btn}>
               {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Көшірілді" : "Көшіру"}
             </button>
+            <button type="button" onClick={() => setQrOpen(true)} className={btn}>
+              <QrCode size={15} /> QR-код
+            </button>
             <button type="button" onClick={toggle} disabled={busy} className={btn}>
               {share.isOpen ? <Lock size={15} /> : <Unlock size={15} />} {share.isOpen ? "Қабылдауды тоқтату" : "Қайта ашу"}
             </button>
@@ -165,9 +183,16 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                 </span>
               )}
             </div>
-            <button type="button" onClick={refresh} disabled={busy} className={btn}>
-              <RefreshCw size={15} className={busy ? "animate-spin" : ""} /> Жаңарту
-            </button>
+            <div className="flex flex-wrap gap-2">
+              {subs.length > 0 && (
+                <button type="button" onClick={exportExcel} disabled={exporting} className={btn}>
+                  <FileSpreadsheet size={15} /> {exporting ? "Дайындалуда..." : "Excel-ге жүктеу"}
+                </button>
+              )}
+              <button type="button" onClick={refresh} disabled={busy} className={btn}>
+                <RefreshCw size={15} className={busy ? "animate-spin" : ""} /> Жаңарту
+              </button>
+            </div>
           </div>
 
           {subs.length === 0 ? (
@@ -252,6 +277,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
           )}
         </>
       )}
+      {qrOpen && share && <QrDialog url={shareLink(share.code)} title={test.topic} onClose={() => setQrOpen(false)} />}
     </section>
   );
 }

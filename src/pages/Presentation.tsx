@@ -9,6 +9,7 @@ import { getPresentation, savePresentation, type SavedPresentation, updatePresen
 import { blankSlide, finalizeSlide, normalizeSlide, type SlideData, type SlideLayout } from "../lib/slides";
 import { generatePresentation, illustrateSlide, illustrateSlides, planToContext, PRESENTATION_STYLES, SLIDE_COUNTS } from "../lib/studio";
 import "./presentation.css";
+import { scrollToResult } from "../lib/scrollToResult";
 
 interface Deck {
   /** Сақталған жобаның id-і (өңдегенде сол жоба жаңартылады). */
@@ -112,6 +113,7 @@ export default function PresentationPage() {
   const runGeneration = useCallback(
     async (theTopic: string, planContext?: string, fallback?: Deck) => {
       setGenerating(true);
+    scrollToResult();
       setError("");
       setSaveState("");
       setEditing(false);
@@ -374,7 +376,7 @@ export default function PresentationPage() {
           </button>
         </form>
 
-        <section className="min-w-0 flex-[1_1_560px]" aria-live="polite">
+        <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-6 text-center">
               <Sparkles size={34} className="animate-spin text-fuchsia-500" />
