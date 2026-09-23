@@ -7,7 +7,7 @@ import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
 import { getTest, saveTest, type SavedTest } from "../lib/projects";
 import type { LessonPlan } from "../lib/generators";
-import { DIFFICULTIES, generateTest, planToContext, QUESTION_COUNTS } from "../lib/studio";
+import { DIFFICULTIES, generateTest, levelBadge, levelLabel, objectiveSuggestions, planToContext, QUESTION_COUNTS, TEST_LEVELS } from "../lib/studio";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 
@@ -33,6 +33,8 @@ export default function TestsPage() {
   const [topic, setTopic] = useState(plan?.topic ?? "");
   // ҚМЖ-дан ашылса, тест сол жоспардың мақсаттарына сай құрастырылады.
   const [planContext, setPlanContext] = useState(() => (plan ? planToContext(plan) : ""));
+  const [objective, setObjective] = useState(() => (plan?.objectiveCode ? `${plan.objectiveCode} — ${plan.objectiveText}` : ""));
+  const [differentiate, setDifferentiate] = useState(true);
   const [count, setCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>("Орташа");
 
@@ -48,6 +50,7 @@ export default function TestsPage() {
         setGrade(t.grade);
         setTopic(t.topic);
         setDifficulty(t.difficulty);
+        setObjective(t.objective ?? "");
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Тестті ашу мүмкін болмады."));
   }, [openedId]);
@@ -60,15 +63,26 @@ export default function TestsPage() {
     setGenerating(true);
     setError("");
     try {
-      const questions = await generateTest({ subject, grade, topic: topic.trim(), difficulty, count, notes: notes.trim(), planContext: planContext || undefined });
-      setTest(await saveTest({ subject, grade, topic: topic.trim(), difficulty, questions }));
+      const goal = objective.trim();
+      const questions = await generateTest({
+        subject,
+        grade,
+        topic: topic.trim(),
+        difficulty,
+        count,
+        notes: notes.trim(),
+        planContext: planContext || undefined,
+        objective: goal || undefined,
+        differentiate,
+      });
+      setTest(await saveTest({ subject, grade, topic: topic.trim(), difficulty, questions, objective: goal || undefined }));
       setShowAnswers(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Тест жасау мүмкін болмады.");
     } finally {
       setGenerating(false);
     }
-  }, [subject, grade, topic, difficulty, count, notes, planContext]);
+  }, [subject, grade, topic, difficulty, count, notes, planContext, objective, differentiate]);
 
   // ҚМЖ бетінен «Тест жасау» басылса — бірден генерациялаймыз.
   const startedFromPlan = useRef(false);
@@ -151,6 +165,24 @@ export default function TestsPage() {
               className={fieldClass}
             />
           </label>
+          <label className="block">
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">
+              Оқу мақсаты <span className="font-normal">(ҮОБ бойынша)</span>
+            </span>
+            <input
+              value={objective}
+              onChange={(e) => setObjective(e.target.value)}
+              list="objective-suggestions"
+              maxLength={400}
+              placeholder="мыс.: 5.2.1.4 — жай бөлшектерді салыстыру"
+              className={fieldClass}
+            />
+            <datalist id="objective-suggestions">
+              {objectiveSuggestions(subject, grade).map((o) => (
+                <option key={o} value={o} />
+              ))}
+            </datalist>
+          </label>
           <div>
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">Сұрақ саны</span>
             <div className="grid grid-cols-4 gap-2">
@@ -171,6 +203,13 @@ export default function TestsPage() {
               ))}
             </div>
           </div>
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+            <input type="checkbox" checked={differentiate} onChange={(e) => setDifferentiate(e.target.checked)} className="mt-0.5 h-4 w-4 accent-violet-600" />
+            <span>
+              Саралау: A / B / C деңгейлері
+              <span className="block text-xs text-slate-500">Білу және түсіну → қолдану → жоғары деңгей дағдылары. Сұрақтар қиындығы бойынша біртіндеп күрделенеді.</span>
+            </span>
+          </label>
           <label className="block">
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">
               Қосымша тілек <span className="font-normal">(міндетті емес)</span>
@@ -222,6 +261,23 @@ export default function TestsPage() {
                   <div className="mt-1 text-slate-500">
                     {test.subject} · {test.grade} · Қиындығы: {test.difficulty} · {test.questions.length} сұрақ
                   </div>
+                  {test.objective && (
+                    <div className="mt-1.5 text-[13.5px]">
+                      <b>Оқу мақсаты:</b> {test.objective}
+                    </div>
+                  )}
+                  {test.questions.some((q) => q.level) && (
+                    <div className="mt-2 flex flex-wrap gap-1.5 print:hidden">
+                      {TEST_LEVELS.map((l) => {
+                        const n = test.questions.filter((q) => q.level === l.key).length;
+                        return n ? (
+                          <span key={l.key} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${levelBadge(l.key)}`}>
+                            {l.short}: {n}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
                 </div>
                 <span className="rounded-full bg-fuchsia-100 px-3 py-1.5 text-xs font-semibold text-fuchsia-700 print:hidden">
                   Жауап кілтімен
@@ -234,8 +290,15 @@ export default function TestsPage() {
               <ol className="flex flex-col gap-4">
                 {test.questions.map((q, i) => (
                   <li key={i} className="break-inside-avoid rounded-[14px] border border-slate-200 p-4 print:border-0 print:p-0">
-                    <div className="font-semibold">
-                      {i + 1}. {q.question}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="font-semibold">
+                        {i + 1}. {q.question}
+                      </div>
+                      {q.level && (
+                        <span title={levelLabel(q.level)} className={`shrink-0 rounded-md px-2 py-0.5 text-[11.5px] font-bold ${levelBadge(q.level)}`}>
+                          {q.level}
+                        </span>
+                      )}
                     </div>
                     <div className="mt-2.5 grid gap-1.5 sm:grid-cols-2">
                       {q.options.map((opt, oi) => {

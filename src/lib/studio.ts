@@ -2,8 +2,9 @@
 // Барлығы `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
 
 import { aiGenerateJson } from "./ai";
+import { curriculum } from "./curriculum";
 import type { LessonPlan } from "./generators";
-import type { TestQuestion } from "./projects";
+import type { SavedTest, TestLevel, TestQuestion } from "./projects";
 import { normalizeSlide, type SlideData } from "./slides";
 
 export const PRESENTATION_STYLES = [
@@ -253,6 +254,22 @@ export function sanitizeSvg(input: string): string | null {
 export const DIFFICULTIES = ["Жеңіл", "Орташа", "Қиын"] as const;
 export const QUESTION_COUNTS = [5, 10, 15, 20] as const;
 
+/** Қазақстандағы критериалды бағалаудағы ойлау дағдыларының деңгейлері. */
+export const TEST_LEVELS: { key: TestLevel; label: string; short: string }[] = [
+  { key: "A", label: "Білу және түсіну", short: "A · Білу/түсіну" },
+  { key: "B", label: "Қолдану", short: "B · Қолдану" },
+  { key: "C", label: "Жоғары деңгей дағдылары", short: "C · Талдау/бағалау" },
+];
+export const levelBadge = (l?: string) =>
+  l === "C" ? "bg-navy-800 text-white" : l === "B" ? "bg-violet-100 text-violet-700" : "bg-fuchsia-100 text-fuchsia-800";
+export const levelLabel = (l?: TestLevel) => TEST_LEVELS.find((x) => x.key === l)?.label ?? "";
+
+/** ҮОБ демо-базасынан осы пән мен сыныпқа сай оқу мақсаттары (ұсыныс ретінде). */
+export function objectiveSuggestions(subject: string, grade: string): string[] {
+  const entry = curriculum.find((c) => c.subject === subject);
+  return (entry?.objectives ?? []).filter((o) => o.grade === grade).map((o) => `${o.code} — ${o.text}`);
+}
+
 const testSchema = {
   type: "OBJECT",
   properties: {
@@ -265,8 +282,9 @@ const testSchema = {
           options: { type: "ARRAY", items: { type: "STRING" } },
           correctIndex: { type: "INTEGER" },
           explanation: { type: "STRING" },
+          level: { type: "STRING", enum: ["A", "B", "C"] },
         },
-        required: ["question", "options", "correctIndex", "explanation"],
+        required: ["question", "options", "correctIndex", "explanation", "level"],
       },
     },
   },
@@ -282,6 +300,10 @@ export async function generateTest(input: {
   notes: string;
   /** ҚМЖ-дан жасалса: сабақ жоспарының қысқаша мазмұны. */
   planContext?: string;
+  /** Оқу мақсаты (ҮОБ коды және мазмұны). */
+  objective?: string;
+  /** true — сұрақтар A/B/C деңгейлеріне саралап бөлінеді. */
+  differentiate?: boolean;
 }): Promise<TestQuestion[]> {
   const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің.
 Пән: ${input.subject}
@@ -292,7 +314,13 @@ ${input.notes ? `Мұғалімнің тілегі: ${input.notes}\n` : ""}${
     input.planContext
       ? `Тест осы сабақтың қысқа мерзімді жоспарына (ҚМЖ) сай болсын: оқу мақсаттары мен сабақ мақсаттарының орындалуын тексерсін.\nҚМЖ мазмұны:\n${input.planContext}\n`
       : ""
-  }Осы тақырып бойынша дәл ${input.count} тест сұрағын құрастыр.
+  }${input.objective ? `Оқу мақсаты (ҮОБ): ${input.objective}\nӘр сұрақ осы оқу мақсатына жетуді тексерсін.\n` : ""}Осы тақырып бойынша дәл ${input.count} тест сұрағын құрастыр.
+- "level" — сұрақтың ойлау деңгейі: "A" — білу және түсіну (анықтама, факт), "B" — қолдану (есеп, мысал, жағдаят), "C" — жоғары деңгей дағдылары (талдау, салыстыру, бағалау, қорытынды жасау).
+${
+    input.differentiate !== false
+      ? "- САРАЛАУ: сұрақтардың шамамен 40%-ы A, 40%-ы B, 20%-ы C деңгейінде болсын; сұрақтарды A → B → C ретімен орналастыр, қиындығы біртіндеп артсын.\n"
+      : ""
+  }
 - Әр сұрақта 4 жауап нұсқасы, тек біреуі дұрыс; дұрыс жауаптың орны сұрақтан сұраққа әртүрлі болсын.
 - "correctIndex" — дұрыс нұсқаның "options" ішіндегі реттік нөмірі (0-ден бастап).
 - Нұсқаларда "A)" сияқты әріп белгілерін жазба, сұрақтың алдына нөмір қойма.
@@ -310,8 +338,129 @@ ${input.notes ? `Мұғалімнің тілегі: ${input.notes}\n` : ""}${
         options,
         correctIndex: Math.min(Math.max(Number(q.correctIndex) || 0, 0), options.length - 1),
         explanation: q.explanation ?? "",
+        level: (["A", "B", "C"] as const).find((l) => l === q.level) ?? "A",
       };
     });
   if (questions.length === 0) throw new Error("AI сұрақ қайтармады. Қайталап көріңіз.");
   return questions;
+}
+
+/* -------------------------------------------- Нәтижелерді талдау және жеке тапсырма */
+
+export interface PersonalTask {
+  level: TestLevel;
+  title: string;
+  text: string;
+  answer: string;
+}
+
+export interface PersonalPlan {
+  feedback: string;
+  tasks: PersonalTask[];
+}
+
+const personalSchema = {
+  type: "OBJECT",
+  properties: {
+    feedback: { type: "STRING" },
+    tasks: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          level: { type: "STRING", enum: ["A", "B", "C"] },
+          title: { type: "STRING" },
+          text: { type: "STRING" },
+          answer: { type: "STRING" },
+        },
+        required: ["level", "title", "text", "answer"],
+      },
+    },
+  },
+  required: ["feedback", "tasks"],
+};
+
+const questionLine = (q: TestQuestion, i: number, picked?: number | null) =>
+  `${i + 1}. [${q.level ?? "A"}] ${q.question} Дұрыс жауап: ${q.options[q.correctIndex]}.` +
+  (picked === undefined ? "" : picked === null ? " Оқушы жауап бермеген." : ` Оқушы таңдағаны: ${q.options[picked] ?? "—"}.`);
+
+/** Оқушының қателеріне қарай оның деңгейіне сай 3 жеке тапсырма құрастырады. */
+export async function generatePersonalTasks(test: SavedTest, answers: (number | null)[]): Promise<PersonalPlan> {
+  const wrong = test.questions.map((q, i) => ({ q, i })).filter(({ q, i }) => answers[i] !== q.correctIndex);
+  const percent = Math.round(((test.questions.length - wrong.length) / Math.max(test.questions.length, 1)) * 100);
+  const prompt = `Сен тәжірибелі мұғалімсің. Оқушы "${test.topic}" тақырыбы бойынша тест тапсырды (${test.subject}, ${test.grade}).
+${test.objective ? `Оқу мақсаты: ${test.objective}
+` : ""}Нәтижесі: ${percent}%.
+Қате жіберген сұрақтары:
+${wrong.length ? wrong.map(({ q, i }) => questionLine(q, i, answers[i])).join("\n") : "жоқ — барлығы дұрыс"}
+
+Тапсырма:
+- "feedback" — оқушыға арналған 2–3 сөйлемдік жылы, нақты кері байланыс: нені жақсы білетінін, қай жерде қателескенін және неге екенін түсіндір.
+- "tasks" — дәл 3 жеке тапсырма. Қателері бар тақырыптарды бекітуге бағытта.
+  Нәтиже 50%-дан төмен болса: A, A, B деңгейінде (қадамдап түсіндіретін, қолдау көрсететін);
+  50–84% болса: A, B, B; 85%-дан жоғары болса: B, C, C (тереңдетілген, шығармашылық).
+- Әр тапсырмада "title" (қысқа атауы), "text" (толық шарты), "answer" (мұғалімге арналған қысқа жауабы).
+Барлығы қазақ тілінде, сынып деңгейіне сай, фактілері дұрыс болсын.`;
+  const result = await aiGenerateJson<PersonalPlan>(prompt, personalSchema);
+  const tasks = (result.tasks ?? []).filter((t) => t.text).slice(0, 3).map((t) => ({
+    level: (["A", "B", "C"] as const).find((l) => l === t.level) ?? "A",
+    title: t.title ?? "",
+    text: t.text,
+    answer: t.answer ?? "",
+  }));
+  if (!tasks.length) throw new Error("AI тапсырма қайтармады. Қайталап көріңіз.");
+  return { feedback: result.feedback ?? "", tasks };
+}
+
+export interface ClassAnalysis {
+  summary: string;
+  difficulties: string[];
+  recommendations: string[];
+  groups: { level: TestLevel; advice: string }[];
+}
+
+const analysisSchema = {
+  type: "OBJECT",
+  properties: {
+    summary: { type: "STRING" },
+    difficulties: { type: "ARRAY", items: { type: "STRING" } },
+    recommendations: { type: "ARRAY", items: { type: "STRING" } },
+    groups: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { level: { type: "STRING", enum: ["A", "B", "C"] }, advice: { type: "STRING" } },
+        required: ["level", "advice"],
+      },
+    },
+  },
+  required: ["summary", "difficulties", "recommendations", "groups"],
+};
+
+/** Сынып нәтижесін талдап, келесі сабаққа ұсыныс және топтарға тапсырма береді. */
+export async function analyzeClassResults(
+  test: SavedTest,
+  stats: { perQuestion: number[]; students: number; average: number; groups: Record<TestLevel, number> },
+): Promise<ClassAnalysis> {
+  const prompt = `Сен тәжірибелі әдіскер-мұғалімсің. Сыныптың тест нәтижесін талда.
+Пән: ${test.subject}; сынып: ${test.grade}; тақырып: ${test.topic}.
+${test.objective ? `Оқу мақсаты: ${test.objective}
+` : ""}Тапсырған оқушылар: ${stats.students}; орташа нәтиже: ${stats.average}%.
+Топтар: C (85%+, жоғары) — ${stats.groups.C} оқушы; B (50–84%) — ${stats.groups.B}; A (50%-дан төмен, қолдау қажет) — ${stats.groups.A}.
+Сұрақтар және оларға дұрыс жауап бергендер үлесі:
+${test.questions.map((q, i) => `${questionLine(q, i)} — ${stats.perQuestion[i]}% дұрыс`).join("\n")}
+
+Жауапта:
+- "summary" — оқу мақсатына қаншалықты жеткені туралы 2–3 сөйлемдік қорытынды.
+- "difficulties" — 2–4 пункт: қай ұғымдар нашар меңгерілген және оның ықтимал себебі (қате нұсқаларға сүйен).
+- "recommendations" — келесі сабаққа 3–4 нақты әдістемелік ұсыныс (қатемен жұмыс, саралау, белсенді әдістер).
+- "groups" — әр топқа (A, B, C) бір-бір нақты тапсырма/жұмыс түрі.
+Барлығы қазақ тілінде, қысқа әрі нақты.`;
+  const r = await aiGenerateJson<ClassAnalysis>(prompt, analysisSchema);
+  return {
+    summary: r.summary ?? "",
+    difficulties: (r.difficulties ?? []).slice(0, 5),
+    recommendations: (r.recommendations ?? []).slice(0, 5),
+    groups: (r.groups ?? []).filter((g) => g.advice).slice(0, 3),
+  };
 }

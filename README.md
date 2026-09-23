@@ -1,6 +1,6 @@
-# Sabaq AI
+# AI Nur
 
-Мұғалімге арналған AI студия. Сыртқы түрі мен құрылымы — Sabaq AI дизайны, ал ішкі бөлігі (аутентификация, дерекқор, AI генерациясы) — S-AI платформасынан алынған.
+Мұғалімге арналған AI көмекші: ҚМЖ, презентация, сабақ суреттері, саралау деңгейлері бар тест және оқушыларға кері байланыс.
 
 Толығымен **тегін** инфрақұрылымда жұмыс істейді:
 
@@ -29,7 +29,7 @@
 ## Тегін орнату
 
 ### 1. Supabase
-[supabase/README.md](supabase/README.md) нұсқаулығы бойынша: жоба құру → `schema.sql`, `update-2-projects-profile.sql` және `update-3-editing-sharing.sql` орындау → бірінші әкімші → `admin-actions` және `ai-generate` функцияларын жариялау → `GEMINI_API_KEY` секретін қою ([aistudio.google.com/apikey](https://aistudio.google.com/apikey) сайтынан тегін алынады).
+[supabase/README.md](supabase/README.md) нұсқаулығы бойынша: жоба құру → `schema.sql`, `update-2-projects-profile.sql` `update-3-editing-sharing.sql` және `update-4-feedback.sql` орындау → бірінші әкімші → `admin-actions` және `ai-generate` функцияларын жариялау → `GEMINI_API_KEY` секретін қою ([aistudio.google.com/apikey](https://aistudio.google.com/apikey) сайтынан тегін алынады).
 
 ### 2. Vercel
 1. [vercel.com](https://vercel.com) → GitHub арқылы кіру → **Add New → Project** → осы репозиторийді таңдау.

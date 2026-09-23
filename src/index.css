@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Sabaq AI палитрасы. Бар компоненттер Tailwind-тың violet/fuchsia/slate кластарын
+/* AI Nur палитрасы. Бар компоненттер Tailwind-тың violet/fuchsia/slate кластарын
    қолданады, сондықтан шкалалардың өзін қайта анықтаймыз:
    violet → терракота (негізгі акцент), fuchsia → теңіз-жасыл (екінші акцент),
    slate → жылы сия/кілегей бейтарап түстер, navy → бүйір мәзір. */
@@ -49,7 +49,7 @@
   --font-display: "Times New Roman", Times, serif;
 }
 
-/* Sabaq AI дизайны тек ашық түсті: dark: класстары тек .dark класы қосылғанда ғана
+/* AI Nur дизайны тек ашық түсті: dark: класстары тек .dark класы қосылғанда ғана
    іске қосылады, ал ол ешқашан қосылмайды. */
 @custom-variant dark (&:where(.dark, .dark *));
 

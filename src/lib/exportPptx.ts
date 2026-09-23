@@ -187,6 +187,6 @@ export async function exportSlidesToPptx(title: string, slides: SlideData[], sty
     slide.addText(`${idx + 1} / ${slides.length}`, { x: 8.6, y: 5.2, w: 1.2, h: 0.3, fontFace: FONT, fontSize: 10, color: s.layout === "title" || s.layout === "closing" ? WHITE : "9C98B3", align: "right" });
   });
 
-  const safe = title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Sabaq";
+  const safe = title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "AI Nur";
   await pptx.writeFile({ fileName: `${safe}.pptx` });
 }

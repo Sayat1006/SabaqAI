@@ -1,17 +1,19 @@
-import { Check, Copy, Link2, Lock, RefreshCw, Send, Trash2, Unlock, Users } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, ChevronDown, Copy, Link2, Lock, RefreshCw, Send, Trash2, Unlock, Users } from "lucide-react";
+import { Fragment, useEffect, useState } from "react";
 import {
   deleteSubmission,
   getSubmissions,
   getTestShare,
   type SavedTest,
   setTestShareOpen,
+  setTestShareReview,
   shareLink,
   shareTest,
   type TestShare,
   type TestSubmission,
   timeAgo,
 } from "../lib/projects";
+import { ClassInsights, StudentDetail } from "./ResultsInsights";
 
 const btn =
   "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
@@ -26,6 +28,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -62,6 +65,12 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
       await setTestShareOpen(test.id, !share.isOpen);
       setShare({ ...share, isOpen: !share.isOpen });
     });
+  const toggleReview = () =>
+    run(async () => {
+      if (!share) return;
+      await setTestShareReview(test.id, !share.showReview);
+      setShare({ ...share, showReview: !share.showReview });
+    });
   const refresh = () => run(async () => setSubs(await getSubmissions(test.id)));
   const remove = (id: string) =>
     run(async () => {
@@ -95,7 +104,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
             <Send size={18} className="text-violet-600" /> Оқушыларға жіберу
           </h3>
           <p className="mt-1 text-[13.5px] text-slate-500">
-            Оқушылар сілтеме арқылы телефоннан тіркелмей тапсырады. Нәтижелері осы жерде жиналады, дұрыс жауаптар оқушыларға көрсетілмейді.
+            Оқушылар сілтеме арқылы телефоннан тіркелмей тапсырады. Оқушының аты басылса, оның жауаптары мен AI жеке тапсырмасы ашылады. Нәтижелері осы жерде жиналады, дұрыс жауаптар оқушыларға көрсетілмейді.
           </p>
         </div>
         {share && (
@@ -137,6 +146,14 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
             </button>
           </div>
 
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+            <input type="checkbox" checked={share.showReview} onChange={toggleReview} disabled={busy} className="mt-0.5 h-4 w-4 accent-violet-600" />
+            <span>
+              Оқушыға тапсырған соң қателерін түсіндірмесімен көрсету
+              <span className="block text-xs text-slate-500">Оқушы қай жерде қателескенін көріп, «Қатемен жұмыс» режимінде қайта орындайды. Бақылау жұмысы болса, өшіріп қойыңыз.</span>
+            </span>
+          </label>
+
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
             <div className="flex flex-wrap gap-5 text-sm">
               <span className="inline-flex items-center gap-1.5">
@@ -175,9 +192,20 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                     {subs.map((s, i) => {
                       const p = pct(s.score, s.total);
                       return (
-                        <tr key={s.id} className="border-b border-slate-100">
+                        <Fragment key={s.id}>
+                        <tr className="border-b border-slate-100">
                           <td className="py-2.5 pr-3 text-slate-500">{i + 1}</td>
-                          <td className="py-2.5 pr-3 font-semibold">{s.studentName}</td>
+                          <td className="py-2.5 pr-3 font-semibold">
+                            <button
+                              type="button"
+                              aria-expanded={expanded === s.id}
+                              onClick={() => setExpanded((e) => (e === s.id ? null : s.id))}
+                              className="inline-flex items-center gap-1 text-left hover:text-violet-600"
+                            >
+                              {s.studentName}
+                              <ChevronDown size={14} className={`transition ${expanded === s.id ? "rotate-180" : ""}`} />
+                            </button>
+                          </td>
                           <td className="py-2.5 pr-3">{s.studentClass || "—"}</td>
                           <td className="py-2.5 pr-3">
                             <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${p >= 85 ? "bg-fuchsia-100 text-fuchsia-800" : p >= 50 ? "bg-violet-100 text-violet-700" : "bg-rose-50 text-rose-700"}`}>
@@ -191,6 +219,14 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                             </button>
                           </td>
                         </tr>
+                        {expanded === s.id && (
+                          <tr>
+                            <td colSpan={6} className="py-2">
+                              <StudentDetail test={test} sub={s} />
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
                   </tbody>
@@ -206,11 +242,12 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                       title={test.questions[i].question}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${p >= 70 ? "bg-fuchsia-100 text-fuchsia-800" : p >= 40 ? "bg-violet-100 text-violet-700" : "bg-rose-50 text-rose-700"}`}
                     >
-                      {i + 1}-сұрақ: {p}%
+                      {i + 1}-сұрақ{test.questions[i].level ? ` (${test.questions[i].level})` : ""}: {p}%
                     </span>
                   ))}
                 </div>
               </div>
+              <ClassInsights test={test} subs={subs} perQuestion={perQuestion} average={avg} />
             </>
           )}
         </>

@@ -1,4 +1,4 @@
-// Sabaq AI AI Generate Edge Function
+// AI Nur AI Generate Edge Function
 //
 // Тек осы функция Gemini API кілтін қолданады (ол ешқашан браузерге
 // шықпайды). Клиент промпт пен (міндетті емес) JSON схема жібереді,
