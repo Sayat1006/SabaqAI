@@ -96,24 +96,57 @@ function hashString(input: string): number {
   return Math.abs(hash);
 }
 
-const valuesPool = [
-  {
-    title: "Заң және Тәртіп",
-    text: "тапсырманы орындау барысында ережелерді сақтау, жұмыс орнындағы тәртіп пен қауіпсіздіктің маңызын түсінуді қалыптастырады.",
+// «Адал азамат» тұжырымдамасы бойынша әр айдың құндылығы. ҚМЖ-дағы «Құндылықтарды дарыту»
+// жолы сабақ күнінің айына сай осы тізімнен алынады.
+const VALUE_TEXTS = {
+  labor: {
+    title: "Еңбекқорлық және кәсіби біліктілік",
+    text: "тапсырманы ұқыпты әрі тиянақты орындау, еңбекті құрметтеу және білімін кәсіби біліктілікке айналдыруға ұмтылу арқылы дарытылады.",
   },
-  {
-    title: "Еңбек пен шығармашылық",
-    text: "тапсырманы жауапкершілікпен, ұқыпты әрі шығармашылықпен орындаудың құндылығын түсінуді қалыптастырады.",
+  independence: {
+    title: "Тәуелсіздік және отаншылдық",
+    text: "Отанның тарихы мен жетістіктерін құрметтеу, еліміздің дамуына өз үлесін қосуға ұмтылу арқылы дарытылады.",
   },
-  {
-    title: "Ынтымақтастық",
-    text: "топтық жұмыс барысында бір-бірін тыңдау, пікірді құрметтеу және ортақ нәтижеге бірге жету дағдысын дамытады.",
+  justice: {
+    title: "Әділдік және жауапкершілік",
+    text: "өзінің және сыныптастарының жұмысын әділ бағалау, өз әрекеті мен шешімі үшін жауапкершілік алу арқылы дарытылады.",
   },
-  {
-    title: "Жауапкершілік",
-    text: "өз жұмысына және топ жұмысына жауапты қарау, тапсырманы уақытында әрі сапалы орындау құндылығын қалыптастырады.",
+  unity: {
+    title: "Бірлік және ынтымақ",
+    text: "жұптық және топтық жұмыста бір-бірін тыңдау, пікірді құрметтеу және ортақ нәтижеге бірге жету арқылы дарытылады.",
   },
-];
+  law: {
+    title: "Заң және тәртіп",
+    text: "сабақ ережелері мен қауіпсіздік талаптарын сақтау, уақытты тиімді пайдалану арқылы дарытылады.",
+  },
+  creativity: {
+    title: "Жасампаздық және жаңашылдық",
+    text: "жаңа идеялар ұсыну, шығармашылықпен ойлау және білімін жаңа жағдаятта қолдану арқылы дарытылады.",
+  },
+} as const;
+
+/** Ай нөмірі (1–12) → құндылық. Жазғы айларда қыркүйектің құндылығы алынады. */
+const MONTH_VALUES: Record<number, keyof typeof VALUE_TEXTS> = {
+  9: "labor",
+  10: "independence",
+  11: "justice",
+  12: "unity",
+  1: "law",
+  2: "creativity",
+  3: "independence",
+  4: "labor",
+  5: "unity",
+  6: "labor",
+  7: "labor",
+  8: "labor",
+};
+
+/** Сабақ күніне (кк.аа.жжжж) сай айдың құндылығы; күні түсініксіз болса — бүгінгі ай. */
+export function monthlyValue(date: string): { title: string; text: string } {
+  const m = date.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/);
+  const month = m && Number(m[2]) >= 1 && Number(m[2]) <= 12 ? Number(m[2]) : new Date().getMonth() + 1;
+  return VALUE_TEXTS[MONTH_VALUES[month]];
+}
 
 function findObjective(subject: string, grade: string): { code: string; text: string } | null {
   const entry = curriculum.find((s) => s.subject === subject);
@@ -172,7 +205,7 @@ function generateLessonPlanTemplate(
     `"${topic}" бойынша бақылаулары мен деректерін салыстырып, қорытындысын кемінде екі дәлелмен негіздейді`,
   ];
 
-  const values = valuesPool[seed % valuesPool.length];
+  const values = monthlyValue(date || formatToday());
 
   const stages: QmzhStage[] = [
     {
@@ -514,12 +547,14 @@ export async function generateLessonPlan(
     : `Оқыту мақсатының коды шамамен "${fallbackObjectiveCode}" секілді болсын, мазмұны "${topic}" тақырыбына нақты сәйкес келсін (қажет болса "${fallbackObjectiveText}" деген нұсқаны негіз ет, бірақ тақырыпқа лайықтап нақтыла).`;
 
   const lessonType = options.lessonType || "Аралас сабақ";
+  const value = monthlyValue(date || formatToday());
   const taskCount = Math.min(Math.max(options.taskCount ?? 3, 2), 5);
   const kinds = options.taskKinds?.length ? options.taskKinds : ["Жұптық жұмыс", "Топтық жұмыс", "Жеке жұмыс"];
 
   const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
 Сабақ түрі: ${lessonType}.
 ${objectivesInstruction}
+ҚҰНДЫЛЫҚ: осы айдың құндылығы — «${value.title}». "valuesTitle" дәл "${value.title}" болсын; "valuesText" — осы құндылықтың дәл осы сабақта, нақты тапсырмалар арқылы қалай дарытылатынын 1–2 сөйлеммен сипатта.
 ${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
 ТАЛАПТАР:
 1. "goals" — SMART үлгісіндегі 2–3 сабақ мақсаты ("Барлық оқушылар...", "Оқушылардың көбі...", "Кейбір оқушылар..." деп саралап).
@@ -556,8 +591,8 @@ ${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
       objectiveCode: ai.objectiveCode || fallbackObjectiveCode,
       objectiveText: ai.objectiveText || fallbackObjectiveText,
       goals: ai.goals,
-      valuesTitle: ai.valuesTitle,
-      valuesText: ai.valuesText,
+      valuesTitle: value.title,
+      valuesText: ai.valuesText?.includes(value.title) ? ai.valuesText : `«${value.title}» — ${ai.valuesText || value.text}`,
       stages: ai.stages,
       tasks: (ai.tasks ?? []).map((t) => ({
         ...t,
