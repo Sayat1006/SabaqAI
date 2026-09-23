@@ -3,6 +3,9 @@
 
 import { aiGenerateJson } from "./ai";
 import { curriculum } from "./curriculum";
+import { buildResource, PLATFORM_KEYS, type QmzhResource } from "./resources";
+
+export type { QmzhResource } from "./resources";
 
 export interface QmzhActivityRow {
   teacherAction: string[];
@@ -25,6 +28,12 @@ export interface QmzhCriterion {
 
 export interface QmzhTask {
   title: string;
+  /** Жұмыс түрі: жеке, жұптық, топтық, практикалық т.б. */
+  kind?: string;
+  /** Әдіс-тәсіл: «Джигсо», «INSERT», «Ойлан — жұптас — бөліс» т.б. */
+  method?: string;
+  level?: "A" | "B" | "C";
+  time?: string;
   condition: string[];
   tableTitle: string;
   tableHeaders: string[];
@@ -52,7 +61,31 @@ export interface LessonPlan {
   valuesText: string;
   stages: QmzhStage[];
   tasks: QmzhTask[];
+  // Төмендегі өрістер кеңейтілген ҚМЖ-да ғана бар (ескі жоспарларда болмауы мүмкін).
+  lessonType?: string;
+  methods?: string[];
+  successCriteria?: string[];
+  vocabulary?: { term: string; definition: string }[];
+  interdisciplinary?: string;
+  priorKnowledge?: string;
+  resources?: QmzhResource[];
+  planning?: { differentiation: string; assessment: string; safety: string };
+  reflection?: string[];
+  homework?: string;
 }
+
+export const LESSON_TYPES = ["Аралас сабақ", "Жаңа білімді меңгерту", "Білімді бекіту", "Қайталау-жинақтау", "Практикалық сабақ", "Зерттеу сабағы"] as const;
+
+export const TASK_KINDS = [
+  "Жеке жұмыс",
+  "Жұптық жұмыс",
+  "Топтық жұмыс",
+  "Практикалық / зертханалық",
+  "Дидактикалық ойын",
+  "Функционалдық сауаттылық",
+  "Шығармашылық тапсырма",
+  "Зерттеу тапсырмасы",
+] as const;
 
 function hashString(input: string): number {
   let hash = 0;
@@ -341,6 +374,10 @@ const qmzhTaskAiSchema = {
   type: "OBJECT",
   properties: {
     title: { type: "STRING" },
+    kind: { type: "STRING" },
+    method: { type: "STRING" },
+    level: { type: "STRING", enum: ["A", "B", "C"] },
+    time: { type: "STRING" },
     condition: { type: "ARRAY", items: { type: "STRING" } },
     tableTitle: { type: "STRING" },
     tableHeaders: { type: "ARRAY", items: { type: "STRING" } },
@@ -353,6 +390,10 @@ const qmzhTaskAiSchema = {
   },
   required: [
     "title",
+    "kind",
+    "method",
+    "level",
+    "time",
     "condition",
     "tableTitle",
     "tableHeaders",
@@ -375,14 +416,81 @@ const lessonPlanAiSchema = {
     valuesText: { type: "STRING" },
     stages: { type: "ARRAY", items: qmzhStageAiSchema },
     tasks: { type: "ARRAY", items: qmzhTaskAiSchema },
+    methods: { type: "ARRAY", items: { type: "STRING" } },
+    successCriteria: { type: "ARRAY", items: { type: "STRING" } },
+    vocabulary: {
+      type: "ARRAY",
+      items: { type: "OBJECT", properties: { term: { type: "STRING" }, definition: { type: "STRING" } }, required: ["term", "definition"] },
+    },
+    interdisciplinary: { type: "STRING" },
+    priorKnowledge: { type: "STRING" },
+    resources: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          platform: { type: "STRING", enum: PLATFORM_KEYS },
+          query: { type: "STRING" },
+          note: { type: "STRING" },
+        },
+        required: ["title", "platform", "query", "note"],
+      },
+    },
+    planning: {
+      type: "OBJECT",
+      properties: { differentiation: { type: "STRING" }, assessment: { type: "STRING" }, safety: { type: "STRING" } },
+      required: ["differentiation", "assessment", "safety"],
+    },
+    reflection: { type: "ARRAY", items: { type: "STRING" } },
+    homework: { type: "STRING" },
   },
-  required: ["objectiveCode", "objectiveText", "goals", "valuesTitle", "valuesText", "stages", "tasks"],
+  required: [
+    "objectiveCode",
+    "objectiveText",
+    "goals",
+    "valuesTitle",
+    "valuesText",
+    "stages",
+    "tasks",
+    "methods",
+    "successCriteria",
+    "vocabulary",
+    "interdisciplinary",
+    "priorKnowledge",
+    "resources",
+    "planning",
+    "reflection",
+    "homework",
+  ],
 };
 
 type LessonPlanAiContent = Pick<
   LessonPlan,
-  "objectiveCode" | "objectiveText" | "goals" | "valuesTitle" | "valuesText" | "stages" | "tasks"
->;
+  | "objectiveCode"
+  | "objectiveText"
+  | "goals"
+  | "valuesTitle"
+  | "valuesText"
+  | "stages"
+  | "tasks"
+  | "methods"
+  | "successCriteria"
+  | "vocabulary"
+  | "interdisciplinary"
+  | "priorKnowledge"
+  | "planning"
+  | "reflection"
+  | "homework"
+> & { resources?: { title?: string; platform?: string; query?: string; note?: string }[] };
+
+export interface LessonPlanOptions {
+  lessonType?: string;
+  /** Мұғалім таңдаған тапсырма түрлері (TASK_KINDS ішінен). */
+  taskKinds?: string[];
+  taskCount?: number;
+  notes?: string;
+}
 
 export async function generateLessonPlan(
   subject: string,
@@ -392,6 +500,7 @@ export async function generateLessonPlan(
   teacherName = "",
   date = "",
   objectivesInput = "",
+  options: LessonPlanOptions = {},
 ): Promise<LessonPlan> {
   const gradeNumber = gradeToNumber(grade);
   const manualObjective = parseObjectivesInput(objectivesInput);
@@ -404,10 +513,34 @@ export async function generateLessonPlan(
     ? `Мұғалім мына оқыту мақсаттарын өзі енгізген — оларды МІНДЕТТІ түрде дәл сол қалпында, өзгертпей және басқасын ойлап шығармай, жоспардың негізі ретінде қолдан:\n"""\n${objectivesInput.trim()}\n"""\nБарлық кезеңдер (стадиялар), тапсырма мен бағалау критерийлері осы мақсаттарға қол жеткізуге бағытталсын. "objectiveCode" мен "objectiveText" өрістерін де осы мақсаттар негізінде (біріншісінен) толтыр.`
     : `Оқыту мақсатының коды шамамен "${fallbackObjectiveCode}" секілді болсын, мазмұны "${topic}" тақырыбына нақты сәйкес келсін (қажет болса "${fallbackObjectiveText}" деген нұсқаны негіз ет, бірақ тақырыпқа лайықтап нақтыла).`;
 
-  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімісің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
+  const lessonType = options.lessonType || "Аралас сабақ";
+  const taskCount = Math.min(Math.max(options.taskCount ?? 3, 2), 5);
+  const kinds = options.taskKinds?.length ? options.taskKinds : ["Жұптық жұмыс", "Топтық жұмыс", "Жеке жұмыс"];
+
+  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
+Сабақ түрі: ${lessonType}.
 ${objectivesInstruction}
-Дәл 3 кезең бер: "Сабақтың басы", "Сабақтың ортасы", "Сабақтың соңы" (уақыт бөлінісі ${duration} минутқа сәйкес келсін). Дәл 1 тапсырма бер — кестемен, бағалау критерийлерімен, дескрипторлармен, күтілетін нәтижемен.
-Жауапты тек қазақ тілінде, мазмұнды әрі нақты, дайын JSON схемаға сай қайтар.`;
+${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
+ТАЛАПТАР:
+1. "goals" — SMART үлгісіндегі 2–3 сабақ мақсаты ("Барлық оқушылар...", "Оқушылардың көбі...", "Кейбір оқушылар..." деп саралап).
+2. "successCriteria" — 3 бағалау (табыс) критерийі, оқушыға түсінікті тілмен.
+3. "stages" — дәл 3 кезең: "Сабақтың басы", "Сабақтың ортасы", "Сабақтың соңы"; уақыты ${duration} минутқа дәл сәйкес. Әр кезеңде 1–3 жол; ортасында кемінде 2 жол. Педагог пен оқушы әрекеттері нақты (не айтады, не істейді), әр жолда белсенді оқыту әдісі аталсын. "assessmentType" — қалыптастырушы бағалау түрі (мыс. "Екі жұлдыз, бір тілек", "Бағдаршам", "Смайлик", "Дескриптор бойынша өзін-өзі бағалау"); "resources" — осы жолда қолданылатын ресурстардың атаулары (төмендегі "resources" тізіміндегі атаулармен сәйкес болсын) және оқулық, үлестірме.
+4. "tasks" — дәл ${taskCount} ТҮРЛІ тапсырма. Жұмыс түрлері ("kind") мыналардан, барынша әртүрлі болсын: ${kinds.join(", ")}. Әр тапсырмада:
+   - "method" — нақты әдіс-тәсіл атауы (мыс. "Джигсо", "INSERT", "Ойлан — жұптас — бөліс", "Венн диаграммасы", "Кластер", "Галереяға саяхат", "Кейс-стади", "Ыстық орындық");
+   - "level" — A (білу/түсіну), B (қолдану), C (жоғары деңгей дағдылары); тапсырмалар A → C күрделенсін;
+   - "time" — мыс. "7 мин";
+   - "condition" — оқушыға арналған толық, нақты шарты (деректерімен);
+   - "tableTitle", "tableHeaders", "tableRows" — тапсырмаға қажет кесте (салыстыру, толтыру, бақылау, сәйкестендіру кестесі т.б.; толтыратын ұяшықтар бос "" болсын); кесте мүлдем қажет болмаса, "tableHeaders" пен "tableRows" бос тізім;
+   - "steps" — орындау қадамдары; "criteria" — 1–2 бағалау критерийі, әрқайсысында 2–3 дескриптор ("Білім алушы ..." деп басталсын);
+   - "differentiation" — саралау тәсілі (қолдау және тереңдету);
+   - "expectedResultRows" — кестенің толтырылған үлгісі (кесте болмаса бос), "expectedConclusion" — күтілетін нәтиже/жауап.
+5. "methods" — сабақта қолданылатын 4–6 әдіс-тәсіл атауы.
+6. "vocabulary" — 4–6 пәндік термин және қысқа анықтамасы (пәндік лексика).
+7. "interdisciplinary" — пәнаралық байланыс (қай пән, қалай); "priorKnowledge" — оқушылардың алдыңғы білімі.
+8. "resources" — 5–7 цифрлық ресурс. МАҢЫЗДЫ: URL жазба! Тек "platform" (тізімнен) және "query" (сол платформада іздейтін нақты сөз тіркесі, қазақша немесе халықаралық термин) бер. Платформаларды мақсатына қарай таңда: bilimland — видеосабақ/интерактив, youtube — бейнематериал, wikipedia — анықтама, okulyk — электронды оқулық, phet/geogebra — модельдеу (физика, химия, математика), wordwall/learningapps — интерактивті жаттығу, kahoot — викторина, padlet — топтық тақта, mentimeter — сауалнама/рефлексия, canva — постер, google_forms — онлайн бағалау. "note" — қай кезеңде, не үшін қолданылады.
+9. "planning" — ресми үлгідегі қорытынды кесте: "differentiation" (қолдау мен тереңдету қалай ұйымдастырылады), "assessment" (оқушы білімі қалай тексеріледі), "safety" (денсаулық сақтау, сергіту сәті, қауіпсіздік техникасы).
+10. "reflection" — сабақ соңындағы 3 рефлексия сұрағы; "homework" — саралап берілген үй тапсырмасы.
+Барлығы тек қазақ тілінде (шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін), фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
 
   try {
     const ai = await aiGenerateJson<LessonPlanAiContent>(prompt, lessonPlanAiSchema);
@@ -426,7 +559,23 @@ ${objectivesInstruction}
       valuesTitle: ai.valuesTitle,
       valuesText: ai.valuesText,
       stages: ai.stages,
-      tasks: ai.tasks,
+      tasks: (ai.tasks ?? []).map((t) => ({
+        ...t,
+        tableHeaders: t.tableHeaders ?? [],
+        tableRows: (t.tableRows ?? []).filter((r) => Array.isArray(r) && r.length),
+        expectedResultRows: (t.expectedResultRows ?? []).filter((r) => Array.isArray(r) && r.length),
+        level: (["A", "B", "C"] as const).find((l) => l === t.level),
+      })),
+      lessonType,
+      methods: ai.methods ?? [],
+      successCriteria: ai.successCriteria ?? [],
+      vocabulary: (ai.vocabulary ?? []).filter((v) => v.term),
+      interdisciplinary: ai.interdisciplinary ?? "",
+      priorKnowledge: ai.priorKnowledge ?? "",
+      resources: (ai.resources ?? []).map(buildResource).filter((r): r is QmzhResource => r !== null).slice(0, 8),
+      planning: ai.planning,
+      reflection: ai.reflection ?? [],
+      homework: ai.homework ?? "",
     };
   } catch (e) {
     console.warn("ЖИ арқылы ҚМЖ жасау мүмкін болмады, үлгі нұсқасына көшірілді:", e);

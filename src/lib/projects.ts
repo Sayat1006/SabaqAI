@@ -241,6 +241,18 @@ export async function getTest(id: string): Promise<SavedTest | null> {
 export async function saveQmzh(plan: LessonPlan): Promise<SavedQmzh> {
   return toQmzh(await create("qmzh", plan.topic, `${plan.subject} · ${plan.grade}`, plan));
 }
+/** Өзгертілген ҚМЖ-ны (мыс. мұғалім қосқан сілтемелер) сол жобаның үстіне сақтайды. */
+export async function updateQmzh(id: string, plan: LessonPlan): Promise<void> {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ title: plan.topic.slice(0, 300), detail: `${plan.subject} · ${plan.grade}`, data: plan })
+    .eq("id", id)
+    .select("id");
+  if (error) throw wrapError(error);
+  if (!data?.length) {
+    throw new ProjectsError("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек.");
+  }
+}
 export async function getQmzhList(limit = 8): Promise<SavedQmzh[]> {
   return (await list("qmzh", limit)).map(toQmzh);
 }
