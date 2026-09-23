@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { KIND_LABEL, timeAgo, type RecentProject } from "../lib/projects";
 
 const tone = (kind: RecentProject["kind"]) =>
-  kind === "presentation" || kind === "test" ? "bg-fuchsia-100 text-fuchsia-700" : "bg-violet-100 text-violet-700";
+  kind === "document" ? "bg-slate-100 text-slate-700" : kind === "presentation" || kind === "test" ? "bg-fuchsia-100 text-fuchsia-700" : "bg-violet-100 text-violet-700";
 
 export function ProjectCard({ project: p, index, onDelete }: { project: RecentProject; index: number; onDelete: () => void }) {
   return (

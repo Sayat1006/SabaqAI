@@ -1,4 +1,4 @@
-import { ClipboardList, FileCheck2, Image, Presentation, Timer, type LucideIcon } from "lucide-react";
+import { ClipboardList, FileCheck2, FileText, Image, Presentation, Timer, type LucideIcon } from "lucide-react";
 
 export interface Tool {
   to: string;
@@ -39,10 +39,17 @@ export const tools: Tool[] = [
     description: "Деңгейлік тест, PISA, ҰБТ, БЖБ/ТЖБ және шығармашылық тапсырмаларды құрастырыңыз.",
   },
   {
+    to: "/docs",
+    label: "Құжаттар",
+    short: "Құжаттар",
+    icon: FileText,
+    description: "Мінездеме, ата-ана жиналысының баяндамасы, тәрбие сағаты мен іс-шара сценарийі, тоқсандық есеп.",
+  },
+  {
     to: "/tools",
     label: "Сабақ құралдары",
     short: "Құралдар",
     icon: Timer,
-    description: "Таймер, кездейсоқ оқушы таңдау және топқа бөлу — тақтаға толық экранда.",
+    description: "Таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, шу өлшегіш және рефлексия — тақтаға толық экранда.",
   },
 ];

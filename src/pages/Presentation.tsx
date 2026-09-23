@@ -5,6 +5,8 @@ import { PageHeader } from "../components/PageHeader";
 import { SlideEditor } from "../components/SlideEditor";
 import { SlideView } from "../components/SlideView";
 import { buildLessonPresentation, type LessonPlan } from "../lib/generators";
+import { LangPicker } from "../components/LangPicker";
+import type { Lang } from "../lib/lang";
 import { getPresentation, savePresentation, type SavedPresentation, updatePresentation } from "../lib/projects";
 import { blankSlide, finalizeSlide, normalizeSlide, type SlideData, type SlideLayout } from "../lib/slides";
 import { generatePresentation, illustrateSlide, illustrateSlides, planToContext, PRESENTATION_STYLES, SLIDE_COUNTS } from "../lib/studio";
@@ -19,6 +21,7 @@ interface Deck {
   topic: string;
   slides: SlideData[];
   subtitle: string;
+  lang?: Lang;
 }
 
 /** AI қолжетімсіз болса ғана: ҚМЖ-дан қарапайым слайдтар құрастырады. */
@@ -30,11 +33,11 @@ function deckFromPlan(plan: LessonPlan): Deck {
         : { layout: s.kind, heading: s.title, subheading: s.bullets.join(" · ") },
     ),
   );
-  return { title: plan.topic, topic: plan.topic, style: "minimal", slides, subtitle: `ҚМЖ негізінде · ${slides.length} слайд` };
+  return { title: plan.topic, topic: plan.topic, style: "minimal", lang: plan.lang, slides, subtitle: `ҚМЖ негізінде · ${slides.length} слайд` };
 }
 
 function deckFromSaved(p: SavedPresentation): Deck {
-  return { id: p.id, title: p.title, topic: p.topic, style: p.style, slides: p.slides.map((s) => normalizeSlide(s as SlideData & Record<string, unknown>)), subtitle: `${p.slides.length} слайд` };
+  return { id: p.id, title: p.title, topic: p.topic, style: p.style, lang: p.lang, slides: p.slides.map((s) => normalizeSlide(s as SlideData & Record<string, unknown>)), subtitle: `${p.slides.length} слайд` };
 }
 
 function place(i: number, active: number): React.CSSProperties {
@@ -81,6 +84,7 @@ export default function PresentationPage() {
   const [style, setStyle] = useState<string>("minimal");
   const [count, setCount] = useState<number>(10);
   const [withImages, setWithImages] = useState(true);
+  const [lang, setLang] = useState<Lang>(plan?.lang ?? "kk");
   const [generating, setGenerating] = useState(false);
   const [phase, setPhase] = useState(0);
   const [pending, setPending] = useState<Set<number>>(new Set());
@@ -105,6 +109,7 @@ export default function PresentationPage() {
         setDeck(deckFromSaved(p));
         setTopic(p.topic);
         setStyle(p.style);
+        setLang(p.lang ?? "kk");
         setSaveState("saved");
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Презентацияны ашу мүмкін болмады."));
@@ -122,7 +127,7 @@ export default function PresentationPage() {
       const timer = window.setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 5000);
       let result: { title: string; slides: SlideData[] };
       try {
-        result = await generatePresentation(theTopic, style, count, planContext);
+        result = await generatePresentation(theTopic, style, count, planContext, lang);
       } catch (err) {
         window.clearInterval(timer);
         setGenerating(false);
@@ -138,7 +143,7 @@ export default function PresentationPage() {
       setGenerating(false);
 
       const slides = result.slides;
-      setDeck({ title: result.title, topic: theTopic, style, slides, subtitle: `${slides.length} слайд` });
+      setDeck({ title: result.title, topic: theTopic, style, lang, slides, subtitle: `${slides.length} слайд` });
       setActive(0);
 
       // Иллюстрациялар бірінен соң бірі пайда болады; бәрі біткен соң презентация сақталады.
@@ -159,7 +164,7 @@ export default function PresentationPage() {
 
       setSaveState("saving");
       try {
-        const saved = await savePresentation({ topic: theTopic, style, title: result.title, slides });
+        const saved = await savePresentation({ topic: theTopic, style, title: result.title, slides, lang });
         setDeck((d) => (d ? { ...d, id: saved.id } : d));
         setSaveState("saved");
       } catch (err) {
@@ -167,7 +172,7 @@ export default function PresentationPage() {
         setError(err instanceof Error ? `Презентация дайын, бірақ сақталмады: ${err.message}` : "Презентация сақталмады.");
       }
     },
-    [style, count, withImages],
+    [style, count, withImages, lang],
   );
 
   // ҚМЖ бетінен «Презентация жасау» басылса — жоспар негізінде бірден генерациялаймыз.
@@ -281,7 +286,7 @@ export default function PresentationPage() {
     setSaveState("saving");
     setError("");
     try {
-      const data = { topic: deck.topic, style: deck.style, title, slides };
+      const data = { topic: deck.topic, style: deck.style, title, slides, lang: deck.lang };
       let id = deck.id;
       if (id) await updatePresentation(id, data);
       else id = (await savePresentation(data)).id;
@@ -300,7 +305,7 @@ export default function PresentationPage() {
     setExporting(true);
     try {
       const { exportSlidesToPptx } = await import("../lib/exportPptx");
-      await exportSlidesToPptx(deck.title, deck.slides.map(finalizeSlide), deck.style);
+      await exportSlidesToPptx(deck.title, deck.slides.map(finalizeSlide), deck.style, deck.lang);
     } finally {
       setExporting(false);
     }
@@ -327,6 +332,7 @@ export default function PresentationPage() {
               ҚМЖ негізінде: <b>{plan.topic}</b> — мақсаттары, кезеңдері мен тапсырмалары ескеріледі.
             </div>
           )}
+          <LangPicker value={lang} onChange={setLang} />
           <label className="block">
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">Тақырып</span>
             <textarea
@@ -410,7 +416,7 @@ export default function PresentationPage() {
               <div className="carousel">
                 {deck.slides.map((s, i) => (
                   <button key={i} type="button" aria-label={`${i + 1}-слайд: ${s.heading}`} onClick={() => go(i)} className="slide-btn" style={place(i, active)}>
-                    <SlideView slide={s} style={deck.style} index={i} total={total} imagePending={pending.has(i) || regenIndex === i} />
+                    <SlideView slide={s} style={deck.style} lang={deck.lang} index={i} total={total} imagePending={pending.has(i) || regenIndex === i} />
                   </button>
                 ))}
               </div>
@@ -519,7 +525,7 @@ export default function PresentationPage() {
                     aria-label={`${i + 1}-слайдты ашу`}
                     className={`thumb rounded-[12px] p-1 transition ${i === active ? "bg-fuchsia-500" : "bg-transparent hover:bg-slate-200"}`}
                   >
-                    <SlideView slide={s} style={deck.style} imagePending={pending.has(i)} />
+                    <SlideView slide={s} style={deck.style} lang={deck.lang} imagePending={pending.has(i)} />
                   </button>
                 ))}
               </div>
@@ -531,7 +537,7 @@ export default function PresentationPage() {
       {presenting && deck && current && (
         <div className="present">
           <div className="present-stage">
-            <SlideView key={active} slide={current} style={deck.style} index={active} total={total} interactive imagePending={pending.has(active)} />
+            <SlideView key={active} slide={current} style={deck.style} lang={deck.lang} index={active} total={total} interactive imagePending={pending.has(active)} />
           </div>
           <div className="flex items-center gap-3 text-[#c7c4da]">
             <button type="button" onClick={() => go(active - 1)} aria-label="Алдыңғы слайд" className="rounded-lg border border-navy-700 p-2">

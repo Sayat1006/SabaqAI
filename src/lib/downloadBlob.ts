@@ -6,5 +6,6 @@ export function downloadBlob(blob: Blob, fileName: string) {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  // Бірден босатсақ, кейбір браузерлер файл атын жоғалтады немесе жүктеуді үзеді.
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }

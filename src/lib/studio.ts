@@ -5,7 +5,11 @@ import { aiGenerateJson } from "./ai";
 import { curriculum } from "./curriculum";
 import type { LessonPlan } from "./generators";
 import type { SavedTest, TaskType, TestLevel, TestQuestion, WrittenTask } from "./projects";
+import type { Lang } from "./lang";
 import { normalizeSlide, type SlideData } from "./slides";
+
+/** Материал тілі туралы нұсқау (AI-ға берілетін сұраныс қазақша, мазмұны — таңдалған тілде). */
+const inLang = (lang?: Lang) => (lang === "ru" ? "ОРЫС тілінде" : "қазақ тілінде");
 
 export const PRESENTATION_STYLES = [
   { key: "minimal", label: "Минимал" },
@@ -97,8 +101,8 @@ const presentationSchema = {
   required: ["title", "slides"],
 };
 
-const DECK_RULES = (count: number, styleLabel: string) => `Стиль: ${styleLabel}. Дәл ${count} слайд құрастыр.
-Мәтін қазақ тілінде (шет тілі пәні болмаса), қысқа, оқушыға түсінікті; бір слайдта бір идея; тармақ 12 сөзден аспасын.
+const DECK_RULES = (count: number, styleLabel: string, lang?: Lang) => `Стиль: ${styleLabel}. Дәл ${count} слайд құрастыр.
+Мәтін ${inLang(lang)} (шет тілі пәні болмаса), қысқа, оқушыға түсінікті; бір слайдта бір идея; тармақ 12 сөзден аспасын.
 Презентация көрнекі әрі әртүрлі болсын — макеттерді араластыр:
 - "title" — бірінші слайд: heading, subheading, image_prompt.
 - "image" — тақырыптың негізгі нысанын көрсететін иллюстрация + 2–4 тармақ (bullets). image_prompt міндетті.
@@ -116,11 +120,11 @@ const DECK_RULES = (count: number, styleLabel: string) => `Стиль: ${styleLa
 image_prompt ағылшынша жазылады: суретшіге арналған нақты сипаттама (не бейнеленеді, қандай бөліктер көрінеді), мәтінсіз.
 Әр слайдқа мұғалімге арналған қысқа "notes" жаз. Фактілер дұрыс болсын, ойдан шығарылған статистика қолданба.`;
 
-export async function generatePresentation(topic: string, style: string, count: number, planContext?: string) {
+export async function generatePresentation(topic: string, style: string, count: number, planContext?: string, lang?: Lang) {
   const styleLabel = PRESENTATION_STYLES.find((s) => s.key === style)?.label ?? "Минимал";
   const prompt = `Сен мұғалімдерге сабақ презентациясын құрастыратын тәжірибелі әдіскер-дизайнерсің.
 Тақырып: ${topic}
-${planContext ? `Презентация мына қысқа мерзімді жоспарға (ҚМЖ) сай болсын — оның мақсаттарын, кезеңдерін, тапсырмаларын және құндылығын көрсет:\n"""\n${planContext}\n"""\n` : ""}${DECK_RULES(count, styleLabel)}`;
+${planContext ? `Презентация мына қысқа мерзімді жоспарға (ҚМЖ) сай болсын — оның мақсаттарын, кезеңдерін, тапсырмаларын және құндылығын көрсет:\n"""\n${planContext}\n"""\n` : ""}${DECK_RULES(count, styleLabel, lang)}`;
   const result = await aiGenerateJson<{ title: string; slides: Partial<SlideData>[] }>(prompt, presentationSchema);
   const slides = (result.slides ?? []).map((s) => normalizeSlide(s as Partial<SlideData> & Record<string, unknown>));
   if (slides.length === 0) throw new Error("AI слайд қайтармады. Қайталап көріңіз.");
@@ -317,6 +321,7 @@ interface TaskInput {
   /** true — A/B/C деңгейлеріне саралап бөлінеді. */
   differentiate?: boolean;
   taskType?: TaskType;
+  lang?: Lang;
 }
 
 function taskIntro(input: TaskInput): string {
@@ -382,7 +387,7 @@ ${
 - Нұсқаларда "A)" сияқты әріп белгілерін жазба, сұрақтың алдына нөмір қойма.
 - Қате нұсқалар сенімді, бірақ анық қате болсын; "барлығы дұрыс" сияқты нұсқаларды қолданба.
 - "explanation" — дұрыс жауаптың бір сөйлемдік түсіндірмесі.
-- Фактілері дұрыс, қазақ тілінде (шет тілі пәні болмаса).`;
+- Фактілері дұрыс, бүкіл мәтін (сұрақ, нұсқалар, түсіндірме${type === "pisa" ? ", жағдаят" : ""}) ${inLang(input.lang)} (шет тілі пәні болмаса).`;
   const result = await aiGenerateJson<{ questions: Partial<TestQuestion>[] }>(prompt, type === "pisa" ? testSchema2 : testSchema);
   const questions = (result.questions ?? [])
     .filter((q) => q.question && Array.isArray(q.options) && q.options.length >= 2)
@@ -447,7 +452,7 @@ export async function generateWrittenTasks(input: TaskInput): Promise<WrittenTas
 - "descriptors" — 2–4 дескриптор: әрқайсысы "Білім алушы ..." деп басталып, нақты әрекетті сипаттасын.
 - "points" — тапсырманың балы (әр дескрипторға 1–2 балл).
 - "answer" — мұғалімге арналған үлгі жауап немесе бағалау нұсқаулығы.
-Барлығы қазақ тілінде (шет тілі пәні болмаса), фактілері дұрыс, сынып деңгейіне сай.`;
+Барлығы ${inLang(input.lang)} (шет тілі пәні болмаса), фактілері дұрыс, сынып деңгейіне сай.${input.lang === "ru" ? ' Дескрипторлар "Обучающийся ..." деп басталсын.' : ""}`;
   const result = await aiGenerateJson<{ tasks: Partial<WrittenTask>[] }>(prompt, writtenSchema);
   const tasks = (result.tasks ?? [])
     .filter((t) => t.text)
@@ -520,7 +525,7 @@ ${wrong.length ? wrong.map(({ q, i }) => questionLine(q, i, answers[i])).join("\
   Нәтиже 50%-дан төмен болса: A, A, B деңгейінде (қадамдап түсіндіретін, қолдау көрсететін);
   50–84% болса: A, B, B; 85%-дан жоғары болса: B, C, C (тереңдетілген, шығармашылық).
 - Әр тапсырмада "title" (қысқа атауы), "text" (толық шарты), "answer" (мұғалімге арналған қысқа жауабы).
-Барлығы қазақ тілінде, сынып деңгейіне сай, фактілері дұрыс болсын.`;
+Барлығы ${inLang(test.lang)}, сынып деңгейіне сай, фактілері дұрыс болсын.`;
   const result = await aiGenerateJson<PersonalPlan>(prompt, personalSchema);
   const tasks = (result.tasks ?? []).filter((t) => t.text).slice(0, 3).map((t) => ({
     level: (["A", "B", "C"] as const).find((l) => l === t.level) ?? "A",

@@ -4,7 +4,7 @@ import { ProjectCard } from "../components/ProjectCard";
 import { deleteProject, getRecentProjects, KIND_LABEL, type ProjectKind, type RecentProject } from "../lib/projects";
 import { useLoad } from "../lib/useLoad";
 
-const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "test"];
+const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "test", "document"];
 
 // ҚМЖ мен тапсырмалардың сипаттамасы «Пән · Сынып · ...» түрінде сақталады.
 const partsOf = (p: RecentProject) => p.detail.split(" · ").map((x) => x.trim());

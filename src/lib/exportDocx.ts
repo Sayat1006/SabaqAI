@@ -21,6 +21,9 @@ import { downloadBlob } from "./downloadBlob";
 import type { LessonPlan } from "./generators";
 import { platformKind, platformLabel } from "./resources";
 import type { SavedTest } from "./projects";
+import type { DocData } from "./documents";
+import { difficultyIn, qmzhLabels, testLabels } from "./docLabels";
+import { gradeIn, subjectIn } from "./lang";
 
 // Ресми құжат конвенциясына сай: A4, Times New Roman, 1.5 жол аралығы,
 // брендтік көк/қара түстер кесте шектері мен тақырыптарда (apple.com стилі).
@@ -182,26 +185,27 @@ function headerCell(text: string, widthPct?: number) {
 }
 
 export async function exportQmzhToDocx(plan: LessonPlan) {
+  const L = qmzhLabels(plan.lang);
   const infoTable = table([
-    labelRow("Бөлім", [body(plan.section)]),
-    labelRow("Педагогтің тегі, аты, әкесінің аты (болған жағдайда)", [body(plan.teacherName)]),
-    labelRow("Күні", [body(plan.date)]),
-    labelRow(`Сынып ${plan.gradeNumber}`, [body("Қатысушылар саны ______   Қатыспағандар саны ______")]),
-    labelRow("Сабақтың тақырыбы", [body(plan.topic)]),
-    labelRow("Оқу бағдарламасына сәйкес оқыту мақсаттары", [body(`${plan.objectiveCode} — ${plan.objectiveText}`)]),
-    labelRow("Сабақтың мақсаты", plan.goals.map((g) => bullet(g))),
-    labelRow("Құндылықтарды дарыту", [body(plan.valuesText)]),
+    labelRow(L.section, [body(plan.section)]),
+    labelRow(L.teacher, [body(plan.teacherName)]),
+    labelRow(L.date, [body(plan.date)]),
+    labelRow(L.grade(plan.gradeNumber), [body(L.attendance)]),
+    labelRow(L.topic, [body(plan.topic)]),
+    labelRow(L.objectives, [body(`${plan.objectiveCode} — ${plan.objectiveText}`)]),
+    labelRow(L.goals, plan.goals.map((g) => bullet(g))),
+    labelRow(L.values, [body(plan.valuesText)]),
   ]);
 
   const flowRows: TableRow[] = [
     new TableRow({
       tableHeader: true,
       children: [
-        headerCell("Сабақтың кезеңі / Уақыт", 15),
-        headerCell("Педагогтің әрекеті", 28),
-        headerCell("Оқушының әрекеті", 25),
-        headerCell("Бағалау", 20),
-        headerCell("Ресурстар", 12),
+        headerCell(L.stageTime, 15),
+        headerCell(L.teacherAction, 28),
+        headerCell(L.studentAction, 25),
+        headerCell(L.assessment, 20),
+        headerCell(L.resources, 12),
       ],
     }),
   ];
@@ -223,34 +227,34 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
   const flowTable = table(flowRows);
 
   const children: (Paragraph | Table)[] = [
-    new Paragraph({ text: `Қысқа мерзімді сабақ жоспары — ${plan.subject}`, heading: HeadingLevel.HEADING_1 }),
+    new Paragraph({ text: `${L.docTitle} — ${subjectIn(plan.subject, plan.lang)}`, heading: HeadingLevel.HEADING_1 }),
     infoTable,
     spacer(),
     ...(plan.vocabulary?.length
       ? [
-          heading("Пәндік лексика және терминология", HeadingLevel.HEADING_2),
+          heading(L.vocabulary, HeadingLevel.HEADING_2),
           table([
-            new TableRow({ tableHeader: true, children: [headerCell("Термин", 30), headerCell("Анықтамасы", 70)] }),
+            new TableRow({ tableHeader: true, children: [headerCell(L.term, 30), headerCell(L.definition, 70)] }),
             ...plan.vocabulary.map((v) => new TableRow({ children: [tableCellText(v.term), tableCellText(v.definition)] })),
           ]),
           spacer(),
         ]
       : []),
-    heading("Сабақтың барысы", HeadingLevel.HEADING_2),
+    heading(L.flow, HeadingLevel.HEADING_2),
     flowTable,
     spacer(),
   ];
 
   plan.tasks.forEach((task, taskIndex) => {
-    children.push(taskHeading(/^\d|тапсырма/i.test(task.title) ? task.title : `${taskIndex + 1}-тапсырма. ${task.title}`, `task-T${taskIndex + 1}`));
+    children.push(taskHeading(L.taskRe.test(task.title) ? task.title : `${L.taskN(taskIndex + 1)}. ${task.title}`, `task-T${taskIndex + 1}`));
     const meta = [
       task.kind,
-      task.method && `Әдіс: ${task.method}`,
-      task.level && `Деңгейі: ${task.level}`,
-      task.time && `Уақыты: ${task.time}`,
+      task.method && `${L.method}: ${task.method}`,
+      task.level && `${L.levelLabel}: ${task.level}`,
+      task.time && `${L.time}: ${task.time}`,
     ].filter(Boolean);
     if (meta.length) children.push(new Paragraph({ children: [new TextRun({ text: meta.join(" · "), italics: true, color: BLUE })] }));
-    children.push(heading("Шарты", HeadingLevel.HEADING_3));
+    children.push(heading(L.condition, HeadingLevel.HEADING_3));
     task.condition.forEach((c) => children.push(body(c)));
 
     const width = task.tableHeaders.length;
@@ -266,14 +270,14 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
       children.push(spacer());
     }
 
-    children.push(heading("Орындау қадамдары", HeadingLevel.HEADING_3));
+    children.push(heading(L.steps, HeadingLevel.HEADING_3));
     task.steps.forEach((st, i) => children.push(body(`${i + 1}. ${st}`)));
 
-    children.push(heading("Бағалау критерийлері мен дескрипторлары", HeadingLevel.HEADING_3));
+    children.push(heading(L.criteriaTitle, HeadingLevel.HEADING_3));
     const criteriaRows: TableRow[] = [
       new TableRow({
         tableHeader: true,
-        children: [headerCell("Бағалау критерийі", 35), headerCell("Дескрипторлар", 55), headerCell("Ұпай", 10)],
+        children: [headerCell(L.criterion, 35), headerCell(L.descriptors, 55), headerCell(L.points, 10)],
       }),
     ];
     task.criteria.forEach((c) => {
@@ -292,10 +296,10 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
     children.push(table(criteriaRows));
     children.push(spacer());
 
-    children.push(heading("Саралау", HeadingLevel.HEADING_3));
+    children.push(heading(L.differentiation, HeadingLevel.HEADING_3));
     children.push(body(task.differentiation));
 
-    children.push(heading("Күтілетін нәтиже", HeadingLevel.HEADING_3));
+    children.push(heading(L.expected, HeadingLevel.HEADING_3));
     if (width && task.expectedResultRows.length) {
       children.push(
         table([
@@ -315,9 +319,9 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
         new TableRow({
           tableHeader: true,
           children: [
-            headerCell("Саралау — оқушыларға қалай көбірек қолдау көрсетуді жоспарлайсыз?", 34),
-            headerCell("Бағалау — оқушылардың материалды меңгеру деңгейін қалай тексеруді жоспарлайсыз?", 33),
-            headerCell("Денсаулық және қауіпсіздік техникасының сақталуы", 33),
+            headerCell(L.planDiff, 34),
+            headerCell(L.planAssess, 33),
+            headerCell(L.planSafety, 33),
           ],
         }),
         new TableRow({
@@ -328,21 +332,21 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
   }
 
   if (plan.reflection?.length) {
-    children.push(heading("Рефлексия", HeadingLevel.HEADING_2));
+    children.push(heading(L.reflection, HeadingLevel.HEADING_2));
     plan.reflection.forEach((r) => children.push(bullet(r)));
   }
   if (plan.homework) {
-    children.push(heading("Үй тапсырмасы", HeadingLevel.HEADING_2));
+    children.push(heading(L.homework, HeadingLevel.HEADING_2));
     children.push(body(plan.homework));
   }
 
   if (plan.resources?.length) {
-    children.push(heading("Ресурстар мен сілтемелер", HeadingLevel.HEADING_2));
+    children.push(heading(L.resourcesTitle, HeadingLevel.HEADING_2));
     children.push(
       table([
         new TableRow({
           tableHeader: true,
-          children: [headerCell("№", 6), headerCell("Ресурс (сілтеме)", 44), headerCell("Түрі / платформа", 20), headerCell("Қолданылуы", 30)],
+          children: [headerCell("№", 6), headerCell(L.resourceLink, 44), headerCell(L.platform, 20), headerCell(L.usage, 30)],
         }),
         ...plan.resources.map(
           (r, i) =>
@@ -367,42 +371,37 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
     );
   }
 
-  await buildAndDownload(children, `KMZH-${plan.topic}.docx`);
+  await buildAndDownload(children, `${L.file}-${plan.topic}.docx`);
 }
 
-const TASK_TYPE_TITLES: Record<string, string> = {
-  levels: "Деңгейлік тест",
-  pisa: "Функционалдық сауаттылық тапсырмалары",
-  ubt: "ҰБТ форматындағы тест",
-  bzb: "Жиынтық бағалау (БЖБ/ТЖБ)",
-  open: "Ашық және шығармашылық тапсырмалар",
-};
-
 async function exportWrittenTasksToDocx(test: SavedTest) {
+  const L = testLabels(test.lang);
+  const subject = subjectIn(test.subject, test.lang);
+  const grade = gradeIn(test.grade, test.lang);
   const tasks = test.tasks ?? [];
   const total = tasks.reduce((s, t) => s + t.points, 0);
   const children: (Paragraph | Table)[] = [
-    new Paragraph({ text: `${TASK_TYPE_TITLES[test.taskType ?? "bzb"]}: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
-    body(`${test.subject} · ${test.grade} · ${tasks.length} тапсырма · Жалпы балл: ${total}`),
-    ...(test.objective ? [body(`Оқу мақсаты: ${test.objective}`)] : []),
-    body("Білім алушының аты-жөні: ____________________________    Сынып: ______    Күні: __________"),
+    new Paragraph({ text: `${L.types[test.taskType ?? "bzb"]}: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
+    body(`${subject} · ${grade} · ${L.tasks(tasks.length)} · ${L.total}: ${total}`),
+    ...(test.objective ? [body(`${L.objective}: ${test.objective}`)] : []),
+    body(L.studentLine),
     ...tasks.flatMap((t, i) => [
       new Paragraph({
-        children: [new TextRun({ text: `${i + 1}-тапсырма. ${t.title} (${t.level} деңгей, ${t.points} балл)`, bold: true, color: INK })],
+        children: [new TextRun({ text: L.taskHead(i + 1, t.title, t.level, t.points), bold: true, color: INK })],
         spacing: { before: 200, after: 80 },
       }),
       ...t.text.split("\n").filter(Boolean).map((line) => body(line)),
       body("______________________________________________________________________________"),
     ]),
-    new Paragraph({ text: "Бағалау критерийлері мен дескрипторлар", heading: HeadingLevel.HEADING_2, pageBreakBefore: true }),
+    new Paragraph({ text: L.criteriaTitle, heading: HeadingLevel.HEADING_2, pageBreakBefore: true }),
     table([
       new TableRow({
         tableHeader: true,
         children: [
           cell([new Paragraph({ children: [new TextRun({ text: "№", bold: true })] })], { header: true, widthPct: 6 }),
-          cell([new Paragraph({ children: [new TextRun({ text: "Бағалау критерийі", bold: true })] })], { header: true, widthPct: 30 }),
-          cell([new Paragraph({ children: [new TextRun({ text: "Дескриптор", bold: true })] })], { header: true, widthPct: 52 }),
-          cell([new Paragraph({ children: [new TextRun({ text: "Балл", bold: true })] })], { header: true, widthPct: 12 }),
+          cell([new Paragraph({ children: [new TextRun({ text: L.criterion, bold: true })] })], { header: true, widthPct: 30 }),
+          cell([new Paragraph({ children: [new TextRun({ text: L.descriptor, bold: true })] })], { header: true, widthPct: 52 }),
+          cell([new Paragraph({ children: [new TextRun({ text: L.points, bold: true })] })], { header: true, widthPct: 12 }),
         ],
       }),
       ...tasks.map(
@@ -419,13 +418,13 @@ async function exportWrittenTasksToDocx(test: SavedTest) {
       new TableRow({
         children: [
           cell([new Paragraph("")]),
-          cell([new Paragraph({ children: [new TextRun({ text: "Жалпы балл", bold: true })] })]),
+          cell([new Paragraph({ children: [new TextRun({ text: L.total, bold: true })] })]),
           cell([new Paragraph("")]),
           cell([new Paragraph({ children: [new TextRun({ text: String(total), bold: true })] })]),
         ],
       }),
     ]),
-    new Paragraph({ text: "Үлгі жауаптар (мұғалімге)", heading: HeadingLevel.HEADING_2 }),
+    new Paragraph({ text: L.answers, heading: HeadingLevel.HEADING_2 }),
     ...tasks.map((t, i) => body(`${i + 1}. ${t.answer}`)),
   ];
   const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "AI Nur";
@@ -434,17 +433,18 @@ async function exportWrittenTasksToDocx(test: SavedTest) {
 
 export async function exportTestToDocx(test: SavedTest) {
   if (test.tasks?.length) return exportWrittenTasksToDocx(test);
+  const L = testLabels(test.lang);
   const letter = (i: number) => String.fromCharCode(65 + i);
   const children: Paragraph[] = [
-    new Paragraph({ text: `${TASK_TYPE_TITLES[test.taskType ?? "levels"]}: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
-    body(`${test.subject} · ${test.grade} · Қиындығы: ${test.difficulty} · ${test.questions.length} сұрақ`),
-    ...(test.objective ? [body(`Оқу мақсаты: ${test.objective}`)] : []),
-    ...(test.questions.some((q) => q.level) ? [body("Деңгейлер: A — білу және түсіну, B — қолдану, C — жоғары деңгей дағдылары")] : []),
-    body("Оқушының аты-жөні: ____________________________    Сынып: ______    Күні: __________"),
+    new Paragraph({ text: `${L.types[test.taskType ?? "levels"]}: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
+    body(`${subjectIn(test.subject, test.lang)} · ${gradeIn(test.grade, test.lang)} · ${L.difficulty}: ${difficultyIn(test.difficulty, test.lang)} · ${L.questions(test.questions.length)}`),
+    ...(test.objective ? [body(`${L.objective}: ${test.objective}`)] : []),
+    ...(test.questions.some((q) => q.level) ? [body(L.levelsLegend)] : []),
+    body(L.studentLine),
     ...test.questions.flatMap((q, i) => [
       ...(q.context && q.context !== test.questions[i - 1]?.context
         ? [
-            new Paragraph({ children: [new TextRun({ text: "Жағдаят", bold: true, color: BLUE })], spacing: { before: 240, after: 60 } }),
+            new Paragraph({ children: [new TextRun({ text: L.context, bold: true, color: BLUE })], spacing: { before: 240, after: 60 } }),
             ...q.context.split("\n").filter(Boolean).map((line) => body(line)),
           ]
         : []),
@@ -454,11 +454,90 @@ export async function exportTestToDocx(test: SavedTest) {
       }),
       ...q.options.map((opt, oi) => bullet(`${letter(oi)}) ${opt}`)),
     ]),
-    new Paragraph({ text: "Жауаптар кілті", heading: HeadingLevel.HEADING_2, pageBreakBefore: true }),
+    new Paragraph({ text: L.key, heading: HeadingLevel.HEADING_2, pageBreakBefore: true }),
     ...test.questions.map((q, i) =>
       body(`${i + 1}. ${letter(q.correctIndex)}) ${q.options[q.correctIndex]}${q.explanation ? ` — ${q.explanation}` : ""}`),
     ),
   ];
   const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "AI Nur";
   await buildAndDownload(children, `Test - ${safe}.docx`);
+}
+
+/* ----------------------------------------------------------------- құжаттар */
+
+// Ресми іс қағаздары үлгісі: Times New Roman 14, сол жақ өріс 3 см, оң жақ 1,5 см,
+// жоғарғы/төменгі 2 см, азат жол 1,25 см, мәтін ені бойынша тураланады.
+export async function exportDocumentToDocx(d: DocData) {
+  const BLACK = "000000";
+  const thin = { style: BorderStyle.SINGLE, size: 4, color: BLACK };
+  const para = (text: string) =>
+    new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      indent: { firstLine: convertMillimetersToTwip(12.5) },
+      spacing: { after: 80, line: 276 },
+      children: [new TextRun(text)],
+    });
+  const children: (Paragraph | Table)[] = [
+    new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 80 }, children: [new TextRun({ text: d.title, bold: true, size: 30 })] }),
+    ...(d.subtitle ? [new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 240 }, children: [new TextRun({ text: d.subtitle, italics: true })] })] : []),
+  ];
+  for (const s of d.sections) {
+    if (s.heading) children.push(new Paragraph({ spacing: { before: 200, after: 100 }, keepNext: true, children: [new TextRun({ text: s.heading, bold: true })] }));
+    s.paragraphs.forEach((p) => p.split("\n").filter(Boolean).forEach((line) => children.push(para(line))));
+    s.bullets.forEach((b) => children.push(new Paragraph({ text: b, bullet: { level: 0 }, spacing: { after: 40, line: 276 } })));
+    if (s.table) {
+      const w = Math.floor(100 / s.table.headers.length);
+      children.push(
+        new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          borders: { top: thin, bottom: thin, left: thin, right: thin, insideHorizontal: thin, insideVertical: thin },
+          rows: [
+            new TableRow({
+              tableHeader: true,
+              children: s.table.headers.map(
+                (h) =>
+                  new TableCell({
+                    width: { size: w, type: WidthType.PERCENTAGE },
+                    shading: { fill: "F2F2F2" },
+                    margins: cellMargins,
+                    children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, size: 24 })] })],
+                  }),
+              ),
+            }),
+            ...s.table.rows.map(
+              (r) =>
+                new TableRow({
+                  children: r.map((c) => new TableCell({ margins: cellMargins, children: [new Paragraph({ children: [new TextRun({ text: c, size: 24 })] })] })),
+                }),
+            ),
+          ],
+        }),
+        spacer(),
+      );
+    }
+  }
+  if (d.signature) children.push(new Paragraph({ alignment: AlignmentType.RIGHT, spacing: { before: 480 }, children: [new TextRun({ text: d.signature, bold: true })] }));
+
+  const doc = new Document({
+    styles: { default: { document: { run: { font: "Times New Roman", size: 28 } } } },
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: convertMillimetersToTwip(210), height: convertMillimetersToTwip(297) },
+            margin: {
+              top: convertMillimetersToTwip(20),
+              bottom: convertMillimetersToTwip(20),
+              left: convertMillimetersToTwip(30),
+              right: convertMillimetersToTwip(15),
+            },
+          },
+        },
+        footers: { default: pageFooter() },
+        children,
+      },
+    ],
+  });
+  const safe = d.title.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 80) || "AI Nur";
+  downloadBlob(await Packer.toBlob(doc), `${safe}.docx`);
 }

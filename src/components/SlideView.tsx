@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { svgDataUrl } from "../lib/projects";
-import type { SlideData } from "../lib/slides";
+import { slideText, type SlideData } from "../lib/slides";
 import { SLIDE_THEMES } from "../lib/studio";
 import "./slides.css";
 
@@ -202,6 +202,7 @@ export function SlideView({
   total,
   interactive = false,
   imagePending = false,
+  lang,
 }: {
   slide: SlideData;
   style: string;
@@ -209,7 +210,9 @@ export function SlideView({
   total?: number;
   interactive?: boolean;
   imagePending?: boolean;
+  lang?: string;
 }) {
+  const T = slideText(lang);
   const t = SLIDE_THEMES[style] ?? SLIDE_THEMES.minimal;
   const vars = { "--s-bg": t.bg, "--s-ink": t.ink, "--s-accent": t.accent, "--s-accent2": t.accent2, "--s-dark": t.dark } as React.CSSProperties;
   const [picked, setPicked] = useState<number | null>(null);
@@ -238,7 +241,7 @@ export function SlideView({
       body = (
         <div className="s-hero">
           <div className="s-hero-text">
-            <div className="s-kicker">Сабақ</div>
+            <div className="s-kicker">{T.lesson}</div>
             <div className="s-title">{s.heading}</div>
             {s.subheading && <div className="s-sub">{s.subheading}</div>}
           </div>
@@ -376,7 +379,7 @@ export function SlideView({
       }
       body = (
         <>
-          <div className="s-badge">Өзіңді тексер</div>
+          <div className="s-badge">{T.check}</div>
           <div className="s-h">{s.question}</div>
           <div className="s-options">
             {s.options!.map((o, i) => {
@@ -404,7 +407,7 @@ export function SlideView({
     case "task":
       body = (
         <>
-          <div className="s-badge">Тапсырма</div>
+          <div className="s-badge">{T.task}</div>
           <div className="s-h">{s.heading}</div>
           <div className="s-task">
             {s.task_text && <div className="s-task-text">{s.task_text}</div>}
@@ -412,10 +415,10 @@ export function SlideView({
           </div>
           {s.answer && interactive && (
             revealed ? (
-              <div className="s-explain"><b>Жауабы:</b> {s.answer}</div>
+              <div className="s-explain"><b>{T.answer}:</b> {s.answer}</div>
             ) : (
               <button type="button" className="s-reveal" onClick={(e) => { e.stopPropagation(); setRevealed(true); }}>
-                Жауабын көрсету
+                {T.showAnswer}
               </button>
             )
           )}

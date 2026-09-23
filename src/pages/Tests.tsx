@@ -3,9 +3,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TestSharePanel } from "../components/TestSharePanel";
+import { LiveLauncher } from "../components/LiveLauncher";
+import { LangPicker } from "../components/LangPicker";
 import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
 import type { LessonPlan } from "../lib/generators";
+import type { Lang } from "../lib/lang";
 import { getTest, saveTest, type SavedTest, type TaskType } from "../lib/projects";
 import { scrollToResult } from "../lib/scrollToResult";
 import {
@@ -62,6 +65,7 @@ export default function TestsPage() {
   const [count, setCount] = useState<number>(10);
   const [difficulty, setDifficulty] = useState<string>("Орташа");
   const [notes, setNotes] = useState("");
+  const [lang, setLang] = useState<Lang>(plan?.lang ?? "kk");
   const [generating, setGenerating] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -88,6 +92,7 @@ export default function TestsPage() {
         setDifficulty(t.difficulty);
         setObjective(t.objective ?? "");
         setTaskType(t.taskType ?? "levels");
+        setLang(t.lang ?? "kk");
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Тапсырманы ашу мүмкін болмады."));
   }, [openedId]);
@@ -109,8 +114,9 @@ export default function TestsPage() {
         objective: goal || undefined,
         differentiate,
         taskType,
+        lang,
       };
-      const base = { subject, grade, topic: topic.trim(), difficulty, objective: goal || undefined, taskType };
+      const base = { subject, grade, topic: topic.trim(), difficulty, objective: goal || undefined, taskType, lang };
       if (isQuizType(taskType)) {
         setTest(await saveTest({ ...base, questions: await generateTest(input) }));
       } else {
@@ -122,7 +128,7 @@ export default function TestsPage() {
     } finally {
       setGenerating(false);
     }
-  }, [subject, grade, topic, difficulty, count, notes, planContext, objective, differentiate, taskType]);
+  }, [subject, grade, topic, difficulty, count, notes, planContext, objective, differentiate, taskType, lang]);
 
   // ҚМЖ бетінен «Тапсырма жасау» басылса — бірден генерациялаймыз.
   const startedFromPlan = useRef(false);
@@ -209,6 +215,8 @@ export default function TestsPage() {
               })}
             </div>
           </fieldset>
+
+          <LangPicker value={lang} onChange={setLang} />
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
@@ -433,6 +441,7 @@ export default function TestsPage() {
               </div>
             </article>
           )}
+          {test && !generating && isQuizType(test.taskType) && <LiveLauncher key={`live-${test.id}`} test={test} />}
           {test && !generating && isQuizType(test.taskType) && <TestSharePanel key={test.id} test={test} />}
         </section>
       </div>

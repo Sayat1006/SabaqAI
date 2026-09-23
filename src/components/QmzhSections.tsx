@@ -2,6 +2,8 @@ import { ExternalLink, Link2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { LessonPlan, QmzhTask } from "../lib/generators";
 import { customResource, platformKind, platformLabel, type QmzhResource, safeUrl } from "../lib/resources";
+import { qmzhLabels } from "../lib/docLabels";
+import type { Lang } from "../lib/lang";
 import { levelBadge, levelLabel } from "../lib/studio";
 
 const th = "px-3 py-2 text-left font-medium";
@@ -46,28 +48,29 @@ function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   );
 }
 
-export function TaskBlock({ task, index }: { task: QmzhTask; index: number }) {
+export function TaskBlock({ task, index, lang }: { task: QmzhTask; index: number; lang?: Lang }) {
+  const L = qmzhLabels(lang);
   const hasTable = task.tableHeaders.length > 0 && task.tableRows.length > 0;
   const hasResult = task.tableHeaders.length > 0 && task.expectedResultRows.length > 0;
   return (
     <div className="mt-8 border-t-2 border-violet-200 pt-6 print:break-inside-avoid">
       <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
         <h3 className="text-xl font-semibold text-slate-900">
-          {/^\d|тапсырма/i.test(task.title) ? task.title : `${index + 1}-тапсырма. ${task.title}`}
+          {L.taskRe.test(task.title) ? task.title : `${L.taskN(index + 1)}. ${task.title}`}
         </h3>
         <div className="flex flex-wrap gap-1.5 text-xs font-semibold">
           {task.kind && <span className="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">{task.kind}</span>}
-          {task.method && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">Әдіс: {task.method}</span>}
+          {task.method && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">{L.method}: {task.method}</span>}
           {task.level && (
             <span title={levelLabel(task.level)} className={`rounded-full px-2.5 py-1 ${levelBadge(task.level)}`}>
-              {task.level} деңгей
+              {L.level(task.level)}
             </span>
           )}
           {task.time && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">⏱ {task.time}</span>}
         </div>
       </div>
 
-      <p className="mb-1 font-semibold text-violet-700">Шарты:</p>
+      <p className="mb-1 font-semibold text-violet-700">{L.condition}:</p>
       <div className="mb-4 space-y-1 text-sm text-slate-700">
         {task.condition.map((c, i) => (
           <p key={i}>{c}</p>
@@ -83,21 +86,21 @@ export function TaskBlock({ task, index }: { task: QmzhTask; index: number }) {
 
       {task.steps.length > 0 && (
         <>
-          <p className="mb-1 font-semibold text-violet-700">Орындау қадамдары:</p>
+          <p className="mb-1 font-semibold text-violet-700">{L.steps}:</p>
           <div className="mb-4 text-sm text-slate-700">
             <ActionList items={task.steps} />
           </div>
         </>
       )}
 
-      <p className="mb-1 font-semibold text-violet-700">Бағалау критерийлері мен дескрипторлары</p>
+      <p className="mb-1 font-semibold text-violet-700">{L.criteriaTitle}</p>
       <div className="mb-4 overflow-x-auto rounded-lg border border-violet-100">
         <table className="w-full text-sm">
           <thead className="bg-violet-50 text-slate-600">
             <tr>
-              <th className={th}>Бағалау критерийі</th>
-              <th className={th}>Дескрипторлар</th>
-              <th className={`w-16 ${th}`}>Ұпай</th>
+              <th className={th}>{L.criterion}</th>
+              <th className={th}>{L.descriptors}</th>
+              <th className={`w-16 ${th}`}>{L.points}</th>
             </tr>
           </thead>
           <tbody>
@@ -120,12 +123,12 @@ export function TaskBlock({ task, index }: { task: QmzhTask; index: number }) {
 
       {task.differentiation && (
         <>
-          <p className="mb-1 font-semibold text-violet-700">Саралау</p>
+          <p className="mb-1 font-semibold text-violet-700">{L.differentiation}</p>
           <p className="mb-4 text-sm text-slate-700">{task.differentiation}</p>
         </>
       )}
 
-      <p className="mb-1 font-semibold text-violet-700">Күтілетін нәтиже</p>
+      <p className="mb-1 font-semibold text-violet-700">{L.expected}</p>
       {hasResult && <DataTable headers={task.tableHeaders} rows={task.expectedResultRows} />}
       <p className="text-sm text-slate-700">{task.expectedConclusion}</p>
     </div>
@@ -133,27 +136,29 @@ export function TaskBlock({ task, index }: { task: QmzhTask; index: number }) {
 }
 
 /** Пәндік терминдер кестесі. */
-export function VocabularyTable({ items }: { items: NonNullable<LessonPlan["vocabulary"]> }) {
+export function VocabularyTable({ items, lang }: { items: NonNullable<LessonPlan["vocabulary"]>; lang?: Lang }) {
   if (!items.length) return null;
+  const L = qmzhLabels(lang);
   return (
     <div className="mb-8">
-      <h3 className="mb-2 text-lg font-bold">Пәндік лексика және терминология</h3>
-      <DataTable headers={["Термин", "Анықтамасы"]} rows={items.map((v) => [v.term, v.definition])} />
+      <h3 className="mb-2 text-lg font-bold">{L.vocabulary}</h3>
+      <DataTable headers={[L.term, L.definition]} rows={items.map((v) => [v.term, v.definition])} />
     </div>
   );
 }
 
 /** Ресми үлгідегі қорытынды кесте: саралау, бағалау, денсаулық және қауіпсіздік. */
-export function PlanningTable({ planning }: { planning: NonNullable<LessonPlan["planning"]> }) {
+export function PlanningTable({ planning, lang }: { planning: NonNullable<LessonPlan["planning"]>; lang?: Lang }) {
+  const L = qmzhLabels(lang);
   return (
     <div className="mt-8">
       <div className="overflow-x-auto rounded-lg border border-violet-100">
         <table className="w-full text-sm">
           <thead className="bg-violet-50 text-slate-600">
             <tr>
-              <th className={th}>Саралау — оқушыларға қалай көбірек қолдау көрсетуді жоспарлайсыз? Қабілетті оқушыларға қандай міндет қоюды жоспарлайсыз?</th>
-              <th className={th}>Бағалау — оқушылардың материалды меңгеру деңгейін қалай тексеруді жоспарлайсыз?</th>
-              <th className={th}>Денсаулық және қауіпсіздік техникасының сақталуы</th>
+              <th className={th}>{L.planDiff}</th>
+              <th className={th}>{L.planAssess}</th>
+              <th className={th}>{L.planSafety}</th>
             </tr>
           </thead>
           <tbody>
@@ -174,11 +179,14 @@ export function ResourcesSection({
   resources,
   onChange,
   saving,
+  lang,
 }: {
   resources: QmzhResource[];
   onChange?: (next: QmzhResource[]) => void;
   saving?: boolean;
+  lang?: Lang;
 }) {
+  const L = qmzhLabels(lang);
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
@@ -198,7 +206,7 @@ export function ResourcesSection({
 
   return (
     <div className="mt-8">
-      <h3 className="mb-1 text-lg font-bold">Ресурстар мен сілтемелер</h3>
+      <h3 className="mb-1 text-lg font-bold">{L.resourcesTitle}</h3>
       <p className="mb-3 text-[12.5px] text-slate-500 print:hidden">
         Сілтемелер сенімді платформалардағы іздеу беттерін ашады — сабаққа сай материалды таңдап алыңыз. Өз сілтемеңізді де қоса аласыз.
       </p>
@@ -208,9 +216,9 @@ export function ResourcesSection({
             <thead className="bg-violet-50 text-slate-600">
               <tr>
                 <th className={`w-8 ${th}`}>№</th>
-                <th className={th}>Ресурс</th>
-                <th className={th}>Түрі / платформа</th>
-                <th className={th}>Қолданылуы</th>
+                <th className={th}>{L.resource}</th>
+                <th className={th}>{L.platform}</th>
+                <th className={th}>{L.usage}</th>
                 {onChange && <th className="w-10 print:hidden" />}
               </tr>
             </thead>

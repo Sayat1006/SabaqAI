@@ -14,6 +14,9 @@ import QmzhPage from "./pages/Qmzh";
 import TakeTestPage from "./pages/TakeTest";
 import ClassToolsPage from "./pages/ClassTools";
 import TestsPage from "./pages/Tests";
+import DocsPage from "./pages/Docs";
+import LiveHostPage from "./pages/LiveHost";
+import LivePlayPage from "./pages/LivePlay";
 
 export default function App() {
   return (
@@ -22,7 +25,11 @@ export default function App() {
         <Route path="login" element={<LoginPage />} />
         {/* Оқушы беті: жүйеге кірусіз, мұғалім жіберген сілтеме арқылы. */}
         <Route path="t/:code" element={<TakeTestPage />} />
+        <Route path="l" element={<LivePlayPage />} />
+        <Route path="l/:code" element={<LivePlayPage />} />
         <Route element={<RequireAuth />}>
+          {/* Тірі викторина: тақтаға толық бетпен шығады (мәзірсіз). */}
+          <Route path="live/:id" element={<LiveHostPage />} />
           <Route element={<DashboardLayout />}>
             <Route index element={<Home />} />
           </Route>
@@ -32,6 +39,7 @@ export default function App() {
             <Route path="images" element={<ImagesPage />} />
             <Route path="tests" element={<TestsPage />} />
             <Route path="tools" element={<ClassToolsPage />} />
+            <Route path="docs" element={<DocsPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
