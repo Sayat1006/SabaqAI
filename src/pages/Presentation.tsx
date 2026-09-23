@@ -1,15 +1,18 @@
-import { Check, ChevronLeft, ChevronRight, Download, Maximize, Sparkles, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Download, Maximize, Pencil, Plus, Save, Sparkles, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
+import { SlideEditor } from "../components/SlideEditor";
 import { SlideView } from "../components/SlideView";
 import { buildLessonPresentation, type LessonPlan } from "../lib/generators";
-import { getPresentation, savePresentation, type SavedPresentation } from "../lib/projects";
-import { normalizeSlide, type SlideData } from "../lib/slides";
-import { generatePresentation, illustrateSlides, planToContext, PRESENTATION_STYLES, SLIDE_COUNTS } from "../lib/studio";
+import { getPresentation, savePresentation, type SavedPresentation, updatePresentation } from "../lib/projects";
+import { blankSlide, finalizeSlide, normalizeSlide, type SlideData, type SlideLayout } from "../lib/slides";
+import { generatePresentation, illustrateSlide, illustrateSlides, planToContext, PRESENTATION_STYLES, SLIDE_COUNTS } from "../lib/studio";
 import "./presentation.css";
 
 interface Deck {
+  /** Сақталған жобаның id-і (өңдегенде сол жоба жаңартылады). */
+  id?: string;
   title: string;
   style: string;
   topic: string;
@@ -30,7 +33,7 @@ function deckFromPlan(plan: LessonPlan): Deck {
 }
 
 function deckFromSaved(p: SavedPresentation): Deck {
-  return { title: p.title, topic: p.topic, style: p.style, slides: p.slides.map((s) => normalizeSlide(s as SlideData & Record<string, unknown>)), subtitle: `${p.slides.length} слайд` };
+  return { id: p.id, title: p.title, topic: p.topic, style: p.style, slides: p.slides.map((s) => normalizeSlide(s as SlideData & Record<string, unknown>)), subtitle: `${p.slides.length} слайд` };
 }
 
 function place(i: number, active: number): React.CSSProperties {
@@ -48,6 +51,21 @@ function chipClass(active: boolean) {
     active ? "border-fuchsia-500 bg-fuchsia-500 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-fuchsia-500"
   }`;
 }
+
+const LAYOUT_LABELS: Record<SlideLayout, string> = {
+  title: "Титул",
+  bullets: "Тізім",
+  image: "Сурет",
+  diagram: "Сызба",
+  chart: "Диаграмма",
+  table: "Кесте",
+  two_column: "Екі баған",
+  highlight: "Басты ой",
+  timeline: "Уақыт сызығы",
+  quiz: "Тест сұрағы",
+  task: "Тапсырма",
+  closing: "Қорытынды",
+};
 
 const PHASES = ["Құрылым мен мазмұн жасалуда...", "Сызбалар мен кестелер дайындалуда...", "Тапсырмалар мен тест сұрақтары құрастырылуда..."];
 
@@ -69,6 +87,11 @@ export default function PresentationPage() {
   const [error, setError] = useState("");
   const [presenting, setPresenting] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [regenIndex, setRegenIndex] = useState<number | null>(null);
+  // Слайдтар жылжығанда/өшкенде өңдегішті қайта құру үшін.
+  const [structVersion, setStructVersion] = useState(0);
   const busy = generating || pending.size > 0;
 
   // «Жобалар» тізімінен ашылса, сақталған презентацияны жүктейміз.
@@ -91,6 +114,8 @@ export default function PresentationPage() {
       setGenerating(true);
       setError("");
       setSaveState("");
+      setEditing(false);
+      setDirty(false);
       setPhase(0);
       const timer = window.setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 5000);
       let result: { title: string; slides: SlideData[] };
@@ -132,7 +157,8 @@ export default function PresentationPage() {
 
       setSaveState("saving");
       try {
-        await savePresentation({ topic: theTopic, style, title: result.title, slides });
+        const saved = await savePresentation({ topic: theTopic, style, title: result.title, slides });
+        setDeck((d) => (d ? { ...d, id: saved.id } : d));
         setSaveState("saved");
       } catch (err) {
         setSaveState("");
@@ -190,12 +216,89 @@ export default function PresentationPage() {
     void runGeneration(topic.trim(), plan ? planToContext(plan) : undefined);
   }
 
+  // Сақталмаған өзгерістер болса, бетті жапқанда ескертеміз.
+  useEffect(() => {
+    if (!dirty) return;
+    const onLeave = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onLeave);
+    return () => window.removeEventListener("beforeunload", onLeave);
+  }, [dirty]);
+
+  function changeDeck(fn: (d: Deck) => Deck, structural = false) {
+    setDeck((d) => (d ? fn(d) : d));
+    setDirty(true);
+    setSaveState("");
+    if (structural) setStructVersion((v) => v + 1);
+  }
+
+  const updateSlide = (index: number, patch: Partial<SlideData>) =>
+    changeDeck((d) => ({ ...d, slides: d.slides.map((s, i) => (i === index ? { ...s, ...patch } : s)) }));
+
+  function moveSlide(dir: -1 | 1) {
+    const to = active + dir;
+    if (!deck || to < 0 || to >= deck.slides.length) return;
+    changeDeck((d) => {
+      const slides = [...d.slides];
+      [slides[active], slides[to]] = [slides[to], slides[active]];
+      return { ...d, slides };
+    }, true);
+    setActive(to);
+  }
+
+  function addSlide() {
+    changeDeck((d) => ({ ...d, slides: [...d.slides.slice(0, active + 1), blankSlide(), ...d.slides.slice(active + 1)] }), true);
+    setActive(active + 1);
+  }
+
+  function removeSlide() {
+    if (!deck || deck.slides.length <= 1) return;
+    if (!window.confirm(`${active + 1}-слайдты өшіру керек пе?`)) return;
+    changeDeck((d) => ({ ...d, slides: d.slides.filter((_, i) => i !== active) }), true);
+    setActive(Math.max(0, Math.min(active, deck.slides.length - 2)));
+  }
+
+  async function regenerateImage() {
+    const slide = deck?.slides[active];
+    if (!deck || !slide?.image_prompt?.trim()) return;
+    const index = active;
+    setRegenIndex(index);
+    setError("");
+    try {
+      updateSlide(index, { image_svg: await illustrateSlide(slide.image_prompt.trim(), deck.style) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Сурет салу мүмкін болмады.");
+    } finally {
+      setRegenIndex(null);
+    }
+  }
+
+  async function handleSave() {
+    if (!deck) return;
+    const slides = deck.slides.map(finalizeSlide);
+    const title = deck.title.trim() || deck.topic || "Презентация";
+    setSaveState("saving");
+    setError("");
+    try {
+      const data = { topic: deck.topic, style: deck.style, title, slides };
+      let id = deck.id;
+      if (id) await updatePresentation(id, data);
+      else id = (await savePresentation(data)).id;
+      setDeck((d) => (d ? { ...d, id, title, slides, subtitle: `${slides.length} слайд` } : d));
+      setStructVersion((v) => v + 1);
+      setDirty(false);
+      setSaveState("saved");
+    } catch (err) {
+      setSaveState("");
+      setError(err instanceof Error ? err.message : "Өзгерістер сақталмады.");
+    }
+  }
+
   async function handleExport() {
     if (!deck) return;
     setExporting(true);
     try {
       const { exportSlidesToPptx } = await import("../lib/exportPptx");
-      await exportSlidesToPptx(deck.title, deck.slides, deck.style);
+      await exportSlidesToPptx(deck.title, deck.slides.map(finalizeSlide), deck.style);
     } finally {
       setExporting(false);
     }
@@ -294,6 +397,7 @@ export default function PresentationPage() {
                   {deck.subtitle}
                   {pending.size > 0 && <span>· {pending.size} сурет салынуда...</span>}
                   {saveState === "saving" && <span>· сақталуда...</span>}
+                  {dirty && saveState !== "saving" && <span className="text-violet-600">· сақталмаған өзгерістер бар</span>}
                   {saveState === "saved" && (
                     <span className="inline-flex items-center gap-1 text-fuchsia-700">
                       · <Check size={14} /> сақталды
@@ -304,7 +408,7 @@ export default function PresentationPage() {
               <div className="carousel">
                 {deck.slides.map((s, i) => (
                   <button key={i} type="button" aria-label={`${i + 1}-слайд: ${s.heading}`} onClick={() => go(i)} className="slide-btn" style={place(i, active)}>
-                    <SlideView slide={s} style={deck.style} index={i} total={total} imagePending={pending.has(i)} />
+                    <SlideView slide={s} style={deck.style} index={i} total={total} imagePending={pending.has(i) || regenIndex === i} />
                   </button>
                 ))}
               </div>
@@ -330,10 +434,79 @@ export default function PresentationPage() {
                 <button type="button" onClick={() => setPresenting(true)} className="inline-flex items-center gap-2 rounded-[14px] bg-fuchsia-500 px-5 py-3 font-semibold text-white">
                   <Maximize size={16} /> Көрсету
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setEditing((v) => !v)}
+                  disabled={busy}
+                  aria-pressed={editing}
+                  className={`inline-flex items-center gap-2 rounded-[11px] border px-4 py-2.5 text-sm font-semibold disabled:opacity-60 ${
+                    editing ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white hover:border-violet-500 hover:text-violet-600"
+                  }`}
+                >
+                  <Pencil size={15} /> {editing ? "Өңдеуді жабу" : "Өңдеу"}
+                </button>
+                {(dirty || editing) && (
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={!dirty || saveState === "saving" || regenIndex !== null}
+                    className="inline-flex items-center gap-2 rounded-[11px] border border-violet-600 bg-white px-4 py-2.5 text-sm font-semibold text-violet-700 disabled:opacity-50"
+                  >
+                    <Save size={15} /> {saveState === "saving" ? "Сақталуда..." : "Сақтау"}
+                  </button>
+                )}
                 <button type="button" onClick={handleExport} disabled={exporting || pending.size > 0} className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60">
                   <Download size={15} /> {exporting ? "Дайындалуда..." : "PowerPoint (.pptx)"}
                 </button>
               </div>
+
+              {editing && current && (
+                <div className="w-full rounded-[20px] border border-slate-200 bg-white p-5 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)]">
+                  <label className="mb-4 block">
+                    <span className="mb-1.5 block text-[12.5px] font-semibold text-slate-500">Презентация атауы</span>
+                    <input
+                      value={deck.title}
+                      maxLength={300}
+                      onChange={(e) => changeDeck((d) => ({ ...d, title: e.target.value }))}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-fuchsia-500"
+                    />
+                  </label>
+                  <div className="mb-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
+                    <span className="mr-auto text-[15px] font-bold">{active + 1}-слайд</span>
+                    <select
+                      aria-label="Слайд түрі"
+                      value={current.layout}
+                      onChange={(e) => updateSlide(active, { layout: e.target.value as SlideLayout })}
+                      className="rounded-[10px] border border-slate-200 bg-white px-2.5 py-2 text-[13px]"
+                    >
+                      {(Object.keys(LAYOUT_LABELS) as SlideLayout[]).map((l) => (
+                        <option key={l} value={l}>
+                          {LAYOUT_LABELS[l]}
+                        </option>
+                      ))}
+                    </select>
+                    <button type="button" onClick={() => moveSlide(-1)} disabled={active === 0} aria-label="Слайдты солға жылжыту" title="Солға жылжыту" className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
+                      <ArrowLeft size={15} />
+                    </button>
+                    <button type="button" onClick={() => moveSlide(1)} disabled={active === total - 1} aria-label="Слайдты оңға жылжыту" title="Оңға жылжыту" className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
+                      <ArrowRight size={15} />
+                    </button>
+                    <button type="button" onClick={addSlide} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-violet-500">
+                      <Plus size={15} /> Слайд қосу
+                    </button>
+                    <button type="button" onClick={removeSlide} disabled={total <= 1} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-rose-400 hover:text-rose-700 disabled:opacity-40">
+                      <Trash2 size={15} /> Өшіру
+                    </button>
+                  </div>
+                  <SlideEditor
+                    key={`${active}-${structVersion}-${current.layout}`}
+                    slide={current}
+                    onChange={(patch) => updateSlide(active, patch)}
+                    onRegenerateImage={regenerateImage}
+                    imageBusy={regenIndex === active}
+                  />
+                </div>
+              )}
 
               <div className="mt-2 grid w-full grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                 {deck.slides.map((s, i) => (

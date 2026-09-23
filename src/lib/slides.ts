@@ -120,3 +120,17 @@ export function normalizeSlide(raw: Partial<SlideData> & Record<string, unknown>
   s.chart_values = s.chart_values!.slice(0, n);
   return s;
 }
+
+/** Өңделген слайдты сақтар алдында тазалайды: бос нұсқаларды алып тастағанда дұрыс жауап нөмірі сақталады. */
+export function finalizeSlide(s: SlideData): SlideData {
+  let { options, correct_index } = s;
+  if (options) {
+    const right = options[correct_index ?? 0];
+    options = options.map((o) => o.trim()).filter(Boolean);
+    correct_index = Math.max(0, options.indexOf((right ?? "").trim()));
+  }
+  return normalizeSlide({ ...s, options, correct_index } as SlideData & Record<string, unknown>);
+}
+
+/** «Слайд қосу» үшін бос слайд. */
+export const blankSlide = (): SlideData => normalizeSlide({ layout: "bullets", heading: "Жаңа слайд", bullets: ["Бірінші ой", "Екінші ой"] });
