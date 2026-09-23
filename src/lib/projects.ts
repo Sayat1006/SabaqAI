@@ -8,11 +8,15 @@ import { supabase } from "./supabaseClient";
 export type { SlideData } from "./slides";
 import type { SlideData } from "./slides";
 
+/** Саралау деңгейі: A — білу және түсіну, B — қолдану, C — жоғары деңгей дағдылары. */
+export type TestLevel = "A" | "B" | "C";
+
 export interface TestQuestion {
   question: string;
   options: string[];
   correctIndex: number;
   explanation: string;
+  level?: TestLevel;
 }
 
 interface PresentationData {
@@ -36,6 +40,8 @@ interface TestData {
   topic: string;
   difficulty: string;
   questions: TestQuestion[];
+  /** Тест тексеретін оқу мақсаты (ҮОБ коды және мазмұны). */
+  objective?: string;
 }
 
 interface Saved {
@@ -294,6 +300,8 @@ export function timeAgo(ts: number): string {
 export interface TestShare {
   code: string;
   isOpen: boolean;
+  /** Оқушы тапсырған соң қателерін түсіндірмесімен көреді (4-жаңарту). */
+  showReview: boolean;
 }
 
 export interface TestSubmission {
@@ -311,7 +319,15 @@ export interface SharedTest {
   subject: string;
   grade: string;
   topic: string;
-  questions: { question: string; options: string[] }[];
+  objective?: string;
+  questions: { question: string; options: string[]; level?: TestLevel | "" }[];
+}
+
+export interface SubmitResult {
+  score: number;
+  total: number;
+  /** Мұғалім рұқсат етсе: әр сұрақтың дұрыс жауабы мен түсіндірмесі. */
+  review?: { correct: number; explanation: string }[] | null;
 }
 
 function sharingError(error: { message: string; code?: string }): ProjectsError {
@@ -324,15 +340,32 @@ function sharingError(error: { message: string; code?: string }): ProjectsError 
 export const shareLink = (code: string) => `${window.location.origin}/t/${code}`;
 
 export async function getTestShare(projectId: string): Promise<TestShare | null> {
-  const { data, error } = await supabase.from("test_shares").select("code, is_open").eq("project_id", projectId).maybeSingle();
+  let res = await supabase.from("test_shares").select("code, is_open, show_review").eq("project_id", projectId).maybeSingle();
+  // 4-жаңарту әлі орындалмаса, show_review бағаны жоқ — онсыз оқимыз.
+  if (res.error && /show_review/.test(res.error.message)) {
+    res = await supabase.from("test_shares").select("code, is_open").eq("project_id", projectId).maybeSingle();
+  }
+  const { data, error } = res;
   if (error) throw sharingError(error);
-  return data ? { code: data.code as string, isOpen: data.is_open as boolean } : null;
+  if (!data) return null;
+  const row = data as { code: string; is_open: boolean; show_review?: boolean };
+  return { code: row.code, isOpen: row.is_open, showReview: row.show_review ?? false };
 }
 
 export async function shareTest(projectId: string): Promise<TestShare> {
   const { data, error } = await supabase.rpc("share_test", { p_project_id: projectId });
   if (error) throw sharingError(error);
-  return { code: data as string, isOpen: true };
+  return (await getTestShare(projectId)) ?? { code: data as string, isOpen: true, showReview: true };
+}
+
+export async function setTestShareReview(projectId: string, show: boolean): Promise<void> {
+  const { error } = await supabase.rpc("set_test_share_review", { p_project_id: projectId, p_show: show });
+  if (error) {
+    if (error.code === "PGRST202" || /Could not find the function/i.test(error.message)) {
+      throw new ProjectsError("Бұл баптау үшін әкімші Supabase-те supabase/update-4-feedback.sql файлын орындауы керек.");
+    }
+    throw sharingError(error);
+  }
 }
 
 export async function setTestShareOpen(projectId: string, open: boolean): Promise<void> {
@@ -371,8 +404,8 @@ export async function getSharedTest(code: string): Promise<SharedTest | null> {
   return (data as SharedTest | null) ?? null;
 }
 
-export async function submitSharedTest(code: string, name: string, className: string, answers: (number | null)[]): Promise<{ score: number; total: number }> {
+export async function submitSharedTest(code: string, name: string, className: string, answers: (number | null)[]): Promise<SubmitResult> {
   const { data, error } = await supabase.rpc("submit_test", { p_code: code, p_name: name, p_class: className, p_answers: answers });
   if (error) throw sharingError(error);
-  return data as { score: number; total: number };
+  return data as SubmitResult;
 }

@@ -287,10 +287,12 @@ export async function exportTestToDocx(test: SavedTest) {
   const children: Paragraph[] = [
     new Paragraph({ text: `Тест: ${test.topic}`, heading: HeadingLevel.HEADING_1 }),
     body(`${test.subject} · ${test.grade} · Қиындығы: ${test.difficulty} · ${test.questions.length} сұрақ`),
+    ...(test.objective ? [body(`Оқу мақсаты: ${test.objective}`)] : []),
+    ...(test.questions.some((q) => q.level) ? [body("Деңгейлер: A — білу және түсіну, B — қолдану, C — жоғары деңгей дағдылары")] : []),
     body("Оқушының аты-жөні: ____________________________    Сынып: ______    Күні: __________"),
     ...test.questions.flatMap((q, i) => [
       new Paragraph({
-        children: [new TextRun({ text: `${i + 1}. ${q.question}`, bold: true, color: INK })],
+        children: [new TextRun({ text: `${i + 1}. ${q.question}${q.level ? ` (${q.level})` : ""}`, bold: true, color: INK })],
         spacing: { before: 160, after: 60 },
       }),
       ...q.options.map((opt, oi) => bullet(`${letter(oi)}) ${opt}`)),
