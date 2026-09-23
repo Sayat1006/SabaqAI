@@ -1,9 +1,8 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, FileText, ListChecks, Presentation, Timer } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { useAuth } from "../context/useAuth";
-import "./login.css";
 
 type Role = "teacher" | "admin";
 
@@ -21,45 +20,12 @@ const roleCopy: Record<Role, { button: string; hint: string }> = {
   admin: { button: "Әкімші панеліне кіру", hint: "Тек мектеп әкімшілігіне арналған кіру." },
 };
 
-function Robot() {
-  return (
-    <svg className="robot-svg" viewBox="0 0 140 220" aria-hidden>
-      <g className="robot-body-g">
-        <g className="robot-antenna">
-          <line x1="70" y1="10" x2="70" y2="30" stroke="#F7DFCB" strokeWidth="4" strokeLinecap="round" />
-          <circle cx="70" cy="9" r="7" fill="#E0733D" />
-        </g>
-        <rect x="28" y="28" width="84" height="62" rx="20" fill="#F4F1EA" />
-        <rect x="38" y="40" width="64" height="38" rx="13" fill="#1B2438" />
-        <circle className="robot-eye" cx="56" cy="58" r="6" fill="#7FE0D2" />
-        <circle className="robot-eye" cx="84" cy="58" r="6" fill="#7FE0D2" />
-        <path d="M60 70q10 6 20 0" stroke="#7FE0D2" strokeWidth="3" fill="none" strokeLinecap="round" />
-        <rect x="62" y="90" width="16" height="8" fill="#C9C3B5" />
-        <rect x="34" y="96" width="72" height="70" rx="18" fill="#E0733D" />
-        <rect x="50" y="112" width="40" height="26" rx="6" fill="#F7DFCB" />
-        <text x="70" y="131" fontFamily="Times New Roman, serif" fontSize="16" fontWeight="700" textAnchor="middle" fill="#1B2438">
-          AI
-        </text>
-        <g className="robot-arm-l">
-          <rect x="14" y="100" width="16" height="50" rx="8" fill="#F4F1EA" />
-          <circle cx="22" cy="154" r="9" fill="#2F7D74" />
-        </g>
-        <g className="robot-arm-r">
-          <rect x="110" y="100" width="16" height="50" rx="8" fill="#F4F1EA" />
-          <circle cx="118" cy="154" r="9" fill="#2F7D74" />
-        </g>
-        <g className="robot-leg-l">
-          <rect x="46" y="164" width="18" height="36" rx="8" fill="#F4F1EA" />
-          <rect x="40" y="196" width="28" height="12" rx="6" fill="#2F7D74" />
-        </g>
-        <g className="robot-leg-r">
-          <rect x="76" y="164" width="18" height="36" rx="8" fill="#F4F1EA" />
-          <rect x="72" y="196" width="28" height="12" rx="6" fill="#2F7D74" />
-        </g>
-      </g>
-    </svg>
-  );
-}
+const features = [
+  { icon: FileText, label: "ҚМЖ" },
+  { icon: Presentation, label: "Презентация" },
+  { icon: ListChecks, label: "Тапсырмалар" },
+  { icon: Timer, label: "Сабақ құралдары" },
+];
 
 export default function LoginPage() {
   const { login, logout } = useAuth();
@@ -98,22 +64,30 @@ export default function LoginPage() {
     }`;
 
   return (
-    <div className="flex min-h-screen">
-      <section className="flex flex-[1_1_44%] items-center justify-center px-4 py-10">
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-slate-50 px-4 py-10">
+      {/* Жұмсақ түсті дақтар — сайттың терракота және теңіз-жасыл түстері */}
+      <div aria-hidden className="pointer-events-none absolute -top-40 -left-32 h-[480px] w-[480px] rounded-full bg-violet-200/60 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -right-40 -bottom-48 h-[520px] w-[520px] rounded-full bg-fuchsia-200/60 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute top-1/3 right-[12%] h-56 w-56 rounded-full bg-violet-100 blur-2xl" />
+
+      <div className="relative w-full max-w-[440px] animate-[fadeUp_.6s_cubic-bezier(.16,1,.3,1)_both]">
+        <div className="mb-6 flex flex-col items-center text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[20px] border border-slate-200 bg-white shadow-[0_14px_30px_-18px_rgba(184,90,42,.45)]">
+            <Logo className="h-10 w-10" />
+          </div>
+          <div className="mt-3 text-[22px] font-bold tracking-wide">AI Nur</div>
+          <div className="text-sm text-slate-500">Мұғалімге арналған AI көмекші</div>
+        </div>
+
         <form
           onSubmit={handleSubmit}
           noValidate
-          className="flex w-full max-w-[380px] animate-[fadeUp_.6s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-5"
+          className="flex flex-col gap-5 rounded-[26px] border border-white/80 bg-white/90 p-6 shadow-[0_30px_60px_-34px_rgba(28,27,46,.35)] backdrop-blur-xl sm:p-8"
         >
-          <div className="flex items-center gap-3">
-            <Logo className="h-[42px] w-[42px]" />
-            <span className="text-[19px] font-bold">AI Nur</span>
-          </div>
-          <div>
+          <div className="text-center">
             <h1 className="text-[26px] leading-snug font-bold">Қайта қош келдіңіз</h1>
-            <p className="mt-1.5 text-sm text-slate-500">Жүйеге кіру үшін деректеріңізді енгізіңіз.</p>
+            <p className="mt-1 text-sm text-slate-500">Жүйеге кіру үшін деректеріңізді енгізіңіз.</p>
           </div>
-
           <div role="tablist" aria-label="Кіру түрі" className="flex gap-1 rounded-[14px] border border-slate-200 bg-slate-50 p-1">
             {(["teacher", "admin"] as const).map((r) => (
               <button
@@ -185,35 +159,15 @@ export default function LoginPage() {
           </button>
           <p className="text-center text-[13px] text-slate-500">{roleCopy[role].hint}</p>
         </form>
-      </section>
 
-      <section
-        aria-hidden
-        className="relative hidden flex-[1_1_56%] flex-col items-center justify-center gap-7 overflow-hidden bg-[radial-gradient(circle_at_30%_20%,#28324c,#1b2438_60%)] p-10 text-[#f4f1ea] lg:flex"
-      >
-        <div className="stars" />
-        <div className="robot-scene">
-          <div className="robot-glow" />
-          <span className="note" style={{ left: 40, top: 60 }}>♪</span>
-          <span className="note" style={{ right: 40, top: 40, animationDelay: ".8s" }}>♫</span>
-          <span className="note" style={{ left: 70, top: 20, animationDelay: "1.6s" }}>♪</span>
-          <Robot />
-          <div className="robot-shadow" />
+        <div aria-hidden className="mt-6 flex flex-wrap justify-center gap-2 sm:-mx-16">
+          {features.map(({ icon: Icon, label }) => (
+            <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white/70 px-3 py-1.5 text-[12.5px] text-slate-600">
+              <Icon size={13} className="text-violet-600" /> {label}
+            </span>
+          ))}
         </div>
-        <div className="max-w-[420px] text-center">
-          <h2 className="text-3xl font-bold">AI-мұғалім көмекшісі</h2>
-          <p className="mt-2.5 mb-5 text-[15.5px] text-[#c7c4da]">
-            ҚМЖ, КТЖ, презентация және сабақ суреттерін бірнеше минутта дайындаңыз.
-          </p>
-          <div className="flex flex-wrap justify-center gap-2">
-            {["ҚМЖ", "Презентация", "Сурет", "Дода"].map((t) => (
-              <span key={t} className="rounded-full border border-navy-700 px-3.5 py-1.5 text-[13px] text-[#e6e3f0]">
-                {t}
-              </span>
-            ))}
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
