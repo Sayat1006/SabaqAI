@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { getSharedTest, type SharedTest, submitSharedTest, type SubmitResult } from "../lib/projects";
 import { levelBadge, TEST_LEVELS, taskTypeOf } from "../lib/studio";
+import { notifySubmission } from "../lib/telegram";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[15px] outline-none focus:border-violet-500";
@@ -46,6 +47,7 @@ export default function TakeTestPage() {
     setError("");
     try {
       setResult(await submitSharedTest(code, name.trim(), className.trim(), answers));
+      notifySubmission(code);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Жіберу мүмкін болмады. Қайталап көріңіз.");

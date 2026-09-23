@@ -13,6 +13,7 @@ import {
   type TestSubmission,
   timeAgo,
 } from "../lib/projects";
+import { sendTestSummary, telegramShareUrl } from "../lib/telegram";
 import { QrDialog } from "./QrDialog";
 import { ClassInsights, StudentDetail } from "./ResultsInsights";
 
@@ -31,6 +32,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   const [error, setError] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [qrOpen, setQrOpen] = useState(false);
+  const [notice, setNotice] = useState("");
   const [exporting, setExporting] = useState(false);
 
   async function exportExcel() {
@@ -64,6 +66,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   async function run(action: () => Promise<void>) {
     setBusy(true);
     setError("");
+    setNotice("");
     try {
       await action();
     } catch (e) {
@@ -79,6 +82,8 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
       if (!share) return;
       await setTestShareOpen(test.id, !share.isOpen);
       setShare({ ...share, isOpen: !share.isOpen });
+      // Жауап қабылдау тоқтатылса — Telegram-ға қорытынды (қосылмаған болса, үнсіз).
+      if (share.isOpen && subs.length) sendTestSummary(test.id).catch(() => {});
     });
   const toggleReview = () =>
     run(async () => {
@@ -134,6 +139,11 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
           {error}
         </p>
       )}
+      {notice && !error && (
+        <p role="status" className="rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-sm text-fuchsia-800">
+          {notice}
+        </p>
+      )}
 
       {loading ? (
         <div className="text-sm text-slate-500">Жүктелуде...</div>
@@ -159,6 +169,14 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
             <button type="button" onClick={() => setQrOpen(true)} className={btn}>
               <QrCode size={15} /> QR-код
             </button>
+            <a
+              href={telegramShareUrl(shareLink(share.code), `📝 Тест: ${test.topic}. Аты-жөніңізді жазып, тапсырыңыз:`)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={btn}
+            >
+              <Send size={15} /> Telegram-ға жіберу
+            </a>
             <button type="button" onClick={toggle} disabled={busy} className={btn}>
               {share.isOpen ? <Lock size={15} /> : <Unlock size={15} />} {share.isOpen ? "Қабылдауды тоқтату" : "Қайта ашу"}
             </button>
@@ -184,6 +202,21 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
               )}
             </div>
             <div className="flex flex-wrap gap-2">
+              {subs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    run(async () => {
+                      await sendTestSummary(test.id);
+                      setNotice("Қорытынды Telegram-ға жіберілді.");
+                    })
+                  }
+                  disabled={busy}
+                  className={btn}
+                >
+                  <Send size={15} /> Қорытынды → Telegram
+                </button>
+              )}
               {subs.length > 0 && (
                 <button type="button" onClick={exportExcel} disabled={exporting} className={btn}>
                   <FileSpreadsheet size={15} /> {exporting ? "Дайындалуда..." : "Excel-ге жүктеу"}

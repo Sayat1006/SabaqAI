@@ -113,6 +113,20 @@ Dashboard арқылы қолмен жасайсыз (бұл — сайттың 
 ⚠️ `admin-actions`-тан айырмашылығы: бұған `service_role` кілті емес, тек `GEMINI_API_KEY`
 секреті керек — сондықтан ол да функция ортасында ғана сақталады, ешқашан браузерге шықпайды.
 
+## 5б. Telegram бот (міндетті емес)
+
+Оқушы тест тапсырғанда мұғалімге Telegram-да хабарлама жібереді; тест жабылғанда қорытынды жібереді.
+
+1. SQL Editor-де [`supabase/update-6-telegram.sql`](./update-6-telegram.sql) файлын орындаңыз.
+2. Telegram-да **@BotFather** → `/newbot` → атауын және `...bot` деп аяқталатын логинін жазыңыз. BotFather берген **токенді** ешкімге жібермеңіз.
+3. Dashboard → **Edge Functions → Secrets → Add new secret**: атауы `TELEGRAM_BOT_TOKEN`, мәні — токен.
+4. **Edge Functions → Deploy a new function → Via Editor**: атауы дәл `telegram-bot`, мазмұны —
+   [`supabase/functions/telegram-bot/index.ts`](./functions/telegram-bot/index.ts). Жариялаған соң функция
+   баптауларында **Verify JWT / Enforce JWT verification** параметрін **өшіріңіз** (Telegram JWT жібермейді).
+5. Сайтқа әкімші ретінде кіріп, **Жеке бет → Telegram хабарламалары → «Ботты іске қосу»** батырмасын басыңыз
+   (webhook автоматты орнатылады).
+6. Әр мұғалім **Жеке бет → «Telegram-ды қосу»** арқылы өз аккаунтын ботқа қосады.
+
 ## 6. Кілттерді алу
 
 **Project Settings → API** бөлімінде:
