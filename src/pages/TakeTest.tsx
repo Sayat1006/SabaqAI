@@ -5,8 +5,97 @@ import { Logo } from "../components/Logo";
 import { getSharedTest, type SharedTest, submitSharedTest, type SubmitResult } from "../lib/projects";
 import { levelBadge, TEST_LEVELS, taskTypeOf } from "../lib/studio";
 import { notifySubmission } from "../lib/telegram";
+import { testLabels } from "../lib/docLabels";
+import { gradeIn, subjectIn } from "../lib/lang";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
+/** Оқушы беті тест тілімен (қазақша/орысша) шығады. */
+const TT = {
+  kk: {
+    online: "Онлайн тест",
+    loading: "Тест жүктелуде...",
+    missing: "Тест табылмады немесе жабық",
+    failed: "Тестті ашу мүмкін болмады",
+    missingHint: "Мұғалім жауап қабылдауды тоқтатқан болуы мүмкін. Сілтемені мұғаліміңізден қайта сұраңыз.",
+    failedHint: "Интернетті тексеріп, бетті жаңартыңыз.",
+    sent: "Жауаптарыңыз мұғалімге жіберілді!",
+    percent: (p: number) => `${p}% дұрыс`,
+    mistakes: "Қатемен жұмыс",
+    next: "Келесі оқушы тапсырады",
+    test: "Тест",
+    questions: (n: number) => `${n} сұрақ`,
+    objective: "Оқу мақсаты",
+    name: "Аты-жөніңіз",
+    namePh: "мыс.: Айгерім Сейітова",
+    cls: "Сынып",
+    clsPh: "мыс.: 7А",
+    answered: "Жауап берілді",
+    sending: "Жіберілуде...",
+    send: "Жіберу",
+    needName: "Аты-жөніңізді жазыңыз.",
+    confirmEmpty: (n: number) => `${n} сұраққа жауап берілмеді. Сонда да жіберу керек пе?`,
+    sendFailed: "Жіберу мүмкін болмады. Қайталап көріңіз.",
+    context: "Жағдаят",
+    advice: [
+      "Керемет! Оқу мақсатына толық жеттің. Енді күрделірек (C деңгейлі) тапсырмаларды орындап көр.",
+      "Жақсы нәтиже! Негізін білесің, бірақ бірнеше сұрақта қателестің. Төмендегі түсіндірмелерді оқып, қатемен жұмыс жаса.",
+      "Тақырыпты тағы бір рет қайталау керек. Қателеріңнің түсіндірмесін мұқият оқып, «Қатемен жұмыс» арқылы қайта орында.",
+    ],
+    levels: { A: "Білу және түсіну", B: "Қолдану", C: "Жоғары деңгей дағдылары" } as Record<string, string>,
+    reviewTitle: "Жауаптарды талдау",
+    yourAnswer: "Сенің жауабың",
+    noAnswer: "жауап берілмеді",
+    correct: "Дұрыс жауап",
+    fixed: "Түзетілді",
+    practiceHint: "Қате жіберген сұрақтарыңды қайта шеш. Дұрыс жауапты тапқанша көруге болады — бұл нәтижеге әсер етпейді.",
+    wrong: "Қате. Сұрақты мұқият оқып, қайта көр.",
+    right: "✓ Дұрыс!",
+    allFixed: "Жарайсың! Барлық қатеңді түзеттің 🎉",
+  },
+  ru: {
+    online: "Онлайн-тест",
+    loading: "Тест загружается...",
+    missing: "Тест не найден или закрыт",
+    failed: "Не удалось открыть тест",
+    missingHint: "Возможно, учитель остановил приём ответов. Попросите ссылку у учителя ещё раз.",
+    failedHint: "Проверьте интернет и обновите страницу.",
+    sent: "Ваши ответы отправлены учителю!",
+    percent: (p: number) => `${p}% верно`,
+    mistakes: "Работа над ошибками",
+    next: "Следующий ученик",
+    test: "Тест",
+    questions: (n: number) => `вопросов: ${n}`,
+    objective: "Цель обучения",
+    name: "Фамилия и имя",
+    namePh: "напр.: Айгерим Сеитова",
+    cls: "Класс",
+    clsPh: "напр.: 7А",
+    answered: "Отвечено",
+    sending: "Отправка...",
+    send: "Отправить",
+    needName: "Введите фамилию и имя.",
+    confirmEmpty: (n: number) => `Без ответа осталось вопросов: ${n}. Всё равно отправить?`,
+    sendFailed: "Не удалось отправить. Попробуйте ещё раз.",
+    context: "Ситуация",
+    advice: [
+      "Отлично! Цель обучения полностью достигнута. Попробуй задания посложнее (уровень C).",
+      "Хороший результат! Основу ты знаешь, но в нескольких вопросах ошибся. Прочитай объяснения ниже и выполни работу над ошибками.",
+      "Тему нужно повторить ещё раз. Внимательно прочитай объяснения ошибок и реши их заново в «Работе над ошибками».",
+    ],
+    levels: { A: "Знание и понимание", B: "Применение", C: "Навыки высокого порядка" } as Record<string, string>,
+    reviewTitle: "Разбор ответов",
+    yourAnswer: "Твой ответ",
+    noAnswer: "нет ответа",
+    correct: "Правильный ответ",
+    fixed: "Исправлено",
+    practiceHint: "Реши заново вопросы, в которых ошибся. Можно пробовать, пока не найдёшь верный ответ — на оценку это не влияет.",
+    wrong: "Неверно. Прочитай вопрос внимательно и попробуй ещё раз.",
+    right: "✓ Верно!",
+    allFixed: "Молодец! Все ошибки исправлены 🎉",
+  },
+};
+type TakeText = (typeof TT)["kk"];
+
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[15px] outline-none focus:border-violet-500";
 
 /** Оқушы беті: мұғалім жіберген сілтеме арқылы жүйеге кірмей тест тапсырады. */
@@ -21,6 +110,7 @@ export default function TakeTestPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [practice, setPractice] = useState(false);
+  const T = TT[test?.lang === "ru" ? "ru" : "kk"];
 
   useEffect(() => {
     getSharedTest(code)
@@ -37,12 +127,12 @@ export default function TakeTestPage() {
     e.preventDefault();
     if (!test || sending) return;
     if (name.trim().length < 2) {
-      setError("Аты-жөніңізді жазыңыз.");
+      setError(T.needName);
       document.getElementById("student-name")?.focus();
       return;
     }
     const empty = answers.filter((a) => a === null).length;
-    if (empty > 0 && !window.confirm(`${empty} сұраққа жауап берілмеді. Сонда да жіберу керек пе?`)) return;
+    if (empty > 0 && !window.confirm(T.confirmEmpty(empty))) return;
     setSending(true);
     setError("");
     try {
@@ -50,7 +140,7 @@ export default function TakeTestPage() {
       notifySubmission(code);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Жіберу мүмкін болмады. Қайталап көріңіз.");
+      setError(err instanceof Error ? err.message : T.sendFailed);
     } finally {
       setSending(false);
     }
@@ -72,15 +162,15 @@ export default function TakeTestPage() {
         <header className="flex items-center gap-2.5">
           <Logo className="h-9 w-9" />
           <span className="text-lg font-bold">AI Nur</span>
-          <span className="text-sm text-slate-500">· Онлайн тест</span>
+          <span className="text-sm text-slate-500">· {T.online}</span>
         </header>
 
-        {state === "loading" && <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">Тест жүктелуде...</div>}
+        {state === "loading" && <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center text-slate-500">{T.loading}</div>}
         {(state === "missing" || state === "error") && (
           <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center">
-            <div className="text-lg font-bold">{state === "missing" ? "Тест табылмады немесе жабық" : "Тестті ашу мүмкін болмады"}</div>
+            <div className="text-lg font-bold">{state === "missing" ? T.missing : T.failed}</div>
             <p className="mt-2 text-slate-500">
-              {state === "missing" ? "Мұғалім жауап қабылдауды тоқтатқан болуы мүмкін. Сілтемені мұғаліміңізден қайта сұраңыз." : "Интернетті тексеріп, бетті жаңартыңыз."}
+              {state === "missing" ? T.missingHint : T.failedHint}
             </p>
           </div>
         )}
@@ -89,25 +179,25 @@ export default function TakeTestPage() {
           <>
             <div className="flex flex-col items-center gap-3 rounded-3xl border border-slate-200 bg-white p-8 text-center">
               <CheckCircle2 size={48} className="text-fuchsia-600" />
-              <div className="text-lg font-bold">Жауаптарыңыз мұғалімге жіберілді!</div>
+              <div className="text-lg font-bold">{T.sent}</div>
               <div className="text-[44px] font-bold leading-none text-violet-600">
                 {result.score} / {result.total}
               </div>
-              <div className="text-slate-500">{percentOf(result)}% дұрыс</div>
-              <p className="max-w-[520px] rounded-xl bg-slate-50 px-4 py-3 text-[14.5px]">{advice(percentOf(result))}</p>
-              {result.review && <LevelBreakdown test={test} answers={answers} review={result.review} />}
+              <div className="text-slate-500">{T.percent(percentOf(result))}</div>
+              <p className="max-w-[520px] rounded-xl bg-slate-50 px-4 py-3 text-[14.5px]">{advice(percentOf(result), T)}</p>
+              {result.review && <LevelBreakdown test={test} answers={answers} review={result.review} T={T} />}
               <div className="mt-2 flex flex-wrap justify-center gap-2.5">
                 {result.review && result.score < result.total && !practice && (
                   <button type="button" onClick={() => setPractice(true)} className="inline-flex items-center gap-2 rounded-[12px] bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white">
-                    <RotateCcw size={15} /> Қатемен жұмыс
+                    <RotateCcw size={15} /> {T.mistakes}
                   </button>
                 )}
                 <button type="button" onClick={nextStudent} className="rounded-[12px] border border-slate-200 px-4 py-2.5 text-sm font-semibold hover:border-violet-500">
-                  Келесі оқушы тапсырады
+                  {T.next}
                 </button>
               </div>
             </div>
-            {result.review && (practice ? <MistakePractice test={test} answers={answers} review={result.review} /> : <Review test={test} answers={answers} review={result.review} />)}
+            {result.review && (practice ? <MistakePractice test={test} answers={answers} review={result.review} T={T} /> : <Review test={test} answers={answers} review={result.review} T={T} />)}
           </>
         )}
 
@@ -115,25 +205,25 @@ export default function TakeTestPage() {
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
             <div className="rounded-3xl border border-slate-200 bg-white p-6">
               {test.taskType && test.taskType !== "levels" && (
-                <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{taskTypeOf(test.taskType).label}</div>
+                <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{test.lang === "ru" ? testLabels("ru").types[test.taskType] : taskTypeOf(test.taskType).label}</div>
               )}
-              <h1 className="text-[22px] font-bold">Тест: {test.topic || test.title}</h1>
+              <h1 className="text-[22px] font-bold">{T.test}: {test.topic || test.title}</h1>
               <div className="mt-1 text-slate-500">
-                {[test.subject, test.grade].filter(Boolean).join(" · ")} · {test.questions.length} сұрақ
+                {[subjectIn(test.subject, test.lang), gradeIn(test.grade, test.lang)].filter(Boolean).join(" · ")} · {T.questions(test.questions.length)}
               </div>
               {test.objective && (
                 <div className="mt-1.5 text-[13.5px]">
-                  <b>Оқу мақсаты:</b> {test.objective}
+                  <b>{T.objective}:</b> {test.objective}
                 </div>
               )}
               <div className="mt-5 grid gap-3 sm:grid-cols-[1fr_160px]">
                 <label className="block">
-                  <span className="mb-1.5 block text-[13px] font-semibold text-slate-500">Аты-жөніңіз</span>
-                  <input id="student-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" placeholder="мыс.: Айгерім Сейітова" className={fieldClass} />
+                  <span className="mb-1.5 block text-[13px] font-semibold text-slate-500">{T.name}</span>
+                  <input id="student-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={80} autoComplete="name" placeholder={T.namePh} className={fieldClass} />
                 </label>
                 <label className="block">
-                  <span className="mb-1.5 block text-[13px] font-semibold text-slate-500">Сынып</span>
-                  <input value={className} onChange={(e) => setClassName(e.target.value)} maxLength={40} placeholder="мыс.: 7А" className={fieldClass} />
+                  <span className="mb-1.5 block text-[13px] font-semibold text-slate-500">{T.cls}</span>
+                  <input value={className} onChange={(e) => setClassName(e.target.value)} maxLength={40} placeholder={T.clsPh} className={fieldClass} />
                 </label>
               </div>
             </div>
@@ -141,7 +231,7 @@ export default function TakeTestPage() {
             <ol className="flex flex-col gap-4">
               {test.questions.map((q, qi) => (
                 <li key={qi} className="flex flex-col gap-3">
-                  {q.context && q.context !== test.questions[qi - 1]?.context && <ContextBox text={q.context} />}
+                  {q.context && q.context !== test.questions[qi - 1]?.context && <ContextBox text={q.context} label={T.context} />}
                   <div className="rounded-[18px] border border-slate-200 bg-white p-5">
                   <fieldset>
                     <legend className="font-semibold">
@@ -185,10 +275,10 @@ export default function TakeTestPage() {
             )}
             <div className="sticky bottom-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/90 p-3 pl-5 shadow-lg backdrop-blur">
               <span className="text-sm text-slate-500">
-                Жауап берілді: <b className="text-slate-900">{answered}</b> / {test.questions.length}
+                {T.answered}: <b className="text-slate-900">{answered}</b> / {test.questions.length}
               </span>
               <button type="submit" disabled={sending} className="inline-flex items-center gap-2 rounded-[12px] bg-violet-600 px-5 py-3 font-semibold text-white disabled:opacity-70">
-                <Send size={16} /> {sending ? "Жіберілуде..." : "Жіберу"}
+                <Send size={16} /> {sending ? T.sending : T.send}
               </button>
             </div>
           </form>
@@ -201,10 +291,10 @@ export default function TakeTestPage() {
 type Review = NonNullable<SubmitResult["review"]>;
 
 /** PISA: бірнеше сұраққа ортақ өмірлік жағдаят мәтіні. */
-function ContextBox({ text }: { text: string }) {
+function ContextBox({ text, label }: { text: string; label: string }) {
   return (
     <div className="whitespace-pre-line rounded-[18px] border-l-4 border-violet-600 bg-white px-5 py-4 text-[15px]">
-      <div className="mb-1 text-[12px] font-bold uppercase tracking-wide text-violet-700">Жағдаят</div>
+      <div className="mb-1 text-[12px] font-bold uppercase tracking-wide text-violet-700">{label}</div>
       {text}
     </div>
   );
@@ -212,14 +302,12 @@ function ContextBox({ text }: { text: string }) {
 
 const percentOf = (r: SubmitResult) => (r.total ? Math.round((r.score / r.total) * 100) : 0);
 
-function advice(p: number): string {
-  if (p >= 85) return "Керемет! Оқу мақсатына толық жеттің. Енді күрделірек (C деңгейлі) тапсырмаларды орындап көр.";
-  if (p >= 50) return "Жақсы нәтиже! Негізін білесің, бірақ бірнеше сұрақта қателестің. Төмендегі түсіндірмелерді оқып, қатемен жұмыс жаса.";
-  return "Тақырыпты тағы бір рет қайталау керек. Қателеріңнің түсіндірмесін мұқият оқып, «Қатемен жұмыс» арқылы қайта орында.";
+function advice(p: number, T: TakeText): string {
+  return T.advice[p >= 85 ? 0 : p >= 50 ? 1 : 2];
 }
 
 /** Деңгейлер бойынша нәтиже: оқушы қай ойлау деңгейінде қиналатынын көреді. */
-function LevelBreakdown({ test, answers, review }: { test: SharedTest; answers: (number | null)[]; review: Review }) {
+function LevelBreakdown({ test, answers, review, T }: { test: SharedTest; answers: (number | null)[]; review: Review; T: TakeText }) {
   const rows = TEST_LEVELS.map((l) => {
     const idx = test.questions.map((q, i) => (q.level === l.key ? i : -1)).filter((i) => i >= 0);
     return { ...l, total: idx.length, ok: idx.filter((i) => answers[i] === review[i]?.correct).length };
@@ -230,7 +318,7 @@ function LevelBreakdown({ test, answers, review }: { test: SharedTest; answers: 
       {rows.map((r) => (
         <div key={r.key} className="flex items-center gap-3 text-sm">
           <span className={`w-9 shrink-0 rounded-md py-0.5 text-center text-xs font-bold ${levelBadge(r.key)}`}>{r.key}</span>
-          <span className="min-w-0 flex-1 text-slate-500">{r.label}</span>
+          <span className="min-w-0 flex-1 text-slate-500">{T.levels[r.key] ?? r.label}</span>
           <span className="h-2.5 w-24 shrink-0 overflow-hidden rounded-full bg-slate-100 sm:w-40">
             <span className="block h-full rounded-full bg-violet-600" style={{ width: `${(r.ok / r.total) * 100}%` }} />
           </span>
@@ -244,10 +332,10 @@ function LevelBreakdown({ test, answers, review }: { test: SharedTest; answers: 
 }
 
 /** Тапсырғаннан кейінгі талдау: әр сұрақ бойынша оқушы жауабы, дұрыс жауап және түсіндірме. */
-function Review({ test, answers, review }: { test: SharedTest; answers: (number | null)[]; review: Review }) {
+function Review({ test, answers, review, T }: { test: SharedTest; answers: (number | null)[]; review: Review; T: TakeText }) {
   return (
-    <section className="flex flex-col gap-3" aria-label="Жауаптарды талдау">
-      <h2 className="text-lg font-bold">Жауаптарды талдау</h2>
+    <section className="flex flex-col gap-3" aria-label={T.reviewTitle}>
+      <h2 className="text-lg font-bold">{T.reviewTitle}</h2>
       {test.questions.map((q, i) => {
         const ok = answers[i] === review[i]?.correct;
         return (
@@ -261,11 +349,11 @@ function Review({ test, answers, review }: { test: SharedTest; answers: (number 
             <div className="mt-2 grid gap-1 pl-7 text-[14.5px]">
               {!ok && (
                 <div className="text-rose-700">
-                  Сенің жауабың: {answers[i] === null ? "жауап берілмеді" : `${letter(answers[i]!)}) ${q.options[answers[i]!]}`}
+                  {T.yourAnswer}: {answers[i] === null ? T.noAnswer : `${letter(answers[i]!)}) ${q.options[answers[i]!]}`}
                 </div>
               )}
               <div className="text-fuchsia-800">
-                Дұрыс жауап: <b>{letter(review[i].correct)}) {q.options[review[i].correct]}</b>
+                {T.correct}: <b>{letter(review[i].correct)}) {q.options[review[i].correct]}</b>
               </div>
               {review[i].explanation && <div className="text-slate-500">💡 {review[i].explanation}</div>}
             </div>
@@ -277,27 +365,27 @@ function Review({ test, answers, review }: { test: SharedTest; answers: (number 
 }
 
 /** Қатемен жұмыс: тек қате сұрақтарды қайта орындайды, әр таңдауға бірден кері байланыс береді. */
-function MistakePractice({ test, answers, review }: { test: SharedTest; answers: (number | null)[]; review: Review }) {
+function MistakePractice({ test, answers, review, T }: { test: SharedTest; answers: (number | null)[]; review: Review; T: TakeText }) {
   const wrong = test.questions.map((_, i) => i).filter((i) => answers[i] !== review[i]?.correct);
   const [picks, setPicks] = useState<Record<number, number[]>>({});
   const solved = wrong.filter((i) => picks[i]?.includes(review[i].correct)).length;
 
   return (
-    <section className="flex flex-col gap-3" aria-label="Қатемен жұмыс">
+    <section className="flex flex-col gap-3" aria-label={T.mistakes}>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">Қатемен жұмыс</h2>
+        <h2 className="text-lg font-bold">{T.mistakes}</h2>
         <span className="rounded-full bg-violet-100 px-3 py-1 text-sm font-semibold text-violet-700">
-          Түзетілді: {solved} / {wrong.length}
+          {T.fixed}: {solved} / {wrong.length}
         </span>
       </div>
-      <p className="text-sm text-slate-500">Қате жіберген сұрақтарыңды қайта шеш. Дұрыс жауапты тапқанша көруге болады — бұл нәтижеге әсер етпейді.</p>
+      <p className="text-sm text-slate-500">{T.practiceHint}</p>
       {wrong.map((i) => {
         const q = test.questions[i];
         const tried = picks[i] ?? [];
         const done = tried.includes(review[i].correct);
         return (
           <div key={i} className="flex flex-col gap-2">
-          {q.context && <ContextBox text={q.context} />}
+          {q.context && <ContextBox text={q.context} label={T.context} />}
           <div className="rounded-[18px] border border-slate-200 bg-white p-4">
             <div className="font-semibold">
               {i + 1}. {q.question}
@@ -321,10 +409,10 @@ function MistakePractice({ test, answers, review }: { test: SharedTest; answers:
                 );
               })}
             </div>
-            {tried.length > 0 && !done && <div className="mt-2 text-sm text-rose-700">Қате. Сұрақты мұқият оқып, қайта көр.</div>}
+            {tried.length > 0 && !done && <div className="mt-2 text-sm text-rose-700">{T.wrong}</div>}
             {done && (
               <div className="mt-2 text-sm text-fuchsia-800">
-                ✓ Дұрыс! {review[i].explanation && <span className="text-slate-500">{review[i].explanation}</span>}
+                {T.right} {review[i].explanation && <span className="text-slate-500">{review[i].explanation}</span>}
               </div>
             )}
           </div>
@@ -332,7 +420,7 @@ function MistakePractice({ test, answers, review }: { test: SharedTest; answers:
         );
       })}
       {solved === wrong.length && wrong.length > 0 && (
-        <div className="rounded-2xl bg-fuchsia-100 p-4 text-center font-semibold text-fuchsia-800">Жарайсың! Барлық қатеңді түзеттің 🎉</div>
+        <div className="rounded-2xl bg-fuchsia-100 p-4 text-center font-semibold text-fuchsia-800">{T.allFixed}</div>
       )}
     </section>
   );

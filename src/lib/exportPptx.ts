@@ -1,6 +1,6 @@
 import PptxGenJS from "pptxgenjs";
 import { svgDataUrl } from "./projects";
-import type { SlideData } from "./slides";
+import { slideText, type SlideData } from "./slides";
 import { SLIDE_THEMES } from "./studio";
 
 const WHITE = "FFFFFF";
@@ -27,7 +27,8 @@ async function svgToPng(svg: string): Promise<string | null> {
 }
 
 /** Презентацияны PPTX-ке айналдырады: кестелер, диаграммалар (3D баған), суреттер мен сызбалар PowerPoint-тің өз элементтерімен салынады. */
-export async function exportSlidesToPptx(title: string, slides: SlideData[], style: string) {
+export async function exportSlidesToPptx(title: string, slides: SlideData[], style: string, lang?: string) {
+  const T = slideText(lang);
   const t = SLIDE_THEMES[style] ?? SLIDE_THEMES.minimal;
   const c = (hex: string) => hex.replace("#", "");
   const colors = [c(t.accent), c(t.accent2), c(t.dark), ...EXTRA];
@@ -43,7 +44,7 @@ export async function exportSlidesToPptx(title: string, slides: SlideData[], sty
 
   slides.forEach((s, idx) => {
     const slide = pptx.addSlide();
-    const notes = [s.notes, s.answer && `Жауабы: ${s.answer}`, s.layout === "quiz" && s.options?.length ? `Дұрыс жауап: ${String.fromCharCode(65 + (s.correct_index ?? 0))}. ${s.explanation ?? ""}` : ""]
+    const notes = [s.notes, s.answer && `${T.answer}: ${s.answer}`, s.layout === "quiz" && s.options?.length ? `${T.correct}: ${String.fromCharCode(65 + (s.correct_index ?? 0))}. ${s.explanation ?? ""}` : ""]
       .filter(Boolean)
       .join("\n");
     if (notes) slide.addNotes(notes);
@@ -173,7 +174,7 @@ export async function exportSlidesToPptx(title: string, slides: SlideData[], sty
       }
       case "task": {
         header();
-        slide.addText("ТАПСЫРМА", { ...base, shape: S.roundRect, x: 7.9, y: 0.5, w: 1.6, h: 0.4, fill: { color: c(t.accent) }, color: WHITE, fontSize: 11, bold: true, align: "center", rectRadius: 0.2 });
+        slide.addText(T.task.toUpperCase(), { ...base, shape: S.roundRect, x: 7.9, y: 0.5, w: 1.6, h: 0.4, fill: { color: c(t.accent) }, color: WHITE, fontSize: 11, bold: true, align: "center", rectRadius: 0.2 });
         if (s.task_text) slide.addText(s.task_text, { ...base, shape: S.roundRect, x: 0.55, y: top, w: 4.4, h: 3.5, fill: { color: WHITE }, line: { color: c(t.accent), width: 2 }, fontSize: 16, valign: "top", margin: 0.2, rectRadius: 0.15 });
         if (s.bullets.length)
           slide.addText(s.bullets.map((b, i) => ({ text: `${i + 1}. ${b}`, options: { fontFace: FONT, fontSize: 15, color: c(t.ink), breakLine: true, paraSpaceAfter: 8 } })), { x: s.task_text ? 5.2 : 0.55, y: top, w: s.task_text ? 4.3 : 8.9, h: 3.5, valign: "top" });

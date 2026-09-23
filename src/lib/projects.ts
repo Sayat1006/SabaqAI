@@ -2,7 +2,9 @@
 // кестесінде сақталады: RLS арқылы әр мұғалім тек өз жобаларын көреді.
 // Бұрын браузерде (localStorage) сақталған жобалар бірінші кіргенде дерекқорға көшіріледі.
 
+import type { DocData } from "./documents";
 import type { LessonPlan } from "./generators";
+import type { Lang } from "./lang";
 import { supabase } from "./supabaseClient";
 
 export type { SlideData } from "./slides";
@@ -40,6 +42,7 @@ interface PresentationData {
   style: string;
   title: string;
   slides: SlideData[];
+  lang?: Lang;
 }
 
 interface ImageData {
@@ -62,6 +65,8 @@ interface TestData {
   taskType?: TaskType;
   /** Тек «bzb» / «open» түрлерінде. */
   tasks?: WrittenTask[];
+  /** Материал тілі (жоқ болса — қазақша). */
+  lang?: Lang;
 }
 
 interface Saved {
@@ -74,13 +79,14 @@ export type SavedImage = Saved & ImageData;
 export type SavedTest = Saved & TestData;
 export type SavedQmzh = Saved & { plan: LessonPlan };
 
-export type ProjectKind = "qmzh" | "presentation" | "image" | "test";
+export type ProjectKind = "qmzh" | "presentation" | "image" | "test" | "document";
 
 export const KIND_LABEL: Record<ProjectKind, string> = {
   qmzh: "ҚМЖ",
   presentation: "Презентация",
   image: "Сурет",
   test: "Тапсырма",
+  document: "Құжат",
 };
 
 interface ProjectRow {
@@ -261,6 +267,45 @@ export async function getQmzh(id: string): Promise<SavedQmzh | null> {
   return row && toQmzh(row);
 }
 
+export type SavedDocument = Saved & DocData;
+const toDocument = (r: ProjectRow): SavedDocument => ({ id: r.id, savedAt: savedAt(r), ...(r.data as DocData) });
+
+function kindError(error: { message: string; code?: string }): ProjectsError {
+  // 23514 — check constraint: «document» түрі әлі рұқсат етілмеген (7-жаңарту орындалмаған).
+  if (error.code === "23514" || /projects_kind_check/.test(error.message)) {
+    return new ProjectsError("Құжаттарды сақтау үшін әкімші Supabase-те supabase/update-7-docs-live.sql файлын орындауы керек.");
+  }
+  return wrapError(error);
+}
+
+const docDetail = (d: DocData) => [d.input.grade, d.input.lang === "ru" ? "орысша" : ""].filter(Boolean).join(" · ");
+
+export async function saveDocument(d: DocData): Promise<SavedDocument> {
+  const { data: row, error } = await supabase
+    .from("projects")
+    .insert({ kind: "document", title: d.title.slice(0, 300), detail: docDetail(d).slice(0, 300), data: d })
+    .select("id, kind, title, detail, data, created_at")
+    .single();
+  if (error) throw kindError(error);
+  return toDocument(row as ProjectRow);
+}
+export async function updateDocument(id: string, d: DocData): Promise<void> {
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ title: d.title.slice(0, 300), detail: docDetail(d).slice(0, 300), data: d })
+    .eq("id", id)
+    .select("id");
+  if (error) throw wrapError(error);
+  if (!data?.length) throw new ProjectsError("Өзгерістер сақталмады. Қайталап көріңіз.");
+}
+export async function getDocument(id: string): Promise<SavedDocument | null> {
+  const row = await getRow(id, "document");
+  return row && toDocument(row);
+}
+export async function getDocuments(limit = 12): Promise<SavedDocument[]> {
+  return (await list("document", limit)).map(toDocument);
+}
+
 /* ------------------------------------------------------- басты бет пен «Жобалар» */
 
 export interface RecentProject {
@@ -279,6 +324,7 @@ const ROUTES: Record<ProjectKind, { to: string; key: string }> = {
   presentation: { to: "/presentation", key: "presentationId" },
   image: { to: "/images", key: "imageId" },
   test: { to: "/tests", key: "testId" },
+  document: { to: "/docs", key: "docId" },
 };
 
 function toRecent(r: ProjectRow): RecentProject {
@@ -354,6 +400,7 @@ export interface SharedTest {
   topic: string;
   objective?: string;
   taskType?: TaskType;
+  lang?: Lang;
   questions: { question: string; options: string[]; level?: TestLevel | ""; context?: string }[];
 }
 

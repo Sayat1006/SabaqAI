@@ -134,3 +134,10 @@ export function finalizeSlide(s: SlideData): SlideData {
 
 /** «Слайд қосу» үшін бос слайд. */
 export const blankSlide = (): SlideData => normalizeSlide({ layout: "bullets", heading: "Жаңа слайд", bullets: ["Бірінші ой", "Екінші ой"] });
+
+/** Слайдтағы тұрақты белгілер презентация тілінде. */
+export const SLIDE_TEXT = {
+  kk: { lesson: "Сабақ", check: "Өзіңді тексер", task: "Тапсырма", answer: "Жауабы", showAnswer: "Жауабын көрсету", correct: "Дұрыс жауап" },
+  ru: { lesson: "Урок", check: "Проверь себя", task: "Задание", answer: "Ответ", showAnswer: "Показать ответ", correct: "Правильный ответ" },
+} as const;
+export const slideText = (lang?: string) => SLIDE_TEXT[lang === "ru" ? "ru" : "kk"];

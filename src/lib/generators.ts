@@ -2,6 +2,7 @@
 // үлгі негізіндегі нұсқа. Сондай-ақ ҚМЖ-дан слайдтар құрастыру.
 
 import { aiGenerateJson } from "./ai";
+import { subjectIn, type Lang } from "./lang";
 import { curriculum } from "./curriculum";
 import { buildResource, PLATFORM_KEYS, type QmzhResource } from "./resources";
 
@@ -72,6 +73,8 @@ export interface LessonPlan {
   planning?: { differentiation: string; assessment: string; safety: string };
   reflection?: string[];
   homework?: string;
+  /** Жоспар тілі (жоқ болса — қазақша). */
+  lang?: Lang;
 }
 
 export const LESSON_TYPES = ["Аралас сабақ", "Жаңа білімді меңгерту", "Білімді бекіту", "Қайталау-жинақтау", "Практикалық сабақ", "Зерттеу сабағы"] as const;
@@ -102,26 +105,38 @@ const VALUE_TEXTS = {
   labor: {
     title: "Еңбекқорлық және кәсіби біліктілік",
     text: "тапсырманы ұқыпты әрі тиянақты орындау, еңбекті құрметтеу және білімін кәсіби біліктілікке айналдыруға ұмтылу арқылы дарытылады.",
+    ruTitle: "Трудолюбие и профессионализм",
+    ruText: "прививается через аккуратное и добросовестное выполнение заданий, уважение к труду и стремление превращать знания в профессиональные навыки.",
   },
   independence: {
     title: "Тәуелсіздік және отаншылдық",
     text: "Отанның тарихы мен жетістіктерін құрметтеу, еліміздің дамуына өз үлесін қосуға ұмтылу арқылы дарытылады.",
+    ruTitle: "Независимость и патриотизм",
+    ruText: "прививается через уважение к истории и достижениям Родины, стремление внести свой вклад в развитие страны.",
   },
   justice: {
     title: "Әділдік және жауапкершілік",
     text: "өзінің және сыныптастарының жұмысын әділ бағалау, өз әрекеті мен шешімі үшін жауапкершілік алу арқылы дарытылады.",
+    ruTitle: "Справедливость и ответственность",
+    ruText: "прививается через честное оценивание своей работы и работы одноклассников, ответственность за свои действия и решения.",
   },
   unity: {
     title: "Бірлік және ынтымақ",
     text: "жұптық және топтық жұмыста бір-бірін тыңдау, пікірді құрметтеу және ортақ нәтижеге бірге жету арқылы дарытылады.",
+    ruTitle: "Единство и солидарность",
+    ruText: "прививается через умение слушать друг друга в парной и групповой работе, уважать мнение других и вместе достигать общего результата.",
   },
   law: {
     title: "Заң және тәртіп",
     text: "сабақ ережелері мен қауіпсіздік талаптарын сақтау, уақытты тиімді пайдалану арқылы дарытылады.",
+    ruTitle: "Закон и порядок",
+    ruText: "прививается через соблюдение правил урока и требований безопасности, эффективное использование времени.",
   },
   creativity: {
     title: "Жасампаздық және жаңашылдық",
     text: "жаңа идеялар ұсыну, шығармашылықпен ойлау және білімін жаңа жағдаятта қолдану арқылы дарытылады.",
+    ruTitle: "Созидание и новаторство",
+    ruText: "прививается через выдвижение новых идей, творческое мышление и применение знаний в новой ситуации.",
   },
 } as const;
 
@@ -142,10 +157,11 @@ const MONTH_VALUES: Record<number, keyof typeof VALUE_TEXTS> = {
 };
 
 /** Сабақ күніне (кк.аа.жжжж) сай айдың құндылығы; күні түсініксіз болса — бүгінгі ай. */
-export function monthlyValue(date: string): { title: string; text: string } {
+export function monthlyValue(date: string, lang?: Lang): { title: string; text: string } {
   const m = date.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/);
   const month = m && Number(m[2]) >= 1 && Number(m[2]) <= 12 ? Number(m[2]) : new Date().getMonth() + 1;
-  return VALUE_TEXTS[MONTH_VALUES[month]];
+  const v = VALUE_TEXTS[MONTH_VALUES[month]];
+  return lang === "ru" ? { title: v.ruTitle, text: v.ruText } : { title: v.title, text: v.text };
 }
 
 function findObjective(subject: string, grade: string): { code: string; text: string } | null {
@@ -511,6 +527,7 @@ export interface LessonPlanOptions {
   taskKinds?: string[];
   taskCount?: number;
   notes?: string;
+  lang?: Lang;
 }
 
 export async function generateLessonPlan(
@@ -535,11 +552,12 @@ export async function generateLessonPlan(
     : `Оқыту мақсатының коды шамамен "${fallbackObjectiveCode}" секілді болсын, мазмұны "${topic}" тақырыбына нақты сәйкес келсін (қажет болса "${fallbackObjectiveText}" деген нұсқаны негіз ет, бірақ тақырыпқа лайықтап нақтыла).`;
 
   const lessonType = options.lessonType || "Аралас сабақ";
-  const value = monthlyValue(date || formatToday());
+  const ru = options.lang === "ru";
+  const value = monthlyValue(date || formatToday(), options.lang);
   const taskCount = Math.min(Math.max(options.taskCount ?? 3, 2), 5);
   const kinds = options.taskKinds?.length ? options.taskKinds : ["Жұптық жұмыс", "Топтық жұмыс", "Жеке жұмыс"];
 
-  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
+  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}"${ru ? ` (${subjectIn(subject, "ru")})` : ""} пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
 Сабақ түрі: ${lessonType}.
 ${objectivesInstruction}
 ҚҰНДЫЛЫҚ: осы айдың құндылығы — «${value.title}». "valuesTitle" дәл "${value.title}" болсын; "valuesText" — осы құндылықтың дәл осы сабақта, нақты тапсырмалар арқылы қалай дарытылатынын 1–2 сөйлеммен сипатта.
@@ -560,7 +578,11 @@ ${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
 5. "resources" — 5–7 цифрлық ресурс. МАҢЫЗДЫ: URL жазба! Тек "platform" (тізімнен) және "query" (сол платформада іздейтін нақты сөз тіркесі, қазақша немесе халықаралық термин) бер. Платформаларды мақсатына қарай таңда: bilimland — видеосабақ/интерактив, youtube — бейнематериал, wikipedia — анықтама, okulyk — электронды оқулық, phet/geogebra — модельдеу (физика, химия, математика), wordwall/learningapps — интерактивті жаттығу, kahoot — викторина, padlet — топтық тақта, mentimeter — сауалнама/рефлексия, canva — постер, google_forms — онлайн бағалау. "note" — қай кезеңде, не үшін қолданылады.
 6. "planning" — ресми үлгідегі қорытынды кесте: "differentiation" (қолдау мен тереңдету қалай ұйымдастырылады), "assessment" (оқушы білімі қалай тексеріледі), "safety" (денсаулық сақтау, сергіту сәті, қауіпсіздік техникасы).
 7. "reflection" — сабақ соңындағы 3 рефлексия сұрағы; "homework" — саралап берілген үй тапсырмасы.
-Барлығы тек қазақ тілінде (шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін), фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
+${
+    ru
+      ? `ТІЛ: жоспардың БАРЛЫҚ мазмұны ОРЫС тілінде жазылсын (мақсаттар, кезең атаулары, әрекеттер, бағалау, тапсырмалар, кестелер, дескрипторлар, сөздік, жоспарлау кестесі, рефлексия, үй тапсырмасы). Кезең атаулары: "Начало урока", "Середина урока", "Конец урока". Мақсаттар "Все учащиеся...", "Большинство учащихся...", "Некоторые учащиеся..." деп, дескрипторлар "Обучающийся ..." деп басталсын. Ресурстардың "query" өрісі орысша немесе халықаралық термин болсын. Шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін.`
+      : "Барлығы тек қазақ тілінде (шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін)."
+  } Фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
 
   try {
     const ai = await aiGenerateJson<LessonPlanAiContent>(prompt, lessonPlanAiSchema);
@@ -571,8 +593,9 @@ ${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
       duration,
       teacherName: teacherName || "Мұғалімнің аты-жөні",
       date: date || formatToday(),
-      section: `${subject} — ${topic}`,
+      section: `${subjectIn(subject, options.lang)} — ${topic}`,
       gradeNumber,
+      lang: options.lang ?? "kk",
       objectiveCode: ai.objectiveCode || fallbackObjectiveCode,
       objectiveText: ai.objectiveText || fallbackObjectiveText,
       goals: ai.goals,
@@ -594,6 +617,8 @@ ${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
       homework: ai.homework ?? "",
     };
   } catch (e) {
+    // Үлгі нұсқасы тек қазақша — орысша жоспарда қатені көрсетеміз.
+    if (ru) throw e;
     console.warn("ЖИ арқылы ҚМЖ жасау мүмкін болмады, үлгі нұсқасына көшірілді:", e);
     return generateLessonPlanTemplate(subject, grade, topic, duration, teacherName, date, objectivesInput);
   }

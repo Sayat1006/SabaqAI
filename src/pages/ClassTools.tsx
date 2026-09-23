@@ -1,6 +1,7 @@
 import { Maximize, Minimize, Pause, Play, Plus, RotateCcw, Shuffle, Sparkles, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
+import { useFullscreen } from "../lib/useFullscreen";
 
 // Сабақ кезінде тақтаға (проекторға) шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу,
 // бағдаршам, шу өлшегіш, рефлексия.
@@ -12,21 +13,6 @@ const primary = "inline-flex items-center justify-center gap-2 rounded-[12px] bg
 const field = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-violet-500";
 
 /* ------------------------------------------------------------ толық экран */
-
-function useFullscreen() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [full, setFull] = useState(false);
-  useEffect(() => {
-    const on = () => setFull(document.fullscreenElement === ref.current);
-    document.addEventListener("fullscreenchange", on);
-    return () => document.removeEventListener("fullscreenchange", on);
-  }, []);
-  const toggle = () => {
-    if (document.fullscreenElement) void document.exitFullscreen();
-    else void ref.current?.requestFullscreen?.();
-  };
-  return { ref, full, toggle };
-}
 
 function FullButton({ full, onClick }: { full: boolean; onClick: () => void }) {
   return (

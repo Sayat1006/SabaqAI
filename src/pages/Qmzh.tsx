@@ -1,12 +1,15 @@
 import { ClipboardList, Download, ListChecks, Pencil, Presentation, Printer, RotateCcw, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { LangPicker } from "../components/LangPicker";
 import { PageHeader } from "../components/PageHeader";
 import { QmzhEditor } from "../components/QmzhEditor";
 import { PlanningTable, ResourcesSection, TaskBlock, VocabularyTable } from "../components/QmzhSections";
 import { useAuth } from "../context/useAuth";
 import { GRADES, SUBJECTS } from "../lib/catalog";
+import { qmzhLabels } from "../lib/docLabels";
 import { generateLessonPlan, LESSON_TYPES, TASK_KINDS, type LessonPlan } from "../lib/generators";
+import { gradeIn, subjectIn, type Lang } from "../lib/lang";
 import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, updateQmzh, type SavedQmzh } from "../lib/projects";
 import type { QmzhResource } from "../lib/resources";
 import { scrollToResult } from "../lib/scrollToResult";
@@ -61,6 +64,7 @@ export default function QmzhPage() {
   const [taskKinds, setTaskKinds] = useState<string[]>(["Жұптық жұмыс", "Топтық жұмыс", "Функционалдық сауаттылық"]);
   const [taskCount, setTaskCount] = useState(3);
   const [notes, setNotes] = useState("");
+  const [lang, setLang] = useState<Lang>("kk");
   const [savingResources, setSavingResources] = useState(false);
   const [editing, setEditing] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -96,6 +100,7 @@ export default function QmzhPage() {
     setPlanId(id);
     setEditing(false);
     if (p.lessonType) setLessonType(p.lessonType);
+    setLang(p.lang ?? "kk");
     setSubject(p.subject);
     setGrade(p.grade);
     setTopic(p.topic);
@@ -138,6 +143,7 @@ export default function QmzhPage() {
         taskKinds,
         taskCount,
         notes: notes.trim(),
+        lang,
       });
       setPlan(newPlan);
       setPlanId(null);
@@ -198,6 +204,7 @@ export default function QmzhPage() {
 
   const ghost =
     "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
+  const L = qmzhLabels(plan?.lang);
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10 print:p-0">
@@ -230,6 +237,7 @@ export default function QmzhPage() {
                 </select>
               </FormField>
             </div>
+            <LangPicker value={lang} onChange={setLang} />
             <FormField label="Сабақтың тақырыбы">
               <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={300} placeholder="мыс.: Физика – табиғат туралы ғылым" className={fieldClass} />
             </FormField>
@@ -372,9 +380,9 @@ export default function QmzhPage() {
             <article className="print-card animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-white p-6 text-left sm:p-8 print:border-0 print:p-0">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b-2 border-slate-900 pb-4">
                 <div>
-                  <h2 className="text-[22px] font-bold">Қысқа мерзімді сабақ жоспары</h2>
+                  <h2 className="text-[22px] font-bold">{L.docTitle}</h2>
                   <div className="mt-1 text-slate-500">
-                    {plan.subject} · {plan.grade}
+                    {subjectIn(plan.subject, plan.lang)} · {gradeIn(plan.grade, plan.lang)}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 print:hidden">
@@ -388,41 +396,41 @@ export default function QmzhPage() {
               <div className="mb-8 overflow-hidden rounded-lg border border-violet-100">
                 <table className="w-full">
                   <tbody>
-                    <InfoRow label="Бөлім">{plan.section}</InfoRow>
-                    <InfoRow label="Педагогтің тегі, аты, әкесінің аты (болған жағдайда)">{plan.teacherName}</InfoRow>
-                    <InfoRow label="Күні">{plan.date}</InfoRow>
+                    <InfoRow label={L.section}>{plan.section}</InfoRow>
+                    <InfoRow label={L.teacher}>{plan.teacherName}</InfoRow>
+                    <InfoRow label={L.date}>{plan.date}</InfoRow>
                     <tr className="border-t border-violet-100">
-                      <th className="w-1/3 bg-violet-50/60 px-3 py-2 text-left text-sm font-semibold text-slate-700">Сынып {plan.gradeNumber}</th>
-                      <td className="px-3 py-2 text-sm text-slate-800">Қатысушылар саны ______ &nbsp;&nbsp; Қатыспағандар саны ______</td>
+                      <th className="w-1/3 bg-violet-50/60 px-3 py-2 text-left text-sm font-semibold text-slate-700">{L.grade(plan.gradeNumber)}</th>
+                      <td className="px-3 py-2 text-sm text-slate-800">{L.attendance}</td>
                     </tr>
-                    <InfoRow label="Сабақтың тақырыбы">{plan.topic}</InfoRow>
-                    <InfoRow label="Оқу бағдарламасына сәйкес оқыту мақсаттары">
+                    <InfoRow label={L.topic}>{plan.topic}</InfoRow>
+                    <InfoRow label={L.objectives}>
                       {plan.objectiveCode} — {plan.objectiveText}
                     </InfoRow>
-                    <InfoRow label="Сабақтың мақсаты">
+                    <InfoRow label={L.goals}>
                       <ul className="list-disc space-y-1 pl-4">
                         {plan.goals.map((g, i) => (
                           <li key={i}>{g}</li>
                         ))}
                       </ul>
                     </InfoRow>
-                    <InfoRow label="Құндылықтарды дарыту">{plan.valuesText}</InfoRow>
+                    <InfoRow label={L.values}>{plan.valuesText}</InfoRow>
                   </tbody>
                 </table>
               </div>
 
-              {plan.vocabulary && <VocabularyTable items={plan.vocabulary} />}
+              {plan.vocabulary && <VocabularyTable items={plan.vocabulary} lang={plan.lang} />}
 
-              <h3 className="mb-2 text-center text-lg font-bold">Сабақтың барысы</h3>
+              <h3 className="mb-2 text-center text-lg font-bold">{L.flow}</h3>
               <div className="mb-4 overflow-x-auto rounded-lg border border-violet-100">
                 <table className="w-full text-sm">
                   <thead className="bg-violet-50 text-slate-600">
                     <tr>
-                      <th className="px-3 py-2 text-left font-semibold">Сабақтың кезеңі / Уақыт</th>
-                      <th className="px-3 py-2 text-left font-semibold">Педагогтің әрекеті</th>
-                      <th className="px-3 py-2 text-left font-semibold">Оқушының әрекеті</th>
-                      <th className="px-3 py-2 text-left font-semibold">Бағалау</th>
-                      <th className="px-3 py-2 text-left font-semibold">Ресурстар</th>
+                      <th className="px-3 py-2 text-left font-semibold">{L.stageTime}</th>
+                      <th className="px-3 py-2 text-left font-semibold">{L.teacherAction}</th>
+                      <th className="px-3 py-2 text-left font-semibold">{L.studentAction}</th>
+                      <th className="px-3 py-2 text-left font-semibold">{L.assessment}</th>
+                      <th className="px-3 py-2 text-left font-semibold">{L.resources}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -455,16 +463,16 @@ export default function QmzhPage() {
               </div>
 
               {plan.tasks.map((task, i) => (
-                <TaskBlock key={i} task={task} index={i} />
+                <TaskBlock key={i} task={task} index={i} lang={plan.lang} />
               ))}
 
-              {plan.planning && <PlanningTable planning={plan.planning} />}
+              {plan.planning && <PlanningTable planning={plan.planning} lang={plan.lang} />}
 
               {(plan.reflection?.length || plan.homework) && (
                 <div className="mt-8 grid gap-4 sm:grid-cols-2">
                   {plan.reflection && plan.reflection.length > 0 && (
                     <div className="rounded-xl border border-violet-100 p-4">
-                      <div className="mb-1.5 font-semibold text-violet-700">Рефлексия</div>
+                      <div className="mb-1.5 font-semibold text-violet-700">{L.reflection}</div>
                       <ul className="list-disc space-y-1 pl-4 text-sm">
                         {plan.reflection.map((r, i) => (
                           <li key={i}>{r}</li>
@@ -474,14 +482,14 @@ export default function QmzhPage() {
                   )}
                   {plan.homework && (
                     <div className="rounded-xl border border-violet-100 p-4">
-                      <div className="mb-1.5 font-semibold text-violet-700">Үй тапсырмасы</div>
+                      <div className="mb-1.5 font-semibold text-violet-700">{L.homework}</div>
                       <p className="text-sm">{plan.homework}</p>
                     </div>
                   )}
                 </div>
               )}
 
-              <ResourcesSection resources={plan.resources ?? []} onChange={changeResources} saving={savingResources} />
+              <ResourcesSection resources={plan.resources ?? []} onChange={changeResources} saving={savingResources} lang={plan.lang} />
 
               <div className="mt-8 flex flex-wrap gap-2.5 border-t border-slate-200 pt-5 print:hidden">
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-[11px] bg-violet-600 px-3.5 py-2.5 text-sm font-semibold text-white">
