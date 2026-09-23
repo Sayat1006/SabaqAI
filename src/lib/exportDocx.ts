@@ -125,10 +125,11 @@ async function buildAndDownload(children: (Paragraph | Table)[], fileName: strin
           page: {
             size: { width: convertMillimetersToTwip(210), height: convertMillimetersToTwip(297) },
             margin: {
-              top: convertMillimetersToTwip(20),
-              bottom: convertMillimetersToTwip(18),
-              left: convertMillimetersToTwip(20),
-              right: convertMillimetersToTwip(20),
+              // Барлық шеті 1 см — кестелер парақтың енін толық алады.
+              top: convertMillimetersToTwip(10),
+              bottom: convertMillimetersToTwip(10),
+              left: convertMillimetersToTwip(10),
+              right: convertMillimetersToTwip(10),
             },
           },
         },
@@ -189,12 +190,7 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
     labelRow("Сабақтың тақырыбы", [body(plan.topic)]),
     labelRow("Оқу бағдарламасына сәйкес оқыту мақсаттары", [body(`${plan.objectiveCode} — ${plan.objectiveText}`)]),
     labelRow("Сабақтың мақсаты", plan.goals.map((g) => bullet(g))),
-    ...(plan.successCriteria?.length ? [labelRow("Бағалау критерийі", plan.successCriteria.map((g) => bullet(g)))] : []),
-    ...(plan.lessonType ? [labelRow("Сабақтың түрі", [body(plan.lessonType)])] : []),
-    ...(plan.methods?.length ? [labelRow("Әдіс-тәсілдер", [body(plan.methods.join(", "))])] : []),
     labelRow("Құндылықтарды дарыту", [body(plan.valuesText)]),
-    ...(plan.interdisciplinary ? [labelRow("Пәнаралық байланыс", [body(plan.interdisciplinary)])] : []),
-    ...(plan.priorKnowledge ? [labelRow("Алдыңғы білім", [body(plan.priorKnowledge)])] : []),
   ]);
 
   const flowRows: TableRow[] = [
