@@ -75,7 +75,7 @@ export default function TestsPage() {
   }
 
   // «Жобалар» тізімінен ашылса, сақталған тапсырманы жүктейміз.
-  const openedId = navState?.testId;
+  const openedId = navState?.testId ?? new URLSearchParams(location.search).get("id") ?? undefined;
   useEffect(() => {
     if (!openedId) return;
     getTest(openedId)

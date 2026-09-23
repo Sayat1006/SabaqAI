@@ -92,6 +92,10 @@ export function TelegramCard({ userId, isAdmin }: { userId: string; isAdmin: boo
         <Send size={18} className="text-violet-600" /> Telegram хабарламалары
       </h2>
       <p className="mt-1 text-sm text-slate-500">Оқушылар тест тапсырған сайын және тест жабылғанда Telegram-ға қысқа хабарлама келеді.</p>
+      <p className="mt-1 text-sm text-slate-500">
+        Ботта материал жасауға да болады: <code className="rounded bg-slate-100 px-1">/qmzh 5-сынып тақырып</code> — ҚМЖ,{" "}
+        <code className="rounded bg-slate-100 px-1">/test 7-сынып тақырып</code> — тест. Дайын Word файлы чатқа келеді және «Жобаларда» сақталады.
+      </p>
 
       <div className="mt-4 flex flex-col gap-3">
         {status === undefined ? (
@@ -151,7 +155,7 @@ export function TelegramCard({ userId, isAdmin }: { userId: string; isAdmin: boo
         {isAdmin && (
           <div className="mt-2 rounded-xl border border-dashed border-slate-300 p-3.5">
             <div className="text-sm font-semibold">Әкімші: ботты іске қосу</div>
-            <p className="mt-0.5 text-xs text-slate-500">Supabase-ке TELEGRAM_BOT_TOKEN құпиясын қойып, telegram-bot функциясын жариялаған соң бір рет басыңыз.</p>
+            <p className="mt-0.5 text-xs text-slate-500">Supabase-ке TELEGRAM_BOT_TOKEN құпиясын қойып, telegram-bot функциясын жариялаған (немесе жаңартқан) соң бір рет басыңыз.</p>
             <button type="button" onClick={setup} disabled={busy} className={`${btn} mt-2`}>
               <Settings size={15} /> Ботты іске қосу
             </button>
