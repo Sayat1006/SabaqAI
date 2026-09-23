@@ -17,6 +17,22 @@ export interface TestQuestion {
   correctIndex: number;
   explanation: string;
   level?: TestLevel;
+  /** PISA: сұрақ сүйенетін өмірлік жағдаят мәтіні (бір топ сұраққа ортақ). */
+  context?: string;
+}
+
+/** Тапсырма түрі: алғашқы үшеуі — автоматты тексерілетін тест, соңғы екеуі — жазбаша тапсырмалар. */
+export type TaskType = "levels" | "pisa" | "ubt" | "bzb" | "open";
+
+/** БЖБ/ТЖБ және ашық тапсырмалар: критерий, дескрипторлар және балл. */
+export interface WrittenTask {
+  title: string;
+  text: string;
+  level: TestLevel;
+  criterion: string;
+  descriptors: string[];
+  points: number;
+  answer: string;
 }
 
 interface PresentationData {
@@ -42,6 +58,10 @@ interface TestData {
   questions: TestQuestion[];
   /** Тест тексеретін оқу мақсаты (ҮОБ коды және мазмұны). */
   objective?: string;
+  /** Жоқ болса — «levels» (бұрынғы тесттер). */
+  taskType?: TaskType;
+  /** Тек «bzb» / «open» түрлерінде. */
+  tasks?: WrittenTask[];
 }
 
 interface Saved {
@@ -60,7 +80,7 @@ export const KIND_LABEL: Record<ProjectKind, string> = {
   qmzh: "ҚМЖ",
   presentation: "Презентация",
   image: "Сурет",
-  test: "Тест",
+  test: "Тапсырма",
 };
 
 interface ProjectRow {
@@ -210,7 +230,8 @@ export async function getImages(): Promise<SavedImage[]> {
 }
 
 export async function saveTest(t: TestData): Promise<SavedTest> {
-  return toTest(await create("test", t.topic, `${t.subject} · ${t.grade} · ${t.questions.length} сұрақ`, t));
+  const n = t.tasks?.length ? `${t.tasks.length} тапсырма` : `${t.questions.length} сұрақ`;
+  return toTest(await create("test", t.topic, `${t.subject} · ${t.grade} · ${n}`, t));
 }
 export async function getTest(id: string): Promise<SavedTest | null> {
   const row = await getRow(id, "test");
@@ -320,7 +341,8 @@ export interface SharedTest {
   grade: string;
   topic: string;
   objective?: string;
-  questions: { question: string; options: string[]; level?: TestLevel | "" }[];
+  taskType?: TaskType;
+  questions: { question: string; options: string[]; level?: TestLevel | ""; context?: string }[];
 }
 
 export interface SubmitResult {

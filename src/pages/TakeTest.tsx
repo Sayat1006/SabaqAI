@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { getSharedTest, type SharedTest, submitSharedTest, type SubmitResult } from "../lib/projects";
-import { levelBadge, TEST_LEVELS } from "../lib/studio";
+import { levelBadge, TEST_LEVELS, taskTypeOf } from "../lib/studio";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-[15px] outline-none focus:border-violet-500";
@@ -112,6 +112,9 @@ export default function TakeTestPage() {
         {test && !result && (
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
             <div className="rounded-3xl border border-slate-200 bg-white p-6">
+              {test.taskType && test.taskType !== "levels" && (
+                <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{taskTypeOf(test.taskType).label}</div>
+              )}
               <h1 className="text-[22px] font-bold">Тест: {test.topic || test.title}</h1>
               <div className="mt-1 text-slate-500">
                 {[test.subject, test.grade].filter(Boolean).join(" · ")} · {test.questions.length} сұрақ
@@ -135,7 +138,9 @@ export default function TakeTestPage() {
 
             <ol className="flex flex-col gap-4">
               {test.questions.map((q, qi) => (
-                <li key={qi} className="rounded-[18px] border border-slate-200 bg-white p-5">
+                <li key={qi} className="flex flex-col gap-3">
+                  {q.context && q.context !== test.questions[qi - 1]?.context && <ContextBox text={q.context} />}
+                  <div className="rounded-[18px] border border-slate-200 bg-white p-5">
                   <fieldset>
                     <legend className="font-semibold">
                       {qi + 1}. {q.question}
@@ -166,6 +171,7 @@ export default function TakeTestPage() {
                       })}
                     </div>
                   </fieldset>
+                  </div>
                 </li>
               ))}
             </ol>
@@ -191,6 +197,16 @@ export default function TakeTestPage() {
 }
 
 type Review = NonNullable<SubmitResult["review"]>;
+
+/** PISA: бірнеше сұраққа ортақ өмірлік жағдаят мәтіні. */
+function ContextBox({ text }: { text: string }) {
+  return (
+    <div className="whitespace-pre-line rounded-[18px] border-l-4 border-violet-600 bg-white px-5 py-4 text-[15px]">
+      <div className="mb-1 text-[12px] font-bold uppercase tracking-wide text-violet-700">Жағдаят</div>
+      {text}
+    </div>
+  );
+}
 
 const percentOf = (r: SubmitResult) => (r.total ? Math.round((r.score / r.total) * 100) : 0);
 
@@ -278,7 +294,9 @@ function MistakePractice({ test, answers, review }: { test: SharedTest; answers:
         const tried = picks[i] ?? [];
         const done = tried.includes(review[i].correct);
         return (
-          <div key={i} className="rounded-[18px] border border-slate-200 bg-white p-4">
+          <div key={i} className="flex flex-col gap-2">
+          {q.context && <ContextBox text={q.context} />}
+          <div className="rounded-[18px] border border-slate-200 bg-white p-4">
             <div className="font-semibold">
               {i + 1}. {q.question}
             </div>
@@ -307,6 +325,7 @@ function MistakePractice({ test, answers, review }: { test: SharedTest; answers:
                 ✓ Дұрыс! {review[i].explanation && <span className="text-slate-500">{review[i].explanation}</span>}
               </div>
             )}
+          </div>
           </div>
         );
       })}

@@ -207,7 +207,7 @@ export default function Home() {
             <Stat value={stats.qmzh} label="жасалған ҚМЖ жоспары" />
             <Stat value={stats.slides} label="құрастырылған слайд" />
             <Stat value={stats.images} label="генерацияланған сурет" />
-            <Stat value={stats.tests} label="құрастырылған тест" />
+            <Stat value={stats.tests} label="тапсырмалар жинағы" />
           </div>
 
           {/* Жылдам жасау */}

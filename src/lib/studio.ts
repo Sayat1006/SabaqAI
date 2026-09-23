@@ -4,7 +4,7 @@
 import { aiGenerateJson } from "./ai";
 import { curriculum } from "./curriculum";
 import type { LessonPlan } from "./generators";
-import type { SavedTest, TestLevel, TestQuestion } from "./projects";
+import type { SavedTest, TaskType, TestLevel, TestQuestion, WrittenTask } from "./projects";
 import { normalizeSlide, type SlideData } from "./slides";
 
 export const PRESENTATION_STYLES = [
@@ -291,7 +291,19 @@ const testSchema = {
   required: ["questions"],
 };
 
-export async function generateTest(input: {
+/** «Тапсырмалар» бөліміндегі тапсырма түрлері. */
+export const TASK_TYPES: { key: TaskType; label: string; description: string; counts: readonly number[]; unit: string }[] = [
+  { key: "levels", label: "Деңгейлік тест", description: "A / B / C деңгейлері, 4 нұсқа, автоматты тексеріледі", counts: [5, 10, 15, 20], unit: "сұрақ" },
+  { key: "pisa", label: "Функционалдық сауаттылық (PISA)", description: "Өмірлік жағдаят, мәтін мен деректер негізіндегі сұрақтар", counts: [5, 8, 10, 12], unit: "сұрақ" },
+  { key: "ubt", label: "ҰБТ форматы", description: "5 нұсқалы, ҰБТ спецификациясына жақын сұрақтар", counts: [10, 15, 20, 25], unit: "сұрақ" },
+  { key: "bzb", label: "БЖБ / ТЖБ", description: "Жиынтық бағалау: критерий, дескриптор, балл қоюы", counts: [3, 4, 5, 6], unit: "тапсырма" },
+  { key: "open", label: "Ашық және шығармашылық", description: "Жазбаша жауап, эссе, жоба, зерттеу тапсырмалары", counts: [3, 4, 5, 6], unit: "тапсырма" },
+];
+export const taskTypeOf = (key?: TaskType) => TASK_TYPES.find((t) => t.key === (key ?? "levels")) ?? TASK_TYPES[0];
+/** Оқушыға сілтемемен жіберуге және автоматты тексеруге болатын түрлер. */
+export const isQuizType = (key?: TaskType) => key !== "bzb" && key !== "open";
+
+interface TaskInput {
   subject: string;
   grade: string;
   topic: string;
@@ -302,47 +314,155 @@ export async function generateTest(input: {
   planContext?: string;
   /** Оқу мақсаты (ҮОБ коды және мазмұны). */
   objective?: string;
-  /** true — сұрақтар A/B/C деңгейлеріне саралап бөлінеді. */
+  /** true — A/B/C деңгейлеріне саралап бөлінеді. */
   differentiate?: boolean;
-}): Promise<TestQuestion[]> {
-  const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің.
+  taskType?: TaskType;
+}
+
+function taskIntro(input: TaskInput): string {
+  return `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің.
 Пән: ${input.subject}
 Сынып: ${input.grade}
 Тақырып: ${input.topic}
 Қиындық деңгейі: ${input.difficulty}
 ${input.notes ? `Мұғалімнің тілегі: ${input.notes}\n` : ""}${
     input.planContext
-      ? `Тест осы сабақтың қысқа мерзімді жоспарына (ҚМЖ) сай болсын: оқу мақсаттары мен сабақ мақсаттарының орындалуын тексерсін.\nҚМЖ мазмұны:\n${input.planContext}\n`
+      ? `Тапсырмалар осы сабақтың қысқа мерзімді жоспарына (ҚМЖ) сай болсын: оқу мақсаттары мен сабақ мақсаттарының орындалуын тексерсін.\nҚМЖ мазмұны:\n${input.planContext}\n`
       : ""
-  }${input.objective ? `Оқу мақсаты (ҮОБ): ${input.objective}\nӘр сұрақ осы оқу мақсатына жетуді тексерсін.\n` : ""}Осы тақырып бойынша дәл ${input.count} тест сұрағын құрастыр.
-- "level" — сұрақтың ойлау деңгейі: "A" — білу және түсіну (анықтама, факт), "B" — қолдану (есеп, мысал, жағдаят), "C" — жоғары деңгей дағдылары (талдау, салыстыру, бағалау, қорытынды жасау).
+  }${input.objective ? `Оқу мақсаты (ҮОБ): ${input.objective}\nӘр тапсырма осы оқу мақсатына жетуді тексерсін.\n` : ""}`;
+}
+
+const LEVEL_RULE = `"level" — ойлау деңгейі: "A" — білу және түсіну (анықтама, факт), "B" — қолдану (есеп, мысал, жағдаят), "C" — жоғары деңгей дағдылары (талдау, салыстыру, бағалау, қорытынды жасау).`;
+
+const TYPE_RULES: Record<"levels" | "pisa" | "ubt", (n: number) => string> = {
+  levels: (n) => `Осы тақырып бойынша дәл ${n} тест сұрағын құрастыр. Әр сұрақта 4 жауап нұсқасы, тек біреуі дұрыс.`,
+  pisa: (n) => `PISA үлгісіндегі функционалдық сауаттылық тапсырмаларын құрастыр: дәл ${n} сұрақ.
+- Сұрақтарды ${Math.max(2, Math.round(n / 3))} өмірлік жағдаятқа топта. Әр жағдаят — "context" өрісі: оқушыға таныс өмірлік жағдай (дүкен, саяхат, денсаулық, экология, қаржы, ғылыми жаңалық т.б.) туралы 60–130 сөздік мәтін; қажет болса, ішінде нақты сандар, шағын кесте ("|" арқылы жолдармен) немесе график сипаттамасы болсын.
+- Бір жағдаятқа жататын сұрақтарда "context" мәтіні ТОЛЫҒЫМЕН бірдей болсын (сөзбе-сөз қайтала).
+- Сұрақтар жаттанды білімді емес, мәтіннен ақпарат табуды, оны түсіндіруді, өмірде қолдануды және бағалауды тексерсін.
+- Әр сұрақта 4 жауап нұсқасы, тек біреуі дұрыс.`,
+  ubt: (n) => `ҰБТ (Ұлттық бірыңғай тестілеу) форматындағы дәл ${n} сұрақ құрастыр.
+- Әр сұрақта ДӘЛ 5 жауап нұсқасы (A–E), тек біреуі дұрыс.
+- Сұрақтар ҰБТ спецификациясына жақын: қысқа, нақты, есептеу, анықтама, себеп-салдар, формуланы қолдану сұрақтары; қате нұсқалар оқушылардың жиі қателесетін жауаптары болсын.
+- Сынып деңгейінен асып кетпе, бірақ ҰБТ-ға дайындық деңгейінде болсын.`,
+};
+
+const testSchema2 = {
+  type: "OBJECT",
+  properties: {
+    questions: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          context: { type: "STRING" },
+          question: { type: "STRING" },
+          options: { type: "ARRAY", items: { type: "STRING" } },
+          correctIndex: { type: "INTEGER" },
+          explanation: { type: "STRING" },
+          level: { type: "STRING", enum: ["A", "B", "C"] },
+        },
+        required: ["question", "options", "correctIndex", "explanation", "level"],
+      },
+    },
+  },
+  required: ["questions"],
+};
+
+export async function generateTest(input: TaskInput): Promise<TestQuestion[]> {
+  const type = input.taskType === "pisa" || input.taskType === "ubt" ? input.taskType : "levels";
+  const optionCount = type === "ubt" ? 5 : 4;
+  const prompt = `${taskIntro(input)}${TYPE_RULES[type](input.count)}
+- ${LEVEL_RULE}
 ${
     input.differentiate !== false
-      ? "- САРАЛАУ: сұрақтардың шамамен 40%-ы A, 40%-ы B, 20%-ы C деңгейінде болсын; сұрақтарды A → B → C ретімен орналастыр, қиындығы біртіндеп артсын.\n"
+      ? "- САРАЛАУ: сұрақтардың шамамен 40%-ы A, 40%-ы B, 20%-ы C деңгейінде болсын; қиындығы біртіндеп артсын.\n"
       : ""
-  }
-- Әр сұрақта 4 жауап нұсқасы, тек біреуі дұрыс; дұрыс жауаптың орны сұрақтан сұраққа әртүрлі болсын.
-- "correctIndex" — дұрыс нұсқаның "options" ішіндегі реттік нөмірі (0-ден бастап).
+  }- "correctIndex" — дұрыс нұсқаның "options" ішіндегі реттік нөмірі (0-ден бастап); дұрыс жауаптың орны сұрақтан сұраққа әртүрлі болсын.
 - Нұсқаларда "A)" сияқты әріп белгілерін жазба, сұрақтың алдына нөмір қойма.
 - Қате нұсқалар сенімді, бірақ анық қате болсын; "барлығы дұрыс" сияқты нұсқаларды қолданба.
 - "explanation" — дұрыс жауаптың бір сөйлемдік түсіндірмесі.
-- Сұрақтар сынып деңгейіне сай, фактілері дұрыс, қазақ тілінде (шет тілі пәні болмаса).`;
-  const result = await aiGenerateJson<{ questions: Partial<TestQuestion>[] }>(prompt, testSchema);
+- Фактілері дұрыс, қазақ тілінде (шет тілі пәні болмаса).`;
+  const result = await aiGenerateJson<{ questions: Partial<TestQuestion>[] }>(prompt, type === "pisa" ? testSchema2 : testSchema);
   const questions = (result.questions ?? [])
     .filter((q) => q.question && Array.isArray(q.options) && q.options.length >= 2)
     .slice(0, input.count)
     .map((q) => {
-      const options = q.options!.map((o) => o.replace(/^\s*[A-DА-Г][).]\s*/, ""));
+      const options = q.options!.map((o) => o.replace(/^\s*[A-EА-Д][).]\s*/, "")).slice(0, optionCount);
       return {
         question: q.question!.replace(/^\s*\d+[).]\s*/, ""),
         options,
         correctIndex: Math.min(Math.max(Number(q.correctIndex) || 0, 0), options.length - 1),
         explanation: q.explanation ?? "",
         level: (["A", "B", "C"] as const).find((l) => l === q.level) ?? "A",
+        ...(type === "pisa" && q.context?.trim() ? { context: q.context.trim() } : {}),
       };
     });
   if (questions.length === 0) throw new Error("AI сұрақ қайтармады. Қайталап көріңіз.");
+  if (type === "levels" && input.differentiate !== false) {
+    const order = { A: 0, B: 1, C: 2 };
+    questions.sort((x, y) => order[x.level] - order[y.level]);
+  }
   return questions;
+}
+
+const writtenSchema = {
+  type: "OBJECT",
+  properties: {
+    tasks: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          title: { type: "STRING" },
+          text: { type: "STRING" },
+          level: { type: "STRING", enum: ["A", "B", "C"] },
+          criterion: { type: "STRING" },
+          descriptors: { type: "ARRAY", items: { type: "STRING" } },
+          points: { type: "INTEGER" },
+          answer: { type: "STRING" },
+        },
+        required: ["title", "text", "level", "criterion", "descriptors", "points", "answer"],
+      },
+    },
+  },
+  required: ["tasks"],
+};
+
+/** БЖБ/ТЖБ немесе ашық/шығармашылық тапсырмалар: критерий, дескриптор, балл және үлгі жауап. */
+export async function generateWrittenTasks(input: TaskInput): Promise<WrittenTask[]> {
+  const bzb = input.taskType === "bzb";
+  const prompt = `${taskIntro(input)}${
+    bzb
+      ? `Қазақстандағы критериалды бағалау жүйесі бойынша бөлім/тоқсан бойынша жиынтық бағалау (БЖБ/ТЖБ) тапсырмаларын құрастыр: дәл ${input.count} тапсырма.
+- Тапсырмалар әртүрлі форматта болсын: қысқа жауапты, толық жауапты, есеп шығару, кестені толтыру, сәйкестендіру, сызбамен жұмыс.
+- Жалпы балл 10–25 аралығында болсын.`
+      : `Ашық және шығармашылық тапсырмалар құрастыр: дәл ${input.count} тапсырма.
+- Түрлері әртүрлі болсын: ашық сұрақ (жазбаша түсіндіру), шағын эссе немесе пікір, зерттеу/тәжірибе, шағын жоба, кейс-талдау, постер/модель жасау.
+- Тапсырмалар оқушының сыни ойлауын, шығармашылығын, коммуникациясын дамытсын.`
+  }
+- ${LEVEL_RULE} Тапсырмалар A → B → C ретімен күрделенсін.
+- "title" — қысқа атауы; "text" — оқушыға арналған толық шарты (қажет болса, берілген деректерімен).
+- "criterion" — бағалау критерийі (оқушы не істей алуы керек).
+- "descriptors" — 2–4 дескриптор: әрқайсысы "Білім алушы ..." деп басталып, нақты әрекетті сипаттасын.
+- "points" — тапсырманың балы (әр дескрипторға 1–2 балл).
+- "answer" — мұғалімге арналған үлгі жауап немесе бағалау нұсқаулығы.
+Барлығы қазақ тілінде (шет тілі пәні болмаса), фактілері дұрыс, сынып деңгейіне сай.`;
+  const result = await aiGenerateJson<{ tasks: Partial<WrittenTask>[] }>(prompt, writtenSchema);
+  const tasks = (result.tasks ?? [])
+    .filter((t) => t.text)
+    .slice(0, input.count)
+    .map((t) => ({
+      title: t.title?.trim() || "Тапсырма",
+      text: t.text!.trim(),
+      level: (["A", "B", "C"] as const).find((l) => l === t.level) ?? "A",
+      criterion: t.criterion?.trim() ?? "",
+      descriptors: (t.descriptors ?? []).filter(Boolean).slice(0, 5),
+      points: Math.min(Math.max(Math.round(Number(t.points) || 1), 1), 20),
+      answer: t.answer?.trim() ?? "",
+    }));
+  if (!tasks.length) throw new Error("AI тапсырма қайтармады. Қайталап көріңіз.");
+  return tasks;
 }
 
 /* -------------------------------------------- Нәтижелерді талдау және жеке тапсырма */
