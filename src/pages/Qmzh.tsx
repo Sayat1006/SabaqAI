@@ -53,20 +53,24 @@ export default function QmzhPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  const [subject, setSubject] = useState(() => (user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]));
-  const [grade, setGrade] = useState(() => user?.grades?.[0] ?? GRADES[4]);
-  const [topic, setTopic] = useState("");
+  // КТЖ-дан «ҚМЖ» басылса: форма сол сабақтың деректерімен толтырылады.
+  const prefill = (location.state as { prefill?: { subject: string; grade: string; topic: string; objectives: string; date: string; lang?: Lang } } | null)?.prefill;
+  const [subject, setSubject] = useState(() =>
+    prefill && SUBJECTS.includes(prefill.subject) ? prefill.subject : user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0],
+  );
+  const [grade, setGrade] = useState(() => (prefill && GRADES.includes(prefill.grade) ? prefill.grade : (user?.grades?.[0] ?? GRADES[4])));
+  const [topic, setTopic] = useState(prefill?.topic ?? "");
   const [duration, setDuration] = useState(45);
   const [teacherName, setTeacherName] = useState(() => user?.name ?? "");
-  const [date, setDate] = useState("");
-  const [objectivesInput, setObjectivesInput] = useState("");
+  const [date, setDate] = useState(prefill?.date ?? "");
+  const [objectivesInput, setObjectivesInput] = useState(prefill?.objectives ?? "");
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [lessonType, setLessonType] = useState<string>(LESSON_TYPES[0]);
   const [taskKinds, setTaskKinds] = useState<string[]>([tr("Жұптық жұмыс"), tr("Топтық жұмыс"), tr("Функционалдық сауаттылық")]);
   const [taskCount, setTaskCount] = useState(3);
   const [notes, setNotes] = useState("");
-  const [lang, setLang] = useState<Lang>(defaultMaterialLang);
+  const [lang, setLang] = useState<Lang>(prefill?.lang ?? defaultMaterialLang);
   const [savingResources, setSavingResources] = useState(false);
   const [editing, setEditing] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);

@@ -5,7 +5,7 @@ import { deleteProject, getRecentProjects, KIND_LABEL, type ProjectKind, type Re
 import { useLoad } from "../lib/useLoad";
 import { tr } from "../i18n";
 
-const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "test", "document"];
+const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "test", "document", "ktzh"];
 
 // ҚМЖ мен тапсырмалардың сипаттамасы «Пән · Сынып · ...» түрінде сақталады.
 const partsOf = (p: RecentProject) => p.detail.split(" · ").map((x) => x.trim());
