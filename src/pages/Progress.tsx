@@ -1,4 +1,5 @@
 import { ArrowDownRight, ArrowRight, ArrowUpRight, Copy, FileSpreadsheet, LineChart, Sparkles, X } from "lucide-react";
+import { Loading } from "../components/Loading";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { LangPicker } from "../components/LangPicker";
@@ -89,7 +90,7 @@ export default function ProgressPage() {
       />
 
       {error && <p className="mt-6 rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
-      {!data && !error && <div className="mt-8 rounded-3xl border border-slate-200 bg-surface p-10 text-center text-slate-500">{tr("Жүктелуде...")}</div>}
+      {!data && !error && <Loading className="mt-8" />}
 
       {data && data.students.length === 0 && (
         <div className="mt-8 flex flex-col items-center gap-3 rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center text-slate-500">

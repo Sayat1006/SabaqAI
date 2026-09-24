@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Loading } from "../components/Loading";
 import { PageHeader } from "../components/PageHeader";
 import { ProjectCard } from "../components/ProjectCard";
 import { deleteProject, getRecentProjects, KIND_LABEL, type ProjectKind, type RecentProject } from "../lib/projects";
@@ -132,7 +133,7 @@ export default function ProjectsPage() {
       {error ? (
         <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}</div>
       ) : loading ? (
-        <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">{tr("Жүктелуде...")}</div>
+        <Loading />
       ) : shown.length === 0 ? (
         <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
           {filtered ? tr("Ештеңе табылмады.") : tr("Әзірге жоба жоқ.")}

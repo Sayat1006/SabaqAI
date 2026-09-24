@@ -1,4 +1,5 @@
 import { ArrowRight, Bell, Search, Sparkles, X } from "lucide-react";
+import { Loading } from "../components/Loading";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
@@ -253,7 +254,7 @@ export default function Home() {
         {loadError ? (
           <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
         ) : loading ? (
-          <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">{tr("Жүктелуде...")}</div>
+          <Loading />
         ) : shownProjects.length === 0 ? (
           <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
             {q ? tr("Жоба табылмады.") : tr("Әзірге жоба жоқ. Жоғарыдағы құралдардың бірін таңдап, алғашқы материалыңызды жасаңыз.")}

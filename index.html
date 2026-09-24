@@ -27,7 +27,16 @@
     <title>AI Nur — мұғалімге арналған AI студия</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- JS жүктелгенше: ҚМЖ генерациясындағыдай айналатын жұлдызша (React бұны өз бетімен ауыстырады). -->
+      <div role="status" aria-label="AI Nur" style="display:flex;min-height:100vh;align-items:center;justify-content:center">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#e0733d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation:ainur-spin 1s linear infinite">
+          <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z" />
+          <path d="M20 2v4" /><path d="M22 4h-4" /><circle cx="4" cy="20" r="2" />
+        </svg>
+      </div>
+      <style>@keyframes ainur-spin{to{transform:rotate(360deg)}}</style>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,4 +1,5 @@
 import { Check, ChevronDown, Copy, FileSpreadsheet, Link2, Lock, QrCode, RefreshCw, Send, Trash2, Unlock, Users } from "lucide-react";
+import { Loading } from "./Loading";
 import { Fragment, useEffect, useState } from "react";
 import {
   deleteSubmission,
@@ -147,7 +148,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
       )}
 
       {loading ? (
-        <div className="text-sm text-slate-500">{tr("Жүктелуде...")}</div>
+        <Loading variant="inline" />
       ) : !share ? (
         <div>
           <button type="button" onClick={create} disabled={busy} className="inline-flex items-center gap-2 rounded-[14px] bg-violet-600 px-5 py-3 font-semibold text-white disabled:opacity-70">

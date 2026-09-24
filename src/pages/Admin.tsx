@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Loading } from "../components/Loading";
 import { Badge, Button, Card, Field, Select, TextInput } from "../components/ui";
 import { useAuth } from "../context/useAuth";
 import * as auth from "../lib/auth";
@@ -328,8 +329,8 @@ export default function AdminPage() {
               ))}
               {loadingList && (
                 <tr>
-                  <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                    {tr("Жүктелуде...")}
+                  <td colSpan={6} className="px-3 py-6 text-center">
+                    <Loading variant="inline" />
                   </td>
                 </tr>
               )}

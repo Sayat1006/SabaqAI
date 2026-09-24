@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Pencil, Plus, Save, Trash2, X } from "lucide-react";
+import { Loading } from "../components/Loading";
 import { useState } from "react";
 import { LessonItem } from "../components/LessonItem";
 import { PageHeader } from "../components/PageHeader";
@@ -153,7 +154,7 @@ export default function SchedulePage() {
       )}
 
       {loading ? (
-        <div className="mt-6 rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">{tr("Жүктелуде...")}</div>
+        <Loading className="mt-6" />
       ) : (
         !loadError && (
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -1,4 +1,5 @@
 import { BellOff, BellRing, Check, ExternalLink, RefreshCw, Send, Settings, Unlink } from "lucide-react";
+import { Loading } from "./Loading";
 import { useCallback, useEffect, useState } from "react";
 import {
   createLinkCode,
@@ -100,7 +101,7 @@ export function TelegramCard({ userId, isAdmin }: { userId: string; isAdmin: boo
 
       <div className="mt-4 flex flex-col gap-3">
         {status === undefined ? (
-          <div className="text-sm text-slate-500">{tr("Жүктелуде...")}</div>
+          <Loading variant="inline" />
         ) : status === null ? (
           <p className="rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm text-slate-600">{tr("Telegram бот әлі қосылмаған. Әкімші Supabase-те update-6-telegram.sql файлын орындауы керек.")}</p>
         ) : !bot ? (
