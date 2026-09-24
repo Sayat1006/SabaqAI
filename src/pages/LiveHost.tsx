@@ -1,4 +1,5 @@
 import { ArrowLeft, ArrowRight, Eye, Flag, Maximize, Minimize, Play, Trophy, Users } from "lucide-react";
+import { Loading } from "../components/Loading";
 import QRCode from "qrcode";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -116,7 +117,7 @@ export default function LiveHostPage() {
       </div>
     );
   }
-  if (!game || !hs) return <div className="flex min-h-screen items-center justify-center text-slate-500">{tr("Жүктелуде...")}</div>;
+  if (!game || !hs) return <Loading variant="full" />;
 
   const dist = q ? q.options.map((_, i) => hs.answers.filter((a) => a.choice === i).length) : [];
   const maxDist = Math.max(1, ...dist);

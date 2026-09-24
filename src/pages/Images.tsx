@@ -1,4 +1,5 @@
 import { ArrowRight, Download, Sparkles, Trash2, X } from "lucide-react";
+import { Loading } from "../components/Loading";
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
@@ -157,7 +158,7 @@ export default function ImagesPage() {
           <div role="alert" className="col-span-full rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
         )}
         {loading && !loadError && (
-          <div className="col-span-full rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">{tr("Жүктелуде...")}</div>
+          <Loading className="col-span-full" />
         )}
         {!loading && !loadError && images.length === 0 && !generating && (
           <div className="col-span-full rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
