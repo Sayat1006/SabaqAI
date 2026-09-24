@@ -8,6 +8,10 @@
 // (расталған әрі өшірілмеген) пайдаланушы жүгіне алады, әкімші
 // болу міндетті емес: ҚМЖ, презентация, сурет, тест сияқты құралдарды мұғалімдер
 // де қолданады.
+//
+// Әр сұраныс ai_usage кестесіне жазылады (12-жаңарту): әкімші панеліндегі
+// «Статистика» беті сол бойынша лимитке қаншалықты жақын екенін көрсетеді.
+// Кесте әлі жоқ болса, жазу үнсіз өткізіледі — генерация бұзылмайды.
 
 // @ts-expect-error Deno жаһандық объектісі тек Supabase Edge орталарында бар
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -56,7 +60,34 @@ Deno.serve(async (req: Request) => {
   const body = await req.json().catch(() => ({}));
   const prompt = body.prompt as string | undefined;
   const schema = body.schema as object | undefined;
+  const tool = typeof body.tool === "string" ? body.tool.slice(0, 30) : "";
   if (!prompt) return json({ error: "prompt жоқ" }, 400);
+
+  const userId = user.id;
+  const started = Date.now();
+  let retries = 0;
+  let usedModel = "";
+  // @ts-expect-error Deno жаһандық объектісі тек Supabase Edge орталарында бар
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  async function logUsage(ok: boolean, status: number, usage?: { promptTokenCount?: number; candidatesTokenCount?: number }) {
+    if (!serviceKey) return;
+    try {
+      await createClient(supabaseUrl, serviceKey).from("ai_usage").insert({
+        user_id: userId,
+        source: "web",
+        tool,
+        model: usedModel,
+        ok,
+        status,
+        retries,
+        tokens_in: usage?.promptTokenCount ?? 0,
+        tokens_out: usage?.candidatesTokenCount ?? 0,
+        ms: Date.now() - started,
+      });
+    } catch {
+      // статистика жазылмаса да жауап қайтарыла береді
+    }
+  }
 
   const generationConfig: Record<string, unknown> = { temperature: 0.8 };
   if (schema) {
@@ -73,6 +104,7 @@ Deno.serve(async (req: Request) => {
 
   outer: for (const model of modelCandidates) {
     for (let attempt = 1; attempt <= attemptsPerModel; attempt++) {
+      usedModel = model;
       geminiRes = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
         {
@@ -89,6 +121,7 @@ Deno.serve(async (req: Request) => {
 
       lastErrText = await geminiRes.text();
       lastStatus = geminiRes.status;
+      retries++;
       // 503 (UNAVAILABLE) / 429 (тым жиі сұраныс) — уақытша, қайта байқауға тұрарлық.
       const retryable = geminiRes.status === 503 || geminiRes.status === 429;
       if (!retryable) break; // осы модельмен қайталанбайтын қате — келесі модельге өтеді
@@ -97,11 +130,13 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!geminiRes || !geminiRes.ok) {
+    await logUsage(false, lastStatus);
     return json({ error: `Gemini API қатесі (${lastStatus}): ${lastErrText.slice(0, 300)}` }, 502);
   }
 
   const geminiData = await geminiRes!.json();
   const text = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  await logUsage(!!text, text ? 200 : 502, geminiData?.usageMetadata);
   if (!text) {
     const blockReason = geminiData?.promptFeedback?.blockReason;
     return json({ error: blockReason ? `Gemini жауапты бөгеді: ${blockReason}` : "Gemini бос жауап қайтарды" }, 502);

@@ -143,10 +143,11 @@ function Topbar({ admin = false }: { admin?: boolean }) {
       </NavLink>
       <nav
         aria-label={tr("Әкімші мәзірі")}
-        className={"order-3 grid w-full grid-cols-3 gap-1 rounded-[14px] border border-slate-200 bg-surface p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto"}
+        className={"order-3 grid w-full grid-cols-2 gap-1 rounded-[14px] border border-slate-200 bg-surface p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto"}
       >
         <NavLink to="/admin" end className={topLink}>{tr("Аккаунттар")}</NavLink>
         <NavLink to="/admin/news" className={topLink}>{tr("Хабарландырулар")}</NavLink>
+        <NavLink to="/admin/usage" className={topLink}>{tr("Статистика")}</NavLink>
         <NavLink to="/" end className={topLink}>{tr("Қосымшаны қарау")}</NavLink>
       </nav>
       <UserMenu />
