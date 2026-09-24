@@ -1,16 +1,18 @@
 import { FolderOpen, Home, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
-import { tools } from "../lib/navigation";
+import { toolsIn, TOOL_GROUPS } from "../lib/navigation";
 import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
+import { useCurrentTool } from "../lib/useCurrentTool";
+import { DesktopToolNav, MobileMenu } from "./NavMenus";
 import { UserMenu } from "./UserMenu";
 import { tr } from "../i18n";
 
 /* AI Nur құрылымы: басты бетте — қою көк бүйір мәзір, құрал беттерінде — жоғарғы мәзір. */
 
 const sideLink = ({ isActive }: { isActive: boolean }) =>
-  `flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] whitespace-nowrap transition-colors ${
+  `flex shrink-0 items-center gap-3 rounded-xl px-3.5 py-2 text-[14.5px] whitespace-nowrap transition-colors ${
     isActive
       ? "bg-navy-800 text-white shadow-[inset_3px_0_0_0_var(--color-violet-500)]"
       : "text-[#c7c4da] hover:bg-navy-800 hover:text-white"
@@ -29,25 +31,35 @@ export function DashboardLayout() {
     <div className="flex min-h-screen flex-col lg:flex-row">
       <nav
         aria-label={tr("Негізгі мәзір")}
-        className="flex items-center gap-3 overflow-x-auto bg-navy-900 px-4 py-3 text-[#f4f1ea] lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-visible lg:px-5 lg:py-8"
+        className="flex items-center gap-3 bg-navy-900 px-4 py-3 text-[#f4f1ea] lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-y-auto lg:px-5 lg:py-7"
       >
-        <NavLink to="/" className="flex shrink-0 items-center gap-3 lg:mb-11 lg:px-1.5">
+        <NavLink to="/" className="flex shrink-0 items-center gap-3 lg:mb-6 lg:px-1.5">
           <span className="flex h-10 w-10 items-center justify-center logo-keep rounded-xl bg-[#f4f1ea] p-1 lg:h-[42px] lg:w-[42px]">
             <Logo className="h-full w-full" />
           </span>
-          <span className="hidden text-[19px] font-bold lg:inline">AI Nur</span>
+          <span className="text-[19px] font-bold">AI Nur</span>
         </NavLink>
 
-        <div className="flex gap-1 lg:flex-col">
+        {/* Телефонда: бір «Мәзір» батырмасы */}
+        <div className="ml-auto lg:hidden">
+          <MobileMenu tone="dark" />
+        </div>
+
+        <div className="hidden flex-col gap-0.5 lg:flex">
           <NavLink to="/" end className={sideLink}>
             <Home size={19} strokeWidth={1.8} /> {tr("Басты бет")}
           </NavLink>
-          {tools.map((t) => (
-            <NavLink key={t.to} to={t.to} className={sideLink}>
-              <t.icon size={19} strokeWidth={1.8} /> {t.label}
-            </NavLink>
+          {TOOL_GROUPS.map((g) => (
+            <div key={g.id} className="flex flex-col gap-0.5">
+              <div className="mt-3 mb-0.5 px-3.5 text-[11px] font-semibold tracking-[0.08em] text-[#8f8ba8] uppercase">{g.label}</div>
+              {toolsIn(g.id).map((t) => (
+                <NavLink key={t.to} to={t.to} className={sideLink}>
+                  <t.icon size={19} strokeWidth={1.8} /> {t.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
-          <div className="mx-1.5 my-3.5 hidden h-px bg-navy-700 lg:block" />
+          <div className="mx-1.5 my-3 h-px bg-navy-700" />
           <NavLink to="/projects" className={sideLink}>
             <FolderOpen size={19} strokeWidth={1.8} /> {tr("Менің жобаларым")}
           </NavLink>
@@ -98,6 +110,25 @@ const topLink = ({ isActive }: { isActive: boolean }) =>
   }`;
 
 function Topbar({ admin = false }: { admin?: boolean }) {
+  const current = useCurrentTool();
+  if (!admin) {
+    return (
+      <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/90 px-4 py-3 backdrop-blur-md sm:px-10 sm:py-4 print:hidden">
+        <NavLink to="/" className="flex min-w-0 items-center gap-3 font-bold">
+          <Logo className="h-9 w-9" />
+          <span className="text-[16.5px]">AI Nur</span>
+          {current && <span className="truncate rounded-full bg-violet-100 px-2.5 py-1 text-[12.5px] font-semibold text-violet-700 md:hidden">{current.short}</span>}
+        </NavLink>
+        <DesktopToolNav />
+        <div className="flex items-center gap-2">
+          <div className="md:hidden">
+            <MobileMenu />
+          </div>
+          <UserMenu />
+        </div>
+      </header>
+    );
+  }
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/90 px-4 py-3 backdrop-blur-md sm:px-10 sm:py-4 print:hidden">
       <NavLink to={admin ? "/admin" : "/"} className="flex items-center gap-3 font-bold">
@@ -107,25 +138,11 @@ function Topbar({ admin = false }: { admin?: boolean }) {
         </span>
       </NavLink>
       <nav
-        aria-label={admin ? tr("Әкімші мәзірі") : tr("Құралдар")}
-        className={`order-3 grid w-full gap-1 rounded-[14px] border border-slate-200 bg-surface p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto ${admin ? "grid-cols-2" : "grid-cols-4"}`}
+        aria-label={tr("Әкімші мәзірі")}
+        className={"order-3 grid w-full grid-cols-2 gap-1 rounded-[14px] border border-slate-200 bg-surface p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto"}
       >
-        {admin ? (
-          <>
-            <NavLink to="/admin" className={topLink}>{tr("Аккаунттар")}</NavLink>
-            <NavLink to="/" end className={topLink}>{tr("Қосымшаны қарау")}</NavLink>
-          </>
-        ) : (
-          <>
-            <NavLink to="/" end className={topLink}>{tr("Басты бет")}</NavLink>
-            {tools.map((t) => (
-              <NavLink key={t.to} to={t.to} className={topLink}>
-                {t.short}
-              </NavLink>
-            ))}
-            <NavLink to="/projects" className={topLink}>{tr("Жобалар")}</NavLink>
-          </>
-        )}
+        <NavLink to="/admin" className={topLink}>{tr("Аккаунттар")}</NavLink>
+        <NavLink to="/" end className={topLink}>{tr("Қосымшаны қарау")}</NavLink>
       </nav>
       <UserMenu />
     </header>

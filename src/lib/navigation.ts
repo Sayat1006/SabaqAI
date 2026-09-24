@@ -1,8 +1,11 @@
 import { CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
 import { tr } from "../i18n";
 
+export type ToolGroup = "plan" | "create" | "class";
+
 export interface Tool {
   to: string;
+  group: ToolGroup;
   label: string;
   short: string;
   icon: LucideIcon;
@@ -13,6 +16,7 @@ export interface Tool {
 export const tools: Tool[] = [
   {
     to: "/qmzh",
+    group: "plan",
     label: tr("ҚМЖ жоспарлау"),
     short: tr("ҚМЖ"),
     icon: ClipboardList,
@@ -20,6 +24,7 @@ export const tools: Tool[] = [
   },
   {
     to: "/ktzh",
+    group: "plan",
     label: tr("КТЖ"),
     short: tr("КТЖ"),
     icon: CalendarDays,
@@ -27,6 +32,7 @@ export const tools: Tool[] = [
   },
   {
     to: "/presentation",
+    group: "create",
     label: tr("Презентация"),
     short: tr("Презентация"),
     icon: Presentation,
@@ -34,6 +40,7 @@ export const tools: Tool[] = [
   },
   {
     to: "/images",
+    group: "create",
     label: tr("Сурет генерациясы"),
     short: tr("Сурет"),
     icon: Image,
@@ -41,6 +48,7 @@ export const tools: Tool[] = [
   },
   {
     to: "/tests",
+    group: "create",
     label: tr("Тапсырмалар"),
     short: tr("Тапсырмалар"),
     icon: FileCheck2,
@@ -48,6 +56,7 @@ export const tools: Tool[] = [
   },
   {
     to: "/progress",
+    group: "class",
     label: tr("Оқушы прогресі"),
     short: tr("Прогресс"),
     icon: LineChart,
@@ -55,6 +64,7 @@ export const tools: Tool[] = [
   },
   {
     to: "/docs",
+    group: "create",
     label: tr("Құжаттар"),
     short: tr("Құжаттар"),
     icon: FileText,
@@ -62,9 +72,19 @@ export const tools: Tool[] = [
   },
   {
     to: "/tools",
+    group: "class",
     label: tr("Сабақ құралдары"),
     short: tr("Құралдар"),
     icon: Timer,
     description: tr("Таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, шу өлшегіш және рефлексия — тақтаға толық экранда."),
   },
 ];
+
+/** Мәзір топтары: жоғарғы мәзірде ашылмалы тізім, телефонда тақтайшалар. */
+export const TOOL_GROUPS: { id: ToolGroup; label: string }[] = [
+  { id: "plan", label: tr("Жоспарлау") },
+  { id: "create", label: tr("Материалдар") },
+  { id: "class", label: tr("Сабақта") },
+];
+
+export const toolsIn = (g: ToolGroup) => tools.filter((t) => t.group === g);

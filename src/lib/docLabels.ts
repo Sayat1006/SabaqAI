@@ -96,10 +96,56 @@ const QMZH = {
     usage: "Применение",
     file: "KSP",
   },
+  en: {
+    docTitle: "Short-term lesson plan",
+    section: "Unit",
+    teacher: "Teacher’s name",
+    date: "Date",
+    grade: (n: string) => `Grade ${n}`,
+    attendance: "Number present ______   Number absent ______",
+    topic: "Lesson title",
+    objectives: "Learning objectives (curriculum reference)",
+    goals: "Lesson objectives",
+    values: "Value links",
+    vocabulary: "Subject vocabulary and terminology",
+    term: "Term",
+    definition: "Definition",
+    flow: "Lesson plan",
+    stageTime: "Stage / Time",
+    teacherAction: "Teacher’s actions",
+    studentAction: "Learners’ actions",
+    assessment: "Assessment",
+    resources: "Resources",
+    taskN: (n: number) => `Task ${n}`,
+    taskRe: /^\d|task/i,
+    method: "Method",
+    level: (l: string) => `Level ${l}`,
+    levelLabel: "Level",
+    time: "Time",
+    condition: "Task",
+    steps: "Steps",
+    criteriaTitle: "Assessment criteria and descriptors",
+    criterion: "Assessment criterion",
+    descriptors: "Descriptors",
+    points: "Points",
+    differentiation: "Differentiation",
+    expected: "Expected result",
+    planDiff: "Differentiation – how do you plan to give more support? How do you plan to challenge the more able learners?",
+    planAssess: "Assessment – how are you planning to check learners’ learning?",
+    planSafety: "Health and safety check",
+    reflection: "Reflection",
+    homework: "Homework",
+    resourcesTitle: "Resources and links",
+    resource: "Resource",
+    resourceLink: "Resource (link)",
+    platform: "Type / platform",
+    usage: "Use",
+    file: "Lesson-plan",
+  },
 } satisfies Record<Lang, unknown>;
 
 export type QmzhLabels = (typeof QMZH)["kk"];
-export const qmzhLabels = (lang: Lang | undefined): QmzhLabels => QMZH[lang === "ru" ? "ru" : "kk"];
+export const qmzhLabels = (lang: Lang | undefined): QmzhLabels => QMZH[lang ?? "kk"];
 
 const TEST = {
   kk: {
@@ -152,14 +198,43 @@ const TEST = {
     answers: "Образцы ответов (для учителя)",
     file: "Test",
   },
+  en: {
+    types: {
+      levels: "Levelled test",
+      pisa: "Functional literacy tasks",
+      ubt: "UNT-format test",
+      bzb: "Summative assessment (unit/term)",
+      open: "Open and creative tasks",
+    } as Record<string, string>,
+    difficulty: "Difficulty",
+    questions: (n: number) => `${n} questions`,
+    tasks: (n: number) => `${n} tasks`,
+    total: "Total points",
+    objective: "Learning objective",
+    levelsLegend: "Levels: A — knowledge and understanding, B — application, C — higher-order thinking skills",
+    studentLine: "Name: ____________________________    Class: ______    Date: __________",
+    context: "Scenario",
+    key: "Answer key",
+    taskHead: (i: number, title: string, level: string, pts: number) => `Task ${i}. ${title} (level ${level}, ${pts} points)`,
+    criteriaTitle: "Assessment criteria and descriptors",
+    criterion: "Assessment criterion",
+    descriptor: "Descriptor",
+    points: "Points",
+    answers: "Model answers (for the teacher)",
+    file: "Test",
+  },
 } satisfies Record<Lang, unknown>;
 
 export type TestLabels = (typeof TEST)["kk"];
-export const testLabels = (lang: Lang | undefined): TestLabels => TEST[lang === "ru" ? "ru" : "kk"];
+export const testLabels = (lang: Lang | undefined): TestLabels => TEST[lang ?? "kk"];
 
 /** Сложность (Жеңіл/Орташа/Қиын) орысша. */
 export const difficultyIn = (d: string, lang: Lang | undefined) =>
-  lang === "ru" ? ({ Жеңіл: "Лёгкий", Орташа: "Средний", Қиын: "Сложный" } as Record<string, string>)[d] ?? d : d;
+  lang === "ru"
+    ? (({ Жеңіл: "Лёгкий", Орташа: "Средний", Қиын: "Сложный" }) as Record<string, string>)[d] ?? d
+    : lang === "en"
+      ? (({ Жеңіл: "Easy", Орташа: "Medium", Қиын: "Hard" }) as Record<string, string>)[d] ?? d
+      : d;
 
 const KTZH = {
   kk: {
@@ -184,10 +259,25 @@ const KTZH = {
     cols: ["№", "Раздел", "Тема урока", "Цели обучения", "Кол-во часов", "Дата", "Примечание"],
     file: "KTP",
   },
+  en: {
+    title: "Term plan (calendar and topics)",
+    subject: "Subject",
+    grade: "Grade",
+    period: "Period",
+    perWeek: "Hours per week",
+    total: "Total hours",
+    teacher: "Teacher",
+    cols: ["No.", "Unit", "Lesson topic", "Learning objectives", "Hours", "Date", "Notes"],
+    file: "Term-plan",
+  },
 } satisfies Record<Lang, unknown>;
 
-export const ktzhLabels = (lang: Lang | undefined) => KTZH[lang === "ru" ? "ru" : "kk"];
+export const ktzhLabels = (lang: Lang | undefined) => KTZH[lang ?? "kk"];
 
 /** «1-тоқсан» → «1 четверть», «Жылдық» → «Учебный год» (орысша материалда). */
 export const periodIn = (p: string, lang: Lang | undefined) =>
-  lang === "ru" ? (p === "Жылдық" ? "Учебный год" : p.replace(/^(\d)-тоқсан$/, "$1 четверть")) : p;
+  lang === "ru"
+    ? p === "Жылдық" ? "Учебный год" : p.replace(/^(\d)-тоқсан$/, "$1 четверть")
+    : lang === "en"
+      ? p === "Жылдық" ? "Academic year" : p.replace(/^(\d)-тоқсан$/, "Term $1")
+      : p;

@@ -281,7 +281,7 @@ function kindError(error: { message: string; code?: string }): ProjectsError {
   return wrapError(error);
 }
 
-const docDetail = (d: DocData) => [d.input.grade, d.input.lang === "ru" ? tr("орысша") : ""].filter(Boolean).join(" · ");
+const docDetail = (d: DocData) => [d.input.grade, d.input.lang === "ru" ? "орысша" : d.input.lang === "en" ? "ағылшынша" : ""].filter(Boolean).join(" · ");
 
 export async function saveDocument(d: DocData): Promise<SavedDocument> {
   const { data: row, error } = await supabase

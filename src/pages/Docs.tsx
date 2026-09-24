@@ -324,7 +324,7 @@ export default function DocsPage() {
 
 function DocView({ doc }: { doc: DocData }) {
   return (
-    <article lang={doc.lang === "ru" ? "ru" : "kk"} className="animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-surface p-6 text-[15.5px] leading-relaxed sm:p-10 print:border-0 print:p-0">
+    <article lang={doc.lang} className="animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-surface p-6 text-[15.5px] leading-relaxed sm:p-10 print:border-0 print:p-0">
       <h1 className="text-center text-2xl font-bold">{doc.title}</h1>
       {doc.subtitle && <p className="mt-1 text-center text-slate-500">{doc.subtitle}</p>}
       <div className="mt-6 flex flex-col gap-5">

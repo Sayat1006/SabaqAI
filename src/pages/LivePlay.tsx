@@ -27,7 +27,10 @@ function saveSeat(code: string, seat: LiveSeat | null) {
   }
 }
 
-const guessLang = (): Lang => (navigator.language?.toLowerCase().startsWith("ru") ? "ru" : "kk");
+const guessLang = (): Lang => {
+  const l = navigator.language?.toLowerCase() ?? "";
+  return l.startsWith("ru") ? "ru" : l.startsWith("en") ? "en" : "kk";
+};
 const field = "w-full rounded-2xl border-2 border-slate-200 bg-surface px-4 py-3.5 text-center text-lg outline-none focus:border-violet-500";
 
 export default function LivePlayPage() {
@@ -136,10 +139,10 @@ export default function LivePlayPage() {
         {st ? (
           <span className="max-w-[55%] truncate rounded-full bg-surface/80 px-3 py-1.5 text-sm font-semibold">{st.name}</span>
         ) : (
-          <div className="flex rounded-full border border-slate-200 bg-surface p-0.5 text-xs font-semibold" role="group" aria-label="Тіл / Язык">
-            {(["kk", "ru"] as const).map((l) => (
+          <div className="flex rounded-full border border-slate-200 bg-surface p-0.5 text-xs font-semibold" role="group" aria-label="Тіл / Язык / Language">
+            {(["kk", "ru", "en"] as const).map((l) => (
               <button key={l} type="button" aria-pressed={lang === l} onClick={() => setLang(l)} className={`rounded-full px-3 py-1 ${lang === l ? "bg-violet-600 text-white" : "text-slate-500"}`}>
-                {l === "kk" ? "Қаз" : "Рус"}
+                {l === "kk" ? "Қаз" : l === "ru" ? "Рус" : "Eng"}
               </button>
             ))}
           </div>
@@ -286,7 +289,7 @@ export default function LivePlayPage() {
           </span>
           {st.rank !== null && (
             <span className="rounded-2xl bg-surface px-4 py-3 text-lg font-bold">
-              {st.rank}-{T.place} <span className="text-sm font-normal text-slate-500">/ {st.players}</span>
+              {T.rank(st.rank)} <span className="text-sm font-normal text-slate-500">/ {st.players}</span>
             </span>
           )}
         </div>
@@ -303,7 +306,7 @@ export default function LivePlayPage() {
       <h1 className="text-3xl font-bold">{T.finished}</h1>
       {st.rank !== null && (
         <p className="text-2xl font-bold">
-          {st.rank}-{T.place} <span className="text-base font-normal text-slate-500">/ {st.players}</span>
+          {T.rank(st.rank)} <span className="text-base font-normal text-slate-500">/ {st.players}</span>
         </p>
       )}
       <p className="text-lg">

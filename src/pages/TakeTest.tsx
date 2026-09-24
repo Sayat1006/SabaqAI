@@ -93,6 +93,47 @@ const TT = {
     right: "✓ Верно!",
     allFixed: "Молодец! Все ошибки исправлены 🎉",
   },
+  en: {
+    online: "Online test",
+    loading: "Loading the test...",
+    missing: "Test not found or closed",
+    failed: "Could not open the test",
+    missingHint: "The teacher may have stopped accepting answers. Ask your teacher for the link again.",
+    failedHint: "Check your internet and refresh the page.",
+    sent: "Your answers have been sent to the teacher!",
+    percent: (p: number) => `${p}% correct`,
+    mistakes: "Fix my mistakes",
+    next: "Next student",
+    test: "Test",
+    questions: (n: number) => `${n} questions`,
+    objective: "Learning objective",
+    name: "Your full name",
+    namePh: "e.g. Aigerim Seitova",
+    cls: "Class",
+    clsPh: "e.g. 7A",
+    answered: "Answered",
+    sending: "Sending...",
+    send: "Submit",
+    needName: "Please enter your full name.",
+    confirmEmpty: (n: number) => `${n} questions are unanswered. Submit anyway?`,
+    sendFailed: "Could not submit. Please try again.",
+    context: "Scenario",
+    advice: [
+      "Excellent! You fully reached the learning objective. Now try harder (level C) tasks.",
+      "Good result! You know the basics but made a few mistakes. Read the explanations below and fix your mistakes.",
+      "You need to revise this topic. Read the explanations carefully and solve the questions again in “Fix my mistakes”.",
+    ],
+    levels: { A: "Knowledge and understanding", B: "Application", C: "Higher-order thinking" } as Record<string, string>,
+    reviewTitle: "Answer review",
+    yourAnswer: "Your answer",
+    noAnswer: "no answer",
+    correct: "Correct answer",
+    fixed: "Fixed",
+    practiceHint: "Solve the questions you got wrong again. You can keep trying until you find the right answer — it doesn’t change your score.",
+    wrong: "Not quite. Read the question carefully and try again.",
+    right: "✓ Correct!",
+    allFixed: "Well done! You fixed all your mistakes 🎉",
+  },
 };
 type TakeText = (typeof TT)["kk"];
 
@@ -110,7 +151,7 @@ export default function TakeTestPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [practice, setPractice] = useState(false);
-  const T = TT[test?.lang === "ru" ? "ru" : "kk"];
+  const T = TT[test?.lang ?? "kk"];
 
   useEffect(() => {
     getSharedTest(code)
@@ -205,7 +246,7 @@ export default function TakeTestPage() {
           <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
             <div className="rounded-3xl border border-slate-200 bg-surface p-6">
               {test.taskType && test.taskType !== "levels" && (
-                <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{test.lang === "ru" ? testLabels("ru").types[test.taskType] : taskTypeOf(test.taskType).label}</div>
+                <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{test.lang === "ru" || test.lang === "en" ? testLabels(test.lang).types[test.taskType] : taskTypeOf(test.taskType).label}</div>
               )}
               <h1 className="text-[22px] font-bold">{T.test}: {test.topic || test.title}</h1>
               <div className="mt-1 text-slate-500">

@@ -10,7 +10,7 @@ import type { Lang } from "./lang";
 import { normalizeSlide, type SlideData } from "./slides";
 
 /** Материал тілі туралы нұсқау (AI-ға берілетін сұраныс қазақша, мазмұны — таңдалған тілде). */
-const inLang = (lang?: Lang) => (lang === "ru" ? "ОРЫС тілінде" : "қазақ тілінде");
+const inLang = (lang?: Lang) => (lang === "ru" ? "ОРЫС тілінде" : lang === "en" ? "АҒЫЛШЫН тілінде" : "қазақ тілінде");
 
 export const PRESENTATION_STYLES = [
   { key: "minimal", label: tr("Минимал") },
@@ -453,7 +453,7 @@ export async function generateWrittenTasks(input: TaskInput): Promise<WrittenTas
 - "descriptors" — 2–4 дескриптор: әрқайсысы "Білім алушы ..." деп басталып, нақты әрекетті сипаттасын.
 - "points" — тапсырманың балы (әр дескрипторға 1–2 балл).
 - "answer" — мұғалімге арналған үлгі жауап немесе бағалау нұсқаулығы.
-Барлығы ${inLang(input.lang)} (шет тілі пәні болмаса), фактілері дұрыс, сынып деңгейіне сай.${input.lang === "ru" ? ' Дескрипторлар "Обучающийся ..." деп басталсын.' : ""}`;
+Барлығы ${inLang(input.lang)} (шет тілі пәні болмаса), фактілері дұрыс, сынып деңгейіне сай.${input.lang === "ru" ? ' Дескрипторлар "Обучающийся ..." деп басталсын.' : input.lang === "en" ? ' Дескрипторлар "The learner ..." деп басталсын.' : ""}`;
   const result = await aiGenerateJson<{ tasks: Partial<WrittenTask>[] }>(prompt, writtenSchema);
   const tasks = (result.tasks ?? [])
     .filter((t) => t.text)

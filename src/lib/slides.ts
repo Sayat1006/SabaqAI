@@ -139,5 +139,6 @@ export const blankSlide = (): SlideData => normalizeSlide({ layout: "bullets", h
 export const SLIDE_TEXT = {
   kk: { lesson: "Сабақ", check: "Өзіңді тексер", task: "Тапсырма", answer: "Жауабы", showAnswer: "Жауабын көрсету", correct: "Дұрыс жауап" },
   ru: { lesson: "Урок", check: "Проверь себя", task: "Задание", answer: "Ответ", showAnswer: "Показать ответ", correct: "Правильный ответ" },
+  en: { lesson: "Lesson", check: "Check yourself", task: "Task", answer: "Answer", showAnswer: "Show answer", correct: "Correct answer" },
 } as const;
-export const slideText = (lang?: string) => SLIDE_TEXT[lang === "ru" ? "ru" : "kk"];
+export const slideText = (lang?: string) => SLIDE_TEXT[lang === "ru" || lang === "en" ? lang : "kk"];

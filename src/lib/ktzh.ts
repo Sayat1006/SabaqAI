@@ -126,7 +126,7 @@ export async function generateKtzh(input: KtzhInput): Promise<KtzhData> {
     .map((o) => `${o.code} — ${o.text}`);
   const year = input.period === "Жылдық";
   const prompt = `Сен Қазақстан мектебінің тәжірибелі мұғалімі әрі әдіскерсің. Жаңартылған білім беру мазмұны бойынша типтік оқу бағдарламасына (ТОБ/ҮОБ) сай күнтізбелік-тақырыптық жоспар (КТЖ) құрастыр.
-Пән: ${input.subject}${ru ? ` (${subjectIn(input.subject, "ru")})` : ""}; сынып: ${input.grade}; кезең: ${input.period}; аптасына ${input.hoursPerWeek} сағат; барлығы ДӘЛ ${total} сабақ (жол).
+Пән: ${input.subject}${input.lang !== "kk" ? ` (${subjectIn(input.subject, input.lang)})` : ""}; сынып: ${input.grade}; кезең: ${input.period}; аптасына ${input.hoursPerWeek} сағат; барлығы ДӘЛ ${total} сабақ (жол).
 ${known?.length ? `Анықтамалық оқу мақсаттары (бар болса қолдан):\n${known.join("\n")}\n` : ""}${input.notes.trim() ? `Мұғалімнің нұсқауы (бөлімдер, тақырыптар т.б. — міндетті түрде ескер):\n${input.notes.trim()}\n` : ""}
 ТАЛАПТАР:
 - "rows" — ДӘЛ ${total} жол, әр жол = 1 сағаттық бір сабақ, оқу бағдарламасындағы ретімен.
@@ -136,7 +136,7 @@ ${known?.length ? `Анықтамалық оқу мақсаттары (бар б
 - Әр бөлімнің соңында бір "sor" жолы — бөлім бойынша жиынтық бағалау (БЖБ), тақырыбы: «Бөлім бойынша жиынтық бағалау»${ru ? " / «Суммативное оценивание за раздел»" : ""}.
 - ${year ? "Әр тоқсанның соңында" : "Кезеңнің соңында"} бір "soch" жолы — тоқсандық жиынтық бағалау (ТЖБ), одан кейін бір "lesson" жолы — қорытынды қайталау/қатемен жұмыс.${input.hoursPerWeek <= 1 ? " Аптасына 1 сағат болса, ТЖБ болмауы мүмкін — тек БЖБ қой." : ""}
 - Қалғаны "lesson".
-${ru ? "ТІЛ: бүкіл мазмұн ОРЫС тілінде (бөлімдер, тақырыптар, мақсаттар)." : "Барлығы қазақ тілінде (шет тілі пәнінде тақырыптар сол тілде болуы мүмкін)."}`;
+${ru ? "ТІЛ: бүкіл мазмұн ОРЫС тілінде (бөлімдер, тақырыптар, мақсаттар)." : input.lang === "en" ? "ТІЛ: бүкіл мазмұн АҒЫЛШЫН тілінде (бөлімдер, тақырыптар, мақсаттар). БЖБ тақырыбы: «Summative assessment for the unit», ТЖБ: «Summative assessment for the term»." : "Барлығы қазақ тілінде (шет тілі пәнінде тақырыптар сол тілде болуы мүмкін)."}`;
   const raw = await aiGenerateJson<{ rows?: Partial<KtzhRow>[] }>(prompt, schema);
   const rows: KtzhRow[] = (raw.rows ?? [])
     .filter((r) => r.topic?.trim())
@@ -167,6 +167,6 @@ ${ru ? "ТІЛ: бүкіл мазмұн ОРЫС тілінде (бөлімде�
 
 /** Жол түрінің белгісі (материал тілінде). */
 export const kindLabel = (k: KtzhKind, lang: Lang | undefined) =>
-  k === "sor" ? (lang === "ru" ? "СОР" : "БЖБ") : k === "soch" ? (lang === "ru" ? "СОЧ" : "ТЖБ") : "";
+  k === "sor" ? (lang === "ru" ? "СОР" : lang === "en" ? "SAU" : "БЖБ") : k === "soch" ? (lang === "ru" ? "СОЧ" : lang === "en" ? "SAT" : "ТЖБ") : "";
 
 export const ktzhTotalHours = (d: KtzhData) => d.rows.reduce((s, r) => s + (r.hours || 0), 0);

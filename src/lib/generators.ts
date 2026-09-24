@@ -107,36 +107,48 @@ const VALUE_TEXTS = {
     text: "тапсырманы ұқыпты әрі тиянақты орындау, еңбекті құрметтеу және білімін кәсіби біліктілікке айналдыруға ұмтылу арқылы дарытылады.",
     ruTitle: "Трудолюбие и профессионализм",
     ruText: "прививается через аккуратное и добросовестное выполнение заданий, уважение к труду и стремление превращать знания в профессиональные навыки.",
+    enTitle: "Hard work and professionalism",
+    enText: "is fostered through careful, diligent work on tasks, respect for labour and turning knowledge into professional skills.",
   },
   independence: {
     title: "Тәуелсіздік және отаншылдық",
     text: "Отанның тарихы мен жетістіктерін құрметтеу, еліміздің дамуына өз үлесін қосуға ұмтылу арқылы дарытылады.",
     ruTitle: "Независимость и патриотизм",
     ruText: "прививается через уважение к истории и достижениям Родины, стремление внести свой вклад в развитие страны.",
+    enTitle: "Independence and patriotism",
+    enText: "is fostered through respect for the history and achievements of the Motherland and the wish to contribute to the country’s development.",
   },
   justice: {
     title: "Әділдік және жауапкершілік",
     text: "өзінің және сыныптастарының жұмысын әділ бағалау, өз әрекеті мен шешімі үшін жауапкершілік алу арқылы дарытылады.",
     ruTitle: "Справедливость и ответственность",
     ruText: "прививается через честное оценивание своей работы и работы одноклассников, ответственность за свои действия и решения.",
+    enTitle: "Justice and responsibility",
+    enText: "is fostered through fair assessment of one’s own and classmates’ work and taking responsibility for one’s actions and decisions.",
   },
   unity: {
     title: "Бірлік және ынтымақ",
     text: "жұптық және топтық жұмыста бір-бірін тыңдау, пікірді құрметтеу және ортақ нәтижеге бірге жету арқылы дарытылады.",
     ruTitle: "Единство и солидарность",
     ruText: "прививается через умение слушать друг друга в парной и групповой работе, уважать мнение других и вместе достигать общего результата.",
+    enTitle: "Unity and solidarity",
+    enText: "is fostered by listening to each other in pair and group work, respecting opinions and reaching a shared result together.",
   },
   law: {
     title: "Заң және тәртіп",
     text: "сабақ ережелері мен қауіпсіздік талаптарын сақтау, уақытты тиімді пайдалану арқылы дарытылады.",
     ruTitle: "Закон и порядок",
     ruText: "прививается через соблюдение правил урока и требований безопасности, эффективное использование времени.",
+    enTitle: "Law and order",
+    enText: "is fostered by following lesson rules and safety requirements and using time efficiently.",
   },
   creativity: {
     title: "Жасампаздық және жаңашылдық",
     text: "жаңа идеялар ұсыну, шығармашылықпен ойлау және білімін жаңа жағдаятта қолдану арқылы дарытылады.",
     ruTitle: "Созидание и новаторство",
     ruText: "прививается через выдвижение новых идей, творческое мышление и применение знаний в новой ситуации.",
+    enTitle: "Creativity and innovation",
+    enText: "is fostered by proposing new ideas, thinking creatively and applying knowledge in new situations.",
   },
 } as const;
 
@@ -161,7 +173,7 @@ export function monthlyValue(date: string, lang?: Lang): { title: string; text: 
   const m = date.match(/(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})/);
   const month = m && Number(m[2]) >= 1 && Number(m[2]) <= 12 ? Number(m[2]) : new Date().getMonth() + 1;
   const v = VALUE_TEXTS[MONTH_VALUES[month]];
-  return lang === "ru" ? { title: v.ruTitle, text: v.ruText } : { title: v.title, text: v.text };
+  return lang === "ru" ? { title: v.ruTitle, text: v.ruText } : lang === "en" ? { title: v.enTitle, text: v.enText } : { title: v.title, text: v.text };
 }
 
 function findObjective(subject: string, grade: string): { code: string; text: string } | null {
@@ -553,11 +565,12 @@ export async function generateLessonPlan(
 
   const lessonType = options.lessonType || "Аралас сабақ";
   const ru = options.lang === "ru";
+  const en = options.lang === "en";
   const value = monthlyValue(date || formatToday(), options.lang);
   const taskCount = Math.min(Math.max(options.taskCount ?? 3, 2), 5);
   const kinds = options.taskKinds?.length ? options.taskKinds : ["Жұптық жұмыс", "Топтық жұмыс", "Жеке жұмыс"];
 
-  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}"${ru ? ` (${subjectIn(subject, "ru")})` : ""} пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
+  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}"${ru || en ? ` (${subjectIn(subject, options.lang)})` : ""} пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
 Сабақ түрі: ${lessonType}.
 ${objectivesInstruction}
 ҚҰНДЫЛЫҚ: осы айдың құндылығы — «${value.title}». "valuesTitle" дәл "${value.title}" болсын; "valuesText" — осы құндылықтың дәл осы сабақта, нақты тапсырмалар арқылы қалай дарытылатынын 1–2 сөйлеммен сипатта.
@@ -579,7 +592,9 @@ ${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
 6. "planning" — ресми үлгідегі қорытынды кесте: "differentiation" (қолдау мен тереңдету қалай ұйымдастырылады), "assessment" (оқушы білімі қалай тексеріледі), "safety" (денсаулық сақтау, сергіту сәті, қауіпсіздік техникасы).
 7. "reflection" — сабақ соңындағы 3 рефлексия сұрағы; "homework" — саралап берілген үй тапсырмасы.
 ${
-    ru
+    en
+      ? `ТІЛ: жоспардың БАРЛЫҚ мазмұны АҒЫЛШЫН тілінде жазылсын (мақсаттар, кезең атаулары, әрекеттер, бағалау, тапсырмалар, кестелер, дескрипторлар, сөздік, жоспарлау кестесі, рефлексия, үй тапсырмасы). Кезең атаулары: "Beginning of the lesson", "Middle of the lesson", "End of the lesson". Мақсаттар "All learners will...", "Most learners will...", "Some learners will..." деп, дескрипторлар "The learner ..." деп басталсын. Ресурстардың "query" өрісі ағылшынша болсын.`
+      : ru
       ? `ТІЛ: жоспардың БАРЛЫҚ мазмұны ОРЫС тілінде жазылсын (мақсаттар, кезең атаулары, әрекеттер, бағалау, тапсырмалар, кестелер, дескрипторлар, сөздік, жоспарлау кестесі, рефлексия, үй тапсырмасы). Кезең атаулары: "Начало урока", "Середина урока", "Конец урока". Мақсаттар "Все учащиеся...", "Большинство учащихся...", "Некоторые учащиеся..." деп, дескрипторлар "Обучающийся ..." деп басталсын. Ресурстардың "query" өрісі орысша немесе халықаралық термин болсын. Шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін.`
       : "Барлығы тек қазақ тілінде (шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін)."
   } Фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
@@ -617,8 +632,8 @@ ${
       homework: ai.homework ?? "",
     };
   } catch (e) {
-    // Үлгі нұсқасы тек қазақша — орысша жоспарда қатені көрсетеміз.
-    if (ru) throw e;
+    // Үлгі нұсқасы тек қазақша — басқа тілдегі жоспарда қатені көрсетеміз.
+    if (ru || en) throw e;
     console.warn("ЖИ арқылы ҚМЖ жасау мүмкін болмады, үлгі нұсқасына көшірілді:", e);
     return generateLessonPlanTemplate(subject, grade, topic, duration, teacherName, date, objectivesInput);
   }
