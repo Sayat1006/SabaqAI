@@ -1,0 +1,73 @@
+/* Білім — дизайн токендері */
+:root {
+  /* Түстер */
+  --bg: #ffffff;
+  --neutral: #f3f4f6;
+  --border: #e5e7eb;
+  --text: #111827;
+  --text-2: #4b5563;
+  --text-3: #6b7280;
+  --accent: #2563eb;
+  --accent-2: #7c3aed;
+  --accent-strong: #1d4ed8;
+  --accent-2-strong: #5b21b6;
+  --tint-blue: #eff6ff;
+  --tint-violet: #f5f3ff;
+  --tint-indigo: #f5f7ff;
+  --indigo-200: #c7d2fe;
+  --violet-300: #c4b5fd;
+  --success: #059669;
+  --success-text: #047857;
+  --success-bg: #ecfdf5;
+  --danger: #dc2626;
+  --danger-text: #b91c1c;
+  --danger-bg: #fef2f2;
+  --streak: #ea580c;
+  --streak-bg: #fff7ed;
+  --disabled: #9ca3af;
+  --primary-hover: #1f2937;
+  --progress: linear-gradient(90deg, var(--accent), var(--accent-2));
+
+  /* Типография */
+  --font: 'Onest', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --fs-display: 40px;
+  --fw-display: 800;
+  --ls-display: -1.2px;
+  --fs-h1: 26px;
+  --fw-h1: 800;
+  --ls-h1: -0.6px;
+  --fs-h2: 20px;
+  --fw-h2: 800;
+  --ls-h2: -0.3px;
+  --fs-body: 15px;
+  --fw-body: 500;
+  --fs-caption: 13px;
+  --fw-caption: 500;
+  --fs-label: 12px;
+  --fw-label: 700;
+
+  /* Радиус */
+  --r-tag: 10px;
+  --r-btn: 15px;
+  --r-inner: 16px;
+  --r-block: 20px;
+  --r-card: 24px;
+  --r-card-lg: 28px;
+  --r-full: 999px;
+
+  /* Аралық (4 px торы) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-10: 40px;
+  --gutter-mobile: 20px;
+  --gutter-desktop: 40px;
+  --touch: 44px;
+
+  /* Көлеңке */
+  --shadow-hover: 0 12px 32px rgba(17, 24, 39, 0.07);
+  --shadow-tab: 0 1px 3px rgba(17, 24, 39, 0.12);
+}

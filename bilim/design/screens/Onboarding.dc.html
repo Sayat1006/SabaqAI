@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<title>Онбординг</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Onest',system-ui,sans-serif;color:#111827;background:#FFFFFF}
+a{color:#2563EB;text-decoration:none}a:hover{color:#1D4ED8}
+button{font-family:inherit}
+.cta:hover{background:#1F2937;color:#FFFFFF}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.fl{animation:fl 4s ease-in-out infinite}.fl2{animation:fl 5s ease-in-out -1.6s infinite}.fl3{animation:fl 6s ease-in-out -3.2s infinite}
+@media (prefers-reduced-motion:reduce){.fl,.fl2,.fl3{animation:none}}
+button:focus-visible,a:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="height: 60px; display: flex; align-items: center; gap: 12px; padding: 16px 20px 0">
+<sc-if value="{{hasBack}}" hint-placeholder-val="{{false}}">
+<button onClick="{{back}}" aria-label="Артқа" style="width: 44px; height: 44px; border-radius: 22px; border: 0; background: #F3F4F6; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M11 18l-6-6 6-6"></path></svg></button>
+</sc-if>
+<div style="flex-grow: 1; display: flex; gap: 4px">
+<sc-for list="{{segs}}" as="s" hint-placeholder-count="4">
+<div style="flex-grow: 1; height: 6px; border-radius: 3px; background: {{s.c}}"></div>
+</sc-for>
+</div>
+<a href="Mobile.dc.html" style="font-size: 14px; font-weight: 600; color: #4B5563; padding: 10px 0">Өткізу</a>
+</header>
+
+<sc-if value="{{s0}}" hint-placeholder-val="{{true}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; padding: 24px 20px 0">
+<div style="position: relative; height: 330px; border-radius: 28px; background: #F5F7FF; overflow: hidden">
+<div class="fl" style="position: absolute; left: 108px; top: 90px; width: 150px; height: 150px"><svg width="150" height="150" viewBox="0 0 100 100"><polygon points="50,10 88,32 50,54 12,32" fill="#E0E7FF"></polygon><polygon points="12,32 50,54 50,98 12,76" fill="{{accent}}"></polygon><polygon points="88,32 50,54 50,98 88,76" fill="{{accent2}}"></polygon></svg></div>
+<div class="fl2" style="position: absolute; left: 262px; top: 50px; width: 58px; height: 58px"><svg width="58" height="58" viewBox="0 0 40 40"><defs><radialGradient id="oSph" cx="35%" cy="30%" r="70%"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="0.4" stop-color="#C4B5FD"></stop><stop offset="1" stop-color="{{accent2}}"></stop></radialGradient></defs><circle cx="20" cy="20" r="19" fill="url(#oSph)"></circle></svg></div>
+<div class="fl3" style="position: absolute; left: 36px; top: 210px; width: 90px; height: 54px"><svg width="90" height="54" viewBox="0 0 100 60"><defs><linearGradient id="oTor" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{{accent}}"></stop><stop offset="1" stop-color="{{accent2}}"></stop></linearGradient></defs><ellipse cx="50" cy="30" rx="38" ry="14" fill="none" stroke="url(#oTor)" stroke-width="11" transform="rotate(-14 50 30)"></ellipse></svg></div>
+<div class="fl2" style="position: absolute; left: 40px; top: 60px; width: 48px; height: 48px"><svg width="48" height="48" viewBox="0 0 60 60"><polygon points="30,4 6,48 30,56" fill="#A5B4FC"></polygon><polygon points="30,4 54,48 30,56" fill="{{accent}}"></polygon></svg></div>
+</div>
+<h1 style="margin: 28px 0 0; font-size: 32px; font-weight: 800; letter-spacing: -1px; line-height: 1.15">Білімге қош келдіңіз</h1>
+<p style="margin: 10px 0 0; font-size: 16px; line-height: 1.5; color: #4B5563">ҰБТ, PISA және ББЖМ-ге күн сайын 20 минуттан дайындаламыз. Бастау үшін үш сұраққа жауап беріңіз.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{s1}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px; padding: 28px 20px 0">
+<span style="font-size: 13px; font-weight: 700; color: #4B5563">1 / 3</span>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.8px">Нешінші сыныпта оқисыз?</h1>
+<p style="margin: 0 0 12px; font-size: 15px; color: #4B5563">Сыныбыңызға қарай режимді ұсынамыз.</p>
+<div role="radiogroup" aria-label="Сынып" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{grades}}" as="g" hint-placeholder-count="8">
+<button role="radio" aria-checked="{{g.on}}" onClick="{{g.pick}}" style="height: 64px; border-radius: 18px; border: 1.5px solid {{g.bd}}; background: {{g.bg}}; color: #111827; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><span style="font-size: 20px; font-weight: 800">{{g.n}}</span><span style="font-size: 11px; font-weight: 600; color: #4B5563">сынып</span></button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{s2}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px; padding: 28px 20px 0">
+<span style="font-size: 13px; font-weight: 700; color: #4B5563">2 / 3</span>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.8px">Бейіндік пәндер</h1>
+<p style="margin: 0 0 12px; font-size: 15px; color: #4B5563">ҰБТ-да тапсыратын екі пәнді таңдаңыз. Кейін өзгертуге болады.</p>
+<div role="radiogroup" aria-label="Бейіндік пәндер" style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{pairs}}" as="p" hint-placeholder-count="5">
+<button role="radio" aria-checked="{{p.on}}" onClick="{{p.pick}}" style="display: flex; align-items: center; gap: 12px; min-height: 60px; padding: 0 16px; border-radius: 18px; border: 1.5px solid {{p.bd}}; background: {{p.bg}}; color: #111827; text-align: left; cursor: pointer">
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 700">{{p.name}}</span><span style="font-size: 12px; color: #4B5563">{{p.hint}}</span></span>
+<span style="width: 22px; height: 22px; border-radius: 11px; box-sizing: border-box; border: {{p.dot}}"></span>
+</button>
+</sc-for>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{s3}}" hint-placeholder-val="{{false}}">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px; padding: 28px 20px 0">
+<span style="font-size: 13px; font-weight: 700; color: #4B5563">3 / 3</span>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.8px">Күнделікті мақсат</h1>
+<p style="margin: 0 0 12px; font-size: 15px; color: #4B5563">Мақсатты орындасаңыз, серия жалғасады.</p>
+<div role="radiogroup" aria-label="Күнделікті мақсат" style="display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{goals}}" as="g" hint-placeholder-count="3">
+<button role="radio" aria-checked="{{g.on}}" onClick="{{g.pick}}" style="display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 16px; border-radius: 18px; border: 1.5px solid {{g.bd}}; background: {{g.bg}}; color: #111827; text-align: left; cursor: pointer">
+<span style="width: 40px; height: 40px; border-radius: 12px; background: #FFF7ED; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg></span>
+<span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 700">{{g.name}}</span><span style="font-size: 12px; color: #4B5563">{{g.time}}</span></span>
+<span style="font-size: 12px; font-weight: 700; color: #1D4ED8">{{g.tag}}</span>
+</button>
+</sc-for>
+</div>
+<div style="margin-top: 14px; padding: 14px 16px; border-radius: 18px; background: #F3F4F6; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 700; color: #4B5563">Сізге ұсынылатын режим</span>
+<span style="font-size: 16px; font-weight: 800">{{reco}}</span>
+</div>
+</div>
+</sc-if>
+
+<div style="padding: 12px 20px 24px">
+<sc-if value="{{notLast}}" hint-placeholder-val="{{true}}">
+<button class="cta" onClick="{{next}}" style="width: 100%; height: 56px; border: 0; border-radius: 18px; background: #111827; color: #FFFFFF; font-size: 16px; font-weight: 600; cursor: pointer">{{ctaLabel}}</button>
+</sc-if>
+<sc-if value="{{isLast}}" hint-placeholder-val="{{false}}">
+<a class="cta" href="Mobile.dc.html" style="height: 56px; border-radius: 18px; background: {{accent}}; color: #FFFFFF; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center">Дайынмын</a>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2563EB"},"accent2":{"editor":"color","default":"#7C3AED"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { step: 0, grade: 11, pair: 0, goal: 1 }; }
+renderVals() {
+const accent = this.props.accent ?? '#2563EB';
+const accent2 = this.props.accent2 ?? '#7C3AED';
+const s = this.state;
+const on = (b) => ({ bd: b ? accent : '#E5E7EB', bg: b ? '#EFF6FF' : '#FFFFFF', on: b ? 'true' : 'false' });
+const P = [['Математика + Физика', 'Инженерия, IT, физика'], ['Биология + Химия', 'Медицина, биотехнология'], ['Математика + Информатика', 'Бағдарламалау, деректер'], ['Дүниежүзі тарихы + Құқық негіздері', 'Құқық, халықаралық қатынас'], ['География + Шет тілі', 'Туризм, экономика']];
+const G = [['3 тапсырма', '≈ 10 минут', ''], ['5 тапсырма', '≈ 20 минут', 'Ұсынылады'], ['8 тапсырма', '≈ 35 минут', '']];
+const reco = s.grade === 4 || s.grade === 9 ? 'ББЖМ (МОДО) · ' + s.grade + '-сынып' : (s.grade >= 10 ? 'ҰБТ 2027' : 'PISA Тікелей Тренажер');
+return {
+accent,
+s0: s.step === 0, s1: s.step === 1, s2: s.step === 2, s3: s.step === 3,
+hasBack: s.step > 0, notLast: s.step < 3, isLast: s.step === 3,
+ctaLabel: s.step === 0 ? 'Бастау' : 'Жалғастыру',
+segs: [0, 1, 2, 3].map((k) => ({ c: k < s.step ? accent : (k === s.step ? accent2 : '#E5E7EB') })),
+grades: [4, 5, 6, 7, 8, 9, 10, 11].map((n) => ({ n, ...on(s.grade === n), pick: () => this.setState({ grade: n }) })),
+pairs: P.map(([name, hint], i) => ({ name, hint, ...on(s.pair === i), dot: s.pair === i ? '7px solid ' + accent : '2px solid #D1D5DB', pick: () => this.setState({ pair: i }) })),
+goals: G.map(([name, time, tag], i) => ({ name, time, tag, ...on(s.goal === i), pick: () => this.setState({ goal: i }) })),
+reco,
+next: () => this.setState({ step: s.grade < 10 && s.step === 1 ? 3 : Math.min(3, s.step + 1) }),
+back: () => this.setState({ step: s.grade < 10 && s.step === 3 ? 1 : Math.max(0, s.step - 1) })
+};
+}
+}
+</script>
+</body>
+</html>

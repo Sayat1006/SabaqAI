@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<title>Қателерді талдау</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Onest',system-ui,sans-serif;color:#111827;background:#FFFFFF}
+a{color:#2563EB;text-decoration:none}a:hover{color:#1D4ED8}
+button{font-family:inherit}
+.item:hover{border-color:#C7D2FE}
+button:focus-visible,a:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="display: flex; align-items: center; gap: 12px; padding: 16px 20px 8px">
+<a href="Result.dc.html" aria-label="Нәтижеге оралу" style="width: 44px; height: 44px; border-radius: 22px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; color: #111827"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M11 18l-6-6 6-6"></path></svg></a>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 20px; font-weight: 800">Қателерді талдау</h1>
+<span style="font-size: 12px; color: #4B5563">Сынақ ҰБТ · 112 / 140</span>
+</div>
+</header>
+
+<div role="tablist" aria-label="Сүзгі" style="margin: 8px 20px 0; display: flex; gap: 8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="height: 36px; padding: 0 14px; border-radius: 18px; border: 1.5px solid {{t.bd}}; background: {{t.bg}}; color: {{t.fg}}; font-size: 13px; font-weight: 700; cursor: pointer">{{t.label}}</button>
+</sc-for>
+</div>
+
+<div style="margin: 14px 20px 0; display: flex; flex-direction: column; gap: 10px; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-bottom: 110px">
+<sc-for list="{{items}}" as="it" hint-placeholder-count="4">
+<article class="item" style="border: 1px solid #E5E7EB; border-radius: 20px; background: #FFFFFF; flex-shrink: 0">
+<button onClick="{{it.toggle}}" aria-expanded="{{it.exp}}" style="width: 100%; border: 0; background: transparent; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; text-align: left; cursor: pointer; color: #111827">
+<span style="display: flex; align-items: center; gap: 8px; width: 100%">
+<span style="font-size: 11px; font-weight: 700; color: {{it.tagFg}}; background: {{it.tagBg}}; padding: 3px 8px; border-radius: 8px">{{it.status}}</span>
+<span style="flex-grow: 1; font-size: 12px; color: #4B5563">{{it.topic}}</span>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4B5563" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="transform: {{it.rot}}"><path d="M6 9l6 6 6-6"></path></svg>
+</span>
+<span style="font-size: 15px; font-weight: 700; line-height: 1.4">{{it.q}}</span>
+</button>
+<sc-if value="{{it.open}}" hint-placeholder-val="{{false}}">
+<div style="padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px">
+<div style="padding: 10px 12px; border-radius: 14px; background: {{it.yourBg}}; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; font-weight: 600; color: #4B5563">Сіздің жауап</span><span style="font-size: 15px; font-weight: 800; color: {{it.yourFg}}">{{it.your}}</span></div>
+<div style="padding: 10px 12px; border-radius: 14px; background: #ECFDF5; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 11px; font-weight: 600; color: #4B5563">Дұрыс жауап</span><span style="font-size: 15px; font-weight: 800; color: #047857">{{it.right}}</span></div>
+</div>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: #374151">{{it.why}}</p>
+<div style="display: flex; gap: 8px">
+<a href="Test.dc.html" style="flex-grow: 1; height: 44px; border-radius: 14px; background: #111827; color: #FFFFFF; font-size: 14px; font-weight: 600; display: flex; align-items: center; justify-content: center">Ұқсас тапсырма</a>
+<button onClick="{{it.save}}" aria-pressed="{{it.savedStr}}" style="height: 44px; padding: 0 14px; border-radius: 14px; border: 0; background: {{it.saveBg}}; color: {{it.saveFg}}; font-size: 14px; font-weight: 600; cursor: pointer">{{it.saveLabel}}</button>
+</div>
+</div>
+</sc-if>
+</article>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 20px 24px; background: #FFFFFF; border-top: 1px solid #F3F4F6; display: flex; align-items: center; gap: 12px">
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 700">Қайталау тізімі: {{savedCount}}</span><span style="font-size: 12px; color: #4B5563">Ертеңгі мақсатқа қосылады</span></div>
+<a href="Unt.dc.html" style="height: 52px; padding: 0 18px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center">Жаттығу</a>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2563EB"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 0, open: 0, saved: [0] }; }
+renderVals() {
+const accent = this.props.accent ?? '#2563EB';
+const s = this.state;
+const Q = [
+{ topic: 'Математика · Тригонометрия', q: 'sin 30° + cos 60° өрнегінің мәні неге тең?', your: '0,5', right: '1', why: 'sin 30° = 0,5 және cos 60° = 0,5. Қосындысы 0,5 + 0,5 = 1.', wrong: true, flag: false },
+{ topic: 'Физика · Электр тогы', q: 'Кедергісі 4 Ом өткізгіштен 2 А ток өтеді. Өткізгіштегі кернеу қанша?', your: '2 В', right: '8 В', why: 'Ом заңы: U = I · R = 2 А · 4 Ом = 8 В. Бөлу емес, көбейту керек.', wrong: true, flag: true },
+{ topic: 'Қазақстан тарихы · Қазақ хандығы', q: 'Қазақ хандығының негізін қалаған хандар кімдер?', your: 'Абылай, Кенесары', right: 'Керей, Жәнібек', why: 'Қазақ хандығын XV ғасырдың ортасында Керей мен Жәнібек сұлтандар құрды.', wrong: true, flag: false },
+{ topic: 'Математика · Логарифм', q: 'log₂ 32 өрнегінің мәні неге тең?', your: '6', right: '5', why: '2⁵ = 32, сондықтан log₂ 32 = 5.', wrong: true, flag: false },
+{ topic: 'Физика · Механика', q: 'Жер бетіндегі еркін түсу үдеуі шамамен неге тең?', your: '9,8 м/с²', right: '9,8 м/с²', why: 'Жауап дұрыс. Сұрақ күмән ретінде белгіленген, сондықтан тізімде тұр.', wrong: false, flag: true }
+];
+const keep = Q.map((q, i) => ({ q, i })).filter(({ q }) => s.tab === 0 || (s.tab === 1 && q.wrong) || (s.tab === 2 && q.flag));
+const counts = [Q.length, Q.filter((q) => q.wrong).length, Q.filter((q) => q.flag).length];
+return {
+accent,
+tabs: ['Барлығы', 'Қате', 'Белгіленген'].map((l, i) => ({ label: l + ' ' + counts[i], sel: i === s.tab ? 'true' : 'false', bd: i === s.tab ? '#111827' : '#E5E7EB', bg: i === s.tab ? '#111827' : '#FFFFFF', fg: i === s.tab ? '#FFFFFF' : '#111827', pick: () => this.setState({ tab: i }) })),
+items: keep.map(({ q, i }) => {
+const open = s.open === i, saved = s.saved.includes(i);
+return { ...q, open, exp: open ? 'true' : 'false', rot: open ? 'rotate(180deg)' : 'none',
+status: q.wrong ? 'Қате' : 'Белгіленген', tagBg: q.wrong ? '#FEF2F2' : '#FFF7ED', tagFg: q.wrong ? '#B91C1C' : '#C2410C',
+yourBg: q.wrong ? '#FEF2F2' : '#ECFDF5', yourFg: q.wrong ? '#B91C1C' : '#047857',
+saveLabel: saved ? 'Қосылды' : 'Қайталауға', savedStr: saved ? 'true' : 'false', saveBg: saved ? '#EFF6FF' : '#F3F4F6', saveFg: saved ? '#1D4ED8' : '#111827',
+toggle: () => this.setState({ open: open ? -1 : i }),
+save: () => this.setState({ saved: saved ? s.saved.filter((x) => x !== i) : [...s.saved, i] }) };
+}),
+savedCount: s.saved.length
+};
+}
+}
+</script>
+</body>
+</html>

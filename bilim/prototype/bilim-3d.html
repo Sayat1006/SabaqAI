@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Білім 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#FFFFFF; --neutral:#F3F4F6; --border:#E5E7EB; --text:#111827; --text2:#4B5563;
+  --accent:#2563EB; --accent2:#7C3AED; --tint-b:#EFF6FF; --tint-v:#F5F3FF; --tint-i:#F5F7FF;
+  --streak:#EA580C;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;font-size:15px;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1280px;margin:0 auto;padding-inline:40px}
+header.top{border-bottom:1px solid var(--neutral)}
+.bar{height:72px;display:flex;align-items:center;gap:32px}
+.logo{display:flex;align-items:center;gap:10px;color:var(--text);font-size:21px;font-weight:800;letter-spacing:-.4px}
+.logo i{width:36px;height:36px;border-radius:11px;background:var(--text);display:grid;place-items:center}
+nav.links{display:flex;gap:28px;flex:1}
+nav.links a{color:var(--text2);font-weight:600}
+nav.links a[aria-current]{color:var(--text);font-weight:700}
+.meta{display:flex;align-items:center;gap:10px}
+.pill{display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border-radius:20px;background:var(--neutral);font-weight:700;font-variant-numeric:tabular-nums}
+.icon-btn{width:44px;height:44px;border-radius:22px;border:0;background:var(--neutral);display:grid;place-items:center;cursor:pointer}
+.avatar{width:44px;height:44px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 2px #C4B5FD;background:#EDE9FE;color:#5B21B6;font-weight:700;display:grid;place-items:center}
+main{padding-block:40px 56px;display:flex;flex-direction:column;gap:36px}
+.hello{display:flex;align-items:center;justify-content:space-between;gap:32px;flex-wrap:wrap}
+.hello h1{margin:0;font-size:40px;font-weight:800;letter-spacing:-1.2px;line-height:1.1;text-wrap:balance}
+.hello p{margin:8px 0 0;color:var(--text2);font-size:17px}
+.goal{width:440px;max-width:100%;padding:18px 20px;background:var(--neutral);border-radius:22px;display:flex;align-items:center;gap:16px}
+.ring{position:relative;width:60px;height:60px;flex-shrink:0}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:14px}
+.goal .t{flex:1;display:flex;flex-direction:column;gap:7px}
+.goal .row{display:flex;justify-content:space-between;align-items:baseline}
+.goal .row span:first-child{font-weight:700;font-size:16px}
+.goal small{font-size:13px;color:var(--text2)}
+.segs{display:flex;gap:4px}.segs i{flex:1;height:6px;border-radius:3px;background:var(--border)}
+.segs i.a{background:var(--accent)}.segs i.b{background:var(--accent2)}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between}
+.sec-h h2{margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.card{border:1px solid var(--border);border-radius:28px;padding:14px;display:flex;flex-direction:column;background:var(--bg);transition:border-color .2s,box-shadow .2s,transform .2s}
+.card:hover{border-color:#C7D2FE;box-shadow:0 12px 32px rgba(17,24,39,.07);transform:translateY(-2px)}
+.stage{position:relative;height:240px;border-radius:20px;overflow:hidden;touch-action:none;cursor:grab}
+.stage:active{cursor:grabbing}
+.stage canvas{display:block;width:100%;height:100%}
+.stage .tag{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:5px;height:26px;padding:0 10px;border-radius:13px;background:#fff;font-size:11px;font-weight:700;pointer-events:none}
+.stage .hint{position:absolute;right:12px;bottom:12px;font-size:11px;font-weight:600;color:var(--text2);background:rgba(255,255,255,.88);padding:4px 9px;border-radius:10px;pointer-events:none}
+.stage .val{position:absolute;right:12px;top:12px;padding:8px 10px;border-radius:12px;background:#fff;border:1px solid #DBEAFE;display:flex;flex-direction:column;gap:2px;pointer-events:none;font-variant-numeric:tabular-nums}
+.stage .val span{font-size:10px;font-weight:600;color:var(--text2)}.stage .val b{font-size:16px}
+.stage .fallback{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;font-size:13px;color:var(--text2)}
+.body{padding:18px 8px 4px;display:flex;flex-direction:column;gap:10px;flex:1}
+.body .h{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.body h3{margin:0;font-size:24px;font-weight:800;letter-spacing:-.6px;text-wrap:balance}
+.chip{font-size:12px;font-weight:600;padding:5px 10px;border-radius:10px;white-space:nowrap}
+.body p{margin:0;font-size:14px;line-height:1.45;color:var(--text2)}
+.prog{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:6px}
+.prog .row{display:flex;justify-content:space-between;font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.prog .row span:first-child{color:var(--text2)}
+.track{height:8px;border-radius:4px;background:var(--neutral);overflow:hidden}.track i{display:block;height:100%;border-radius:4px}
+.cta{margin-top:6px;height:48px;border-radius:15px;background:var(--text);color:#fff;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px}
+.cta:hover{background:#1F2937}
+.note{font-size:13px;color:var(--text2)}
+@media (max-width:1023px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}nav.links{display:none}}
+@media (max-width:640px){
+  .wrap{padding-inline:16px}.bar{gap:12px}.pill .lbl{display:none}.icon-btn{display:none}
+  .hello h1{font-size:30px}.grid{grid-template-columns:1fr}.stage{height:220px}
+}
+@media (prefers-reduced-motion:reduce){.card,.card:hover{transition:none;transform:none}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap bar">
+    <a class="logo" href="#"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5"/><path d="M12 12v10"/></svg></i>Білім</a>
+    <nav class="links" aria-label="Негізгі мәзір"><a href="#" aria-current="page">Басты</a><a href="#">Сабақтар</a><a href="#">Рейтинг</a><a href="#">Кітапхана</a></nav>
+    <div class="meta" style="margin-left:auto">
+      <div class="pill" aria-label="Күнделікті серия: 12 күн"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EA580C" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>12<span class="lbl" style="margin-left:-4px">күн</span></div>
+      <div class="pill" aria-label="Жалпы ұпай: 2 450"><svg width="18" height="18" viewBox="0 0 24 24" fill="#7C3AED"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>2 450<span class="lbl" style="margin-left:-4px">ұпай</span></div>
+      <button class="icon-btn" aria-label="Хабарламалар"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+      <a class="avatar" href="#" aria-label="Профиль">СА</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hello">
+    <div><h1>Қайырлы күн, Саят</h1><p>Бүгін қай режимнен бастаймыз?</p></div>
+    <section class="goal" aria-label="Бүгінгі мақсат">
+      <div class="ring"><svg width="60" height="60" viewBox="0 0 56 56"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2563EB"/><stop offset="1" stop-color="#7C3AED"/></linearGradient></defs><circle cx="28" cy="28" r="24" fill="none" stroke="#E5E7EB" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="url(#g)" stroke-width="6" stroke-linecap="round" stroke-dasharray="90.5 150.8" transform="rotate(-90 28 28)"/></svg><b>60%</b></div>
+      <div class="t"><div class="row"><span>Бүгінгі мақсат</span><small>3 / 5</small></div><small>Тағы 2 тапсырма — серияны сақтаңыз</small><div class="segs"><i class="a"></i><i class="a"></i><i class="b"></i><i></i><i></i></div></div>
+    </section>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div class="sec-h"><h2>Режимдер</h2><span class="note">Нысандарды сүйреп айналдырыңыз</span></div>
+    <div class="grid">
+      <article class="card">
+        <div class="stage" id="s-geo" style="background:var(--tint-i)" aria-label="3D геометриялық пішіндер, сүйреп айналдыруға болады">
+          <span class="tag" style="color:#4338CA;border:1px dashed #A5B4FC">3D · Геометрия</span>
+          <span class="hint">Сүйреп айналдырыңыз</span>
+        </div>
+        <div class="body">
+          <div class="h"><h3>ҰБТ 2027</h3><span class="chip" style="color:#1D4ED8;background:var(--tint-b)">Негізгі</span></div>
+          <p>Ұлттық бірыңғай тестілеу: міндетті және бейіндік пәндер бойынша толық дайындық</p>
+          <div class="prog"><div class="row"><span>Дайындық · 12 / 40 сынақ</span><span>64%</span></div><div class="track" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100"><i style="width:64%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></i></div></div>
+          <a class="cta" href="#">Жалғастыру →</a>
+        </div>
+      </article>
+      <article class="card">
+        <div class="stage" id="s-atom" style="background:var(--tint-v)" aria-label="3D атом моделі, басқанда электрондар жылдамдайды">
+          <span class="tag" style="color:#5B21B6;border:1px dashed #C4B5FD">3D · Молекула</span>
+          <span class="hint" id="atom-hint">Атомды басыңыз</span>
+        </div>
+        <div class="body">
+          <div class="h"><h3>PISA Тікелей Тренажер</h3></div>
+          <p>Математикалық, оқу және жаратылыстану сауаттылығы бойынша өмірлік жағдаяттар</p>
+          <div class="prog"><div class="row"><span>Модуль · 5 / 13</span><span>38%</span></div><div class="track" role="progressbar" aria-valuenow="38" aria-valuemin="0" aria-valuemax="100"><i style="width:38%;background:var(--accent2)"></i></div></div>
+          <a class="cta" href="#">Жалғастыру →</a>
+        </div>
+      </article>
+      <article class="card">
+        <div class="stage" id="s-chart" style="background:var(--tint-b)" aria-label="3D бағанды диаграмма, бағанды басқанда мәні көрсетіледі">
+          <span class="tag" style="color:#1D4ED8;border:1px dashed #93C5FD">3D · Диаграмма</span>
+          <div class="val" id="chart-val"><span id="chart-lbl">Оқу</span><b id="chart-num">61%</b></div>
+          <span class="hint">Бағанды басыңыз</span>
+        </div>
+        <div class="body">
+          <div class="h"><h3>ББЖМ (МОДО)</h3><span class="chip" style="color:#5B21B6;background:var(--tint-v)">Мониторинг</span></div>
+          <p>Білім алушылардың білім жетістіктерін мониторингілеу форматындағы тестілер</p>
+          <div class="prog"><div class="row"><span>Тақырып · 3 / 14</span><span>22%</span></div><div class="track" role="progressbar" aria-valuenow="22" aria-valuemin="0" aria-valuemax="100"><i style="width:22%;background:var(--accent)"></i></div></div>
+          <a class="cta" href="#">Бастау →</a>
+        </div>
+      </article>
+    </div>
+    <p class="note">Прототип: барлық сандар мысал ретінде берілген.</p>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const C = { accent:0x2563EB, accent2:0x7C3AED, indigo:0x6366F1, lilac:0xC4B5FD, pale:0xC7D2FE };
+  function noGL(el){ const d=document.createElement('div'); d.className='fallback'; d.textContent='3D жүктелмеді. Бетті жаңартып көріңіз.'; el.appendChild(d); }
+  if (!window.THREE) { document.querySelectorAll('.stage').forEach(noGL); return; }
+
+  function makeStage(id, setup){
+    const el = document.getElementById(id);
+    let renderer;
+    try { renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true }); } catch(e){ noGL(el); return; }
+    renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    el.prepend(renderer.domElement);
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 100);
+    camera.position.set(0, 1.2, 9); camera.lookAt(0,0,0);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.75));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.9); dl.position.set(4,6,5); scene.add(dl);
+    const root = new THREE.Group(); scene.add(root);
+    const api = setup(scene, root, camera, el) || {};
+    // drag to rotate
+    let drag=false, px=0, py=0, vx=0, vy=0, moved=0;
+    el.addEventListener('pointerdown', e=>{ drag=true; moved=0; px=e.clientX; py=e.clientY; el.setPointerCapture(e.pointerId); });
+    el.addEventListener('pointermove', e=>{ if(!drag) return; const dx=e.clientX-px, dy=e.clientY-py; moved+=Math.abs(dx)+Math.abs(dy); px=e.clientX; py=e.clientY; vy=dx*0.01; vx=dy*0.006; root.rotation.y+=vy; root.rotation.x=Math.max(-0.6,Math.min(0.6,root.rotation.x+vx)); });
+    el.addEventListener('pointerup', e=>{ drag=false; if(moved<6 && api.tap){ const r=el.getBoundingClientRect(); api.tap(new THREE.Vector2(((e.clientX-r.left)/r.width)*2-1, -((e.clientY-r.top)/r.height)*2+1), camera); } });
+    function resize(){ const w=el.clientWidth, h=el.clientHeight; if(!w||!h) return; renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix(); }
+    new ResizeObserver(resize).observe(el); resize();
+    let visible=true;
+    new IntersectionObserver(es=>{ visible=es[0].isIntersecting; }).observe(el);
+    const clock = new THREE.Clock();
+    (function loop(){
+      requestAnimationFrame(loop);
+      if(!visible) return;
+      const t = clock.getElapsedTime(), dt = Math.min(clock.getDelta ? 0.016 : 0.016, 0.05);
+      if(!drag){ vy*=0.94; root.rotation.y += reduce ? 0 : (0.0025 + vy); }
+      if(api.update) api.update(reduce ? 0 : t, dt);
+      renderer.render(scene, camera);
+    })();
+  }
+  const mat = (c, o={}) => new THREE.MeshStandardMaterial(Object.assign({ color:c, roughness:.45, metalness:.05 }, o));
+
+  // 1. Geometry
+  makeStage('s-geo', (scene, root)=>{
+    const items = [];
+    const add = (mesh, x, y, z, sp, ph) => { mesh.position.set(x,y,z); root.add(mesh); items.push({ m:mesh, y, sp, ph }); };
+    add(new THREE.Mesh(new THREE.BoxGeometry(1.7,1.7,1.7), mat(C.accent)), -0.3, 0, 0, 0.9, 0);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.62, 48, 32), mat(C.accent2, { roughness:.3 })), 1.9, 1.1, -0.4, 1.1, 1.3);
+    add(new THREE.Mesh(new THREE.TorusGeometry(0.62, 0.2, 24, 64), mat(C.indigo)), 1.8, -1.0, 0.6, 0.8, 2.4);
+    add(new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.1, 4), mat(C.pale)), -2.4, 0.9, 0.2, 1.0, 3.1);
+    add(new THREE.Mesh(new THREE.OctahedronGeometry(0.35), mat(0xffffff, { roughness:.2 })), -2.1, -1.1, 0.8, 1.3, 4.0);
+    return { update(t){ items.forEach((it,i)=>{ it.m.position.y = it.y + Math.sin(t*it.sp + it.ph)*0.18; it.m.rotation.x = t*0.3*(i%2?1:-1); it.m.rotation.z = t*0.2; }); } };
+  });
+
+  // 2. Atom
+  makeStage('s-atom', (scene, root, camera, el)=>{
+    const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.55, 48, 32), mat(C.accent2, { roughness:.3 }));
+    root.add(nucleus);
+    const orbits = [];
+    [[0,0],[Math.PI/3,0.3],[-Math.PI/3,-0.3]].forEach(([rz, rx], i)=>{
+      const g = new THREE.Group(); g.rotation.z = rz; g.rotation.x = Math.PI/2.4 + rx; root.add(g);
+      g.add(new THREE.Mesh(new THREE.TorusGeometry(2.1, 0.025, 8, 128), new THREE.MeshBasicMaterial({ color:C.lilac })));
+      const e = new THREE.Mesh(new THREE.SphereGeometry(0.16, 24, 16), mat(C.accent)); g.add(e);
+      orbits.push({ e, ph:i*2.1 });
+    });
+    let speed = 1, phase = 0, last = 0;
+    const hint = document.getElementById('atom-hint');
+    return {
+      update(t){ const d = t-last; last=t; phase += d*speed*1.6; speed += (1-speed)*0.02; orbits.forEach(o=>{ o.e.position.set(Math.cos(phase+o.ph)*2.1, Math.sin(phase+o.ph)*2.1, 0); }); nucleus.scale.setScalar(1 + Math.sin(t*2)*0.03); },
+      tap(){ speed = 6; hint.textContent = 'Энергия берілді!'; setTimeout(()=>hint.textContent='Атомды басыңыз', 1400); }
+    };
+  });
+
+  // 3. Chart
+  makeStage('s-chart', (scene, root)=>{
+    const data = [['Математика',48],['Жаратылыстану',36],['Оқу',61],['Тарих',72]];
+    const bars = [];
+    const base = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.12, 2), mat(0xffffff)); base.position.y = -1.6; root.add(base);
+    data.forEach(([n,v], i)=>{
+      const h = v/100*3.4;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.8, h, 0.8), mat(C.pale));
+      m.position.set(-1.8 + i*1.2, -1.54 + h/2, 0); m.userData = { n, v, h }; root.add(m); bars.push(m);
+    });
+    const lbl = document.getElementById('chart-lbl'), num = document.getElementById('chart-num');
+    let sel = 2;
+    function pick(i){ sel=i; bars.forEach((b,k)=>b.material.color.setHex(k===i ? C.accent2 : (k===3?C.accent:C.pale))); lbl.textContent = bars[i].userData.n; num.textContent = bars[i].userData.v + '%'; }
+    pick(2);
+    const ray = new THREE.Raycaster();
+    return {
+      update(t){ bars.forEach((b,i)=>{ const s = 1 + (i===sel ? 0.04*Math.sin(t*3) : 0); b.scale.set(s,1,s); }); },
+      tap(p, cam){ ray.setFromCamera(p, cam); const hit = ray.intersectObjects(bars)[0]; if(hit) pick(bars.indexOf(hit.object)); }
+    };
+  });
+})();
+</script>
+</body>
+</html>

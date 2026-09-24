@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<title>PISA Тікелей Тренажер — тапсырма</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Onest',system-ui,sans-serif;color:#111827;background:#FFFFFF}
+a{color:#2563EB;text-decoration:none}a:hover{color:#1D4ED8}
+button{font-family:inherit}
+.cta:hover{background:#1F2937;color:#FFFFFF}
+button:focus-visible,a:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="display: flex; align-items: center; gap: 12px; padding: 16px 20px 8px">
+<a href="Mobile.dc.html" aria-label="Артқа" style="width: 44px; height: 44px; border-radius: 22px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; color: #111827"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"></path><path d="M11 18l-6-6 6-6"></path></svg></a>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; color: #4B5563">PISA Тікелей Тренажер</span>
+<span style="font-size: 16px; font-weight: 800">Бірлік 5 / 13 · «Су шығыны»</span>
+</div>
+</header>
+
+<div role="tablist" aria-label="Сауаттылық түрі" style="margin: 8px 20px 0; padding: 4px; border-radius: 16px; background: #F3F4F6; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+<button role="tab" aria-selected="{{t.sel}}" onClick="{{t.pick}}" style="height: 40px; border: 0; border-radius: 12px; background: {{t.bg}}; color: {{t.fg}}; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: {{t.sh}}">{{t.label}}</button>
+</sc-for>
+</div>
+
+<section style="margin: 14px 20px 0; padding: 16px; border: 1px solid #E5E7EB; border-radius: 22px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; justify-content: space-between; align-items: baseline">
+<span style="font-size: 14px; font-weight: 700">Отбасының айлық су шығыны, м³</span>
+<span style="font-size: 12px; color: #4B5563">Бағанды басыңыз</span>
+</div>
+<div style="height: 132px; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; align-items: end">
+<sc-for list="{{bars}}" as="b" hint-placeholder-count="6">
+<button onClick="{{b.pick}}" aria-label="{{b.aria}}" style="height: 132px; border: 0; padding: 0; background: transparent; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; cursor: pointer">
+<span style="font-size: 12px; font-weight: 800; color: {{b.vc}}">{{b.v}}</span>
+<span style="width: 100%; height: {{b.h}}; border-radius: 8px 8px 4px 4px; background: {{b.c}}"></span>
+</button>
+</sc-for>
+</div>
+<div style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; text-align: center; font-size: 12px; color: #4B5563">
+<span>Қаң</span><span>Ақп</span><span>Нау</span><span>Сәу</span><span>Мам</span><span>Мау</span>
+</div>
+</section>
+
+<p style="margin: 16px 20px 0; font-size: 17px; font-weight: 700; line-height: 1.4">Мамырдан маусымға дейін су шығыны шамамен неше пайызға өсті?</p>
+
+<div role="radiogroup" aria-label="Жауап нұсқалары" style="margin: 12px 20px 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+<button role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="height: 52px; border-radius: 16px; border: 1.5px solid {{o.bd}}; background: {{o.bg}}; color: #111827; font-size: 16px; font-weight: 700; cursor: pointer">{{o.text}}</button>
+</sc-for>
+</div>
+
+<sc-if value="{{checked}}" hint-placeholder-val="{{false}}">
+<div style="margin: 12px 20px 0; padding: 12px 14px; border-radius: 16px; background: {{fbBg}}; font-size: 13px; line-height: 1.45; color: #374151"><b style="color: {{fbC}}">{{fbTitle}}</b> (17 − 14) : 14 ≈ 0,21, яғни шамамен 21%.</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 20px 24px; background: #FFFFFF; border-top: 1px solid #F3F4F6; display: flex; gap: 10px">
+<sc-if value="{{notChecked}}" hint-placeholder-val="{{true}}">
+<button class="cta" onClick="{{check}}" disabled="{{noSel}}" style="flex-grow: 1; height: 52px; border: 0; border-radius: 16px; background: {{checkBg}}; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">Жауапты тексеру</button>
+</sc-if>
+<sc-if value="{{checked}}" hint-placeholder-val="{{false}}">
+<a class="cta" href="Mobile.dc.html" style="flex-grow: 1; height: 52px; border-radius: 16px; background: #111827; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Келесі бірлік</a>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2563EB"},"accent2":{"editor":"color","default":"#7C3AED"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { tab: 0, bar: 5, sel: null, checked: false }; }
+renderVals() {
+const accent = this.props.accent ?? '#2563EB';
+const accent2 = this.props.accent2 ?? '#7C3AED';
+const s = this.state;
+const V = [9, 8, 10, 11, 14, 17];
+const M = ['Қаңтар', 'Ақпан', 'Наурыз', 'Сәуір', 'Мамыр', 'Маусым'];
+const O = ['3%', '17%', '≈ 21%', '30%'];
+const ok = 2, good = s.checked && s.sel === ok;
+return {
+tabs: ['Математика', 'Оқу', 'Жаратылыстану'].map((label, i) => ({ label, sel: i === s.tab ? 'true' : 'false', bg: i === s.tab ? '#FFFFFF' : 'transparent', fg: i === s.tab ? '#111827' : '#4B5563', sh: i === s.tab ? '0 1px 3px rgba(17,24,39,.12)' : 'none', pick: () => this.setState({ tab: i }) })),
+bars: V.map((v, i) => ({ v, aria: M[i] + ': ' + v + ' м³', h: Math.round(v * 6.2) + 'px', c: i === s.bar ? accent2 : (i >= 4 ? accent : '#C7D2FE'), vc: i === s.bar ? '#5B21B6' : '#4B5563', pick: () => this.setState({ bar: i }) })),
+opts: O.map((t, k) => {
+let bd = '#E5E7EB', bg = '#FFFFFF';
+if (!s.checked && s.sel === k) { bd = accent; bg = '#EFF6FF'; }
+if (s.checked && k === ok) { bd = '#059669'; bg = '#ECFDF5'; }
+if (s.checked && s.sel === k && k !== ok) { bd = '#DC2626'; bg = '#FEF2F2'; }
+return { text: t, bd, bg, checked: s.sel === k ? 'true' : 'false', pick: () => { if (!s.checked) this.setState({ sel: k }); } };
+}),
+checked: s.checked, notChecked: !s.checked,
+noSel: s.sel === null, checkBg: s.sel === null ? '#9CA3AF' : '#111827',
+check: () => { if (s.sel !== null) this.setState({ checked: true }); },
+fbBg: good ? '#ECFDF5' : '#FEF2F2', fbC: good ? '#047857' : '#B91C1C', fbTitle: good ? 'Дұрыс!' : 'Қате.'
+};
+}
+}
+</script>
+</body>
+</html>

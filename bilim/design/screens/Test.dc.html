@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="kk">
+<head>
+<meta charset="utf-8">
+<title>ҰБТ сынақ тесті</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;font-family:'Onest',system-ui,sans-serif;color:#111827;background:#FFFFFF}
+a{color:#2563EB;text-decoration:none}a:hover{color:#1D4ED8}
+button{font-family:inherit}
+.opt{transition:border-color .15s,background .15s}
+.cta:hover{background:#1F2937;color:#FFFFFF}
+button:disabled{cursor:not-allowed}
+button:focus-visible,a:focus-visible{outline:2px solid #2563EB;outline-offset:2px}
+</style>
+</helmet>
+<div style="width: 390px; height: 844px; position: relative; overflow: hidden; background: #FFFFFF; display: flex; flex-direction: column; box-sizing: border-box">
+
+<header style="display: flex; align-items: center; gap: 12px; padding: 16px 20px 8px">
+<a href="Unt.dc.html" aria-label="Тестті жабу" style="width: 44px; height: 44px; border-radius: 22px; background: #F3F4F6; display: flex; align-items: center; justify-content: center; color: #111827"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg></a>
+<div style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; color: #4B5563">Математикалық сауаттылық</span>
+<span style="font-size: 16px; font-weight: 800">Сұрақ {{num}} / 10</span>
+</div>
+<div aria-label="Қалған уақыт" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; background: #F3F4F6; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2 2"></path><path d="M9 2h6"></path></svg>{{clock}}</div>
+</header>
+
+<div style="display: flex; gap: 4px; padding: 8px 20px 0">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="10">
+<div style="flex-grow: 1; height: 6px; border-radius: 3px; background: {{d.c}}"></div>
+</sc-for>
+</div>
+
+<section style="margin: 20px 20px 0; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 12px; font-weight: 600; color: #5B21B6; background: #F5F3FF; padding: 5px 10px; border-radius: 10px">Жаттығу режимі</span>
+<button onClick="{{toggleFlag}}" aria-pressed="{{flagStr}}" style="display: flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px; border-radius: 18px; border: 1px solid #E5E7EB; background: {{flagBg}}; color: #111827; font-size: 13px; font-weight: 600; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="{{flagFill}}" stroke="#EA580C" stroke-width="2" stroke-linejoin="round"><path d="M4 22V4a1 1 0 0 1 1-1h12l-2 5 2 5H5"></path></svg>Белгілеу</button>
+</div>
+<p style="margin: 0; font-size: 19px; font-weight: 700; line-height: 1.4; letter-spacing: -0.2px">{{q.text}}</p>
+</section>
+
+<div role="radiogroup" aria-label="Жауап нұсқалары" style="margin: 18px 20px 0; display: flex; flex-direction: column; gap: 10px">
+<sc-for list="{{opts}}" as="o" hint-placeholder-count="4">
+<button class="opt" role="radio" aria-checked="{{o.checked}}" onClick="{{o.pick}}" style="display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 0 14px; border-radius: 16px; border: 1.5px solid {{o.bd}}; background: {{o.bg}}; text-align: left; cursor: pointer; color: #111827">
+<span style="flex-shrink: 0; width: 30px; height: 30px; border-radius: 10px; background: {{o.kb}}; color: {{o.kf}}; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{o.key}}</span>
+<span style="flex-grow: 1; font-size: 16px; font-weight: 600">{{o.text}}</span>
+<span style="font-size: 12px; font-weight: 700; color: {{o.tagC}}">{{o.tag}}</span>
+</button>
+</sc-for>
+</div>
+
+<sc-if value="{{checked}}" hint-placeholder-val="{{false}}">
+<div style="margin: 16px 20px 0; padding: 14px 16px; border-radius: 16px; background: {{fbBg}}; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 15px; font-weight: 800; color: {{fbC}}">{{fbTitle}}</span>
+<span style="font-size: 13px; line-height: 1.45; color: #374151">{{q.why}}</span>
+</div>
+</sc-if>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 20px 24px; background: #FFFFFF; border-top: 1px solid #F3F4F6; display: flex; gap: 10px">
+<sc-if value="{{showCheck}}" hint-placeholder-val="{{true}}">
+<button class="cta" onClick="{{check}}" disabled="{{noSel}}" style="flex-grow: 1; height: 52px; border: 0; border-radius: 16px; background: {{checkBg}}; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">Тексеру</button>
+</sc-if>
+<sc-if value="{{showNext}}" hint-placeholder-val="{{false}}">
+<button class="cta" onClick="{{next}}" style="flex-grow: 1; height: 52px; border: 0; border-radius: 16px; background: #111827; color: #FFFFFF; font-size: 15px; font-weight: 600; cursor: pointer">Келесі сұрақ</button>
+</sc-if>
+<sc-if value="{{showFinish}}" hint-placeholder-val="{{false}}">
+<a class="cta" href="Result.dc.html" style="flex-grow: 1; height: 52px; border-radius: 16px; background: {{accent}}; color: #FFFFFF; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center">Нәтижені көру</a>
+</sc-if>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#2563EB"},"accent2":{"editor":"color","default":"#7C3AED"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+constructor(props) { super(props); this.state = { i: 0, sel: null, checked: false, flag: false, left: 13335, done: [] }; }
+componentDidMount() { this.t = setInterval(() => this.setState({ left: Math.max(0, this.state.left - 1) }), 1000); }
+componentWillUnmount() { clearInterval(this.t); }
+renderVals() {
+const accent = this.props.accent ?? '#2563EB';
+const accent2 = this.props.accent2 ?? '#7C3AED';
+const Q = [
+{ text: 'Кітаптың бағасы 4 000 ₸. Дүкен 15% жеңілдік жасады. Кітап енді неше теңге тұрады?', opts: ['3 400 ₸', '3 600 ₸', '3 850 ₸', '600 ₸'], ok: 0, why: '4 000 × 0,15 = 600 ₸ жеңілдік. 4 000 − 600 = 3 400 ₸.' },
+{ text: 'Велосипедші 2 сағатта 30 км жүрді. Осы жылдамдықпен 5 сағатта қанша км жүреді?', opts: ['60 км', '75 км', '90 км', '150 км'], ok: 1, why: 'Жылдамдық 30 : 2 = 15 км/сағ. 15 × 5 = 75 км.' },
+{ text: 'Сыныпта 28 оқушы бар. Олардың 3/4 бөлігі бейіндік пән ретінде математиканы таңдады. Неше оқушы таңдады?', opts: ['7', '18', '21', '24'], ok: 2, why: '28 : 4 = 7, 7 × 3 = 21 оқушы.' }
+];
+const s = this.state, q = Q[s.i], last = s.i === Q.length - 1;
+const correct = s.checked && s.sel === q.ok;
+const h = Math.floor(s.left / 3600), m = Math.floor((s.left % 3600) / 60), sec = s.left % 60;
+const pad = (n) => String(n).padStart(2, '0');
+return {
+accent, q, num: s.i + 1,
+clock: h + ':' + pad(m) + ':' + pad(sec),
+dots: Array.from({ length: 10 }, (_, k) => ({ c: k < s.done.length ? (s.done[k] ? accent : accent2) : (k === s.i ? '#111827' : '#E5E7EB') })),
+opts: q.opts.map((t, k) => {
+let bd = '#E5E7EB', bg = '#FFFFFF', kb = '#F3F4F6', kf = '#111827', tag = '', tagC = '#111827';
+if (!s.checked && s.sel === k) { bd = accent; bg = '#EFF6FF'; kb = accent; kf = '#FFFFFF'; }
+if (s.checked && k === q.ok) { bd = '#059669'; bg = '#ECFDF5'; kb = '#059669'; kf = '#FFFFFF'; tag = 'Дұрыс'; tagC = '#047857'; }
+if (s.checked && s.sel === k && k !== q.ok) { bd = '#DC2626'; bg = '#FEF2F2'; kb = '#DC2626'; kf = '#FFFFFF'; tag = 'Қате'; tagC = '#B91C1C'; }
+return { key: 'ABCD'[k], text: t, bd, bg, kb, kf, tag, tagC, checked: s.sel === k ? 'true' : 'false', pick: () => { if (!s.checked) this.setState({ sel: k }); } };
+}),
+checked: s.checked,
+fbBg: correct ? '#ECFDF5' : '#FEF2F2', fbC: correct ? '#047857' : '#B91C1C',
+fbTitle: correct ? 'Дұрыс! +10 ұпай' : 'Қате. Дұрыс жауап: ' + 'ABCD'[q.ok],
+showCheck: !s.checked, showNext: s.checked && !last, showFinish: s.checked && last,
+noSel: s.sel === null, checkBg: s.sel === null ? '#9CA3AF' : '#111827',
+check: () => { if (s.sel !== null) this.setState({ checked: true, done: [...s.done, s.sel === q.ok] }); },
+next: () => this.setState({ i: s.i + 1, sel: null, checked: false, flag: false }),
+toggleFlag: () => this.setState({ flag: !s.flag }),
+flagStr: s.flag ? 'true' : 'false', flagBg: s.flag ? '#FFF7ED' : '#FFFFFF', flagFill: s.flag ? '#EA580C' : 'none'
+};
+}
+}
+</script>
+</body>
+</html>
