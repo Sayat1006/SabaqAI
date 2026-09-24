@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Loading } from "../components/Loading";
+import { SubjectPicker } from "../components/SubjectPicker";
 import { Badge, Button, Card, Field, Select, TextInput } from "../components/ui";
 import { useAuth } from "../context/useAuth";
 import * as auth from "../lib/auth";
@@ -36,7 +37,8 @@ export default function AdminPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(genPasswordSuggestion());
   const [role, setRole] = useState<Role>("teacher");
-  const [subject, setSubject] = useState("");
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [editSubjects, setEditSubjects] = useState<{ id: string; value: string[]; error: string } | null>(null);
   const [school, setSchool] = useState("");
   const [createError, setCreateError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -64,8 +66,13 @@ export default function AdminPage() {
     e.preventDefault();
     setCreateError("");
     if (!name.trim() || !email.trim() || !password.trim()) return;
+    if (role === "teacher" && subjects.length === 0) {
+      setCreateError(tr("Мұғалімге кемінде бір пән таңдаңыз (ең көбі 2)."));
+      return;
+    }
     setCreating(true);
-    const result = await auth.createUser({ name, email, password, role, subject, school });
+    const teacherSubjects = role === "teacher" ? subjects : [];
+    const result = await auth.createUser({ name, email, password, role, subject: teacherSubjects[0] ?? "", subjects: teacherSubjects, school });
     setCreating(false);
     if (!result.ok) {
       setCreateError(
@@ -77,9 +84,26 @@ export default function AdminPage() {
     setName("");
     setEmail("");
     setPassword(genPasswordSuggestion());
-    setSubject("");
+    setSubjects([]);
     setSchool("");
     setRole("teacher");
+  }
+
+  async function saveSubjects() {
+    if (!editSubjects) return;
+    if (editSubjects.value.length === 0) {
+      setEditSubjects({ ...editSubjects, error: tr("Кемінде бір пән таңдаңыз.") });
+      return;
+    }
+    setBusyId(editSubjects.id);
+    const result = await auth.setSubjects(editSubjects.id, editSubjects.value);
+    setBusyId(null);
+    if (!result.ok) {
+      setEditSubjects({ ...editSubjects, error: result.message });
+      return;
+    }
+    setEditSubjects(null);
+    await refreshAll();
   }
 
   async function handleToggleStatus(target: UserAccount) {
@@ -141,6 +165,7 @@ export default function AdminPage() {
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
         u.subject.toLowerCase().includes(q) ||
+        u.subjects.join(" ").toLowerCase().includes(q) ||
         u.school.toLowerCase().includes(q)
       );
     });
@@ -210,13 +235,15 @@ export default function AdminPage() {
             </Select>
           </Field>
           <Field>
-            {tr("Пән (міндетті емес)")}
-            <TextInput placeholder={tr("мысалы: Математика")} value={subject} onChange={(e) => setSubject(e.target.value)} />
-          </Field>
-          <Field>
             {tr("Мектеп (міндетті емес)")}
             <TextInput placeholder={tr("мысалы: №25 мектеп-гимназия")} value={school} onChange={(e) => setSchool(e.target.value)} />
           </Field>
+          {role === "teacher" && (
+            <div className="mb-4 sm:col-span-3">
+              <span className="mb-1.5 block text-sm font-medium text-slate-700">{tr("Пәндері")}</span>
+              <SubjectPicker value={subjects} onChange={(v) => { setSubjects(v); setCreateError(""); }} />
+            </div>
+          )}
           {createError && <p className="text-sm text-rose-600 sm:col-span-3">{createError}</p>}
           <div className="pb-4 sm:col-span-3">
             <Button type="submit" disabled={creating}>
@@ -256,7 +283,8 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {filtered.map((u) => (
-                <tr key={u.id} className="border-t border-violet-50 align-top">
+                <Fragment key={u.id}>
+                <tr className="border-t border-violet-50 align-top">
                   <td className="px-3 py-2">
                     <p className="font-medium text-slate-900">
                       {u.name} {u.id === currentUser?.id && <span className="text-xs text-violet-500">{tr("(сіз)")}</span>}
@@ -267,7 +295,21 @@ export default function AdminPage() {
                     <Badge>{u.role === "admin" ? tr("Әкімші") : tr("Мұғалім")}</Badge>
                   </td>
                   <td className="px-3 py-2 text-slate-600">
-                    {u.subject || "—"} {u.school && <span className="text-xs text-slate-400">· {u.school}</span>}
+                    {u.subjects.length ? (
+                      <span className="flex flex-wrap gap-1">
+                        {u.subjects.map((x) => (
+                          <span key={x} className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-700">
+                            {tr(x)}
+                          </span>
+                        ))}
+                      </span>
+                    ) : (
+                      <>
+                        {u.subject ? tr(u.subject) : "—"}
+                        {u.role === "teacher" && <span className="ml-1 text-xs text-amber-600">({tr("шектеусіз")})</span>}
+                      </>
+                    )}
+                    {u.school && <span className="mt-0.5 block text-xs text-slate-400">{u.school}</span>}
                   </td>
                   <td className="px-3 py-2">
                     <span
@@ -283,6 +325,16 @@ export default function AdminPage() {
                   <td className="px-3 py-2 text-xs text-slate-500">{formatDate(u.lastLoginAt)}</td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap gap-1.5">
+                      {u.role === "teacher" && (
+                        <button
+                          type="button"
+                          onClick={() => setEditSubjects(editSubjects?.id === u.id ? null : { id: u.id, value: u.subjects, error: "" })}
+                          disabled={busyId === u.id}
+                          className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
+                        >
+                          {tr("Пәндер")}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleToggleStatus(u)}
@@ -326,6 +378,24 @@ export default function AdminPage() {
                     )}
                   </td>
                 </tr>
+                {editSubjects?.id === u.id && (
+                  <tr className="bg-violet-50/40">
+                    <td colSpan={6} className="px-3 py-3">
+                      <div className="mb-2 text-sm font-semibold text-slate-800">{tr("{name} — пәндері", { name: u.name })}</div>
+                      <SubjectPicker value={editSubjects.value} onChange={(value) => setEditSubjects({ ...editSubjects, value, error: "" })} />
+                      {editSubjects.error && <p className="mt-2 text-sm text-rose-600">{editSubjects.error}</p>}
+                      <div className="mt-3 flex gap-2">
+                        <Button type="button" onClick={saveSubjects} disabled={busyId === u.id}>
+                          {busyId === u.id ? tr("Сақталуда...") : tr("Сақтау")}
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={() => setEditSubjects(null)}>
+                          {tr("Болдырмау")}
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
               {loadingList && (
                 <tr>

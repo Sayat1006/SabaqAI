@@ -4,7 +4,8 @@ import { Avatar } from "../components/Avatar";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../context/useAuth";
 import { changeMyPassword, updateMyProfile, type ProfileInput, type UserAccount } from "../lib/auth";
-import { CATEGORIES, GRADES, SUBJECTS } from "../lib/catalog";
+import { CATEGORIES, GRADES } from "../lib/catalog";
+import { allowedSubjects } from "../lib/subjects";
 import { TelegramCard } from "../components/TelegramCard";
 import { InstallApp } from "../components/InstallApp";
 import { tr } from "../i18n";
@@ -71,6 +72,8 @@ const gradeSort = (a: string, b: string) => Number.parseInt(a, 10) - Number.pars
 
 export default function ProfilePage() {
   const { user, refresh } = useAuth();
+  const subjects = allowedSubjects(user);
+  const locked = user?.role !== "admin" && !!user?.subjects?.length;
   const [form, setForm] = useState<ProfileInput | null>(() => (user ? toInput(user) : null));
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
@@ -237,10 +240,10 @@ export default function ProfilePage() {
             <Field label={tr("Телефон")}>
               <input value={form.phone} onChange={(e) => set("phone", e.target.value)} maxLength={40} type="tel" autoComplete="tel" placeholder="+7 7__ ___ __ __" className={fieldClass} />
             </Field>
-            <Field label={tr("Пән")}>
+            <Field label={locked ? tr("Негізгі пән") : tr("Пән")} hint={locked ? tr("Әкімші сізге бекіткен пәндер: {list}. Басқа пәндер бойынша материал жасау қолжетімсіз.", { list: subjects.map((x) => tr(x)).join(", ") }) : undefined}>
               <select value={form.subject} onChange={(e) => set("subject", e.target.value)} className={fieldClass}>
-                <option value="">{tr("— Таңдаңыз —")}</option>
-                {(SUBJECTS.includes(form.subject) || !form.subject ? SUBJECTS : [form.subject, ...SUBJECTS]).map((s) => (
+                {!locked && <option value="">{tr("— Таңдаңыз —")}</option>}
+                {(subjects.includes(form.subject) || !form.subject ? subjects : [form.subject, ...subjects]).map((s) => (
                   <option key={s} value={s}>{tr(s)}</option>
                 ))}
               </select>
