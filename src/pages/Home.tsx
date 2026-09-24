@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { UserMenu } from "../components/UserMenu";
 import { InstallApp } from "../components/InstallApp";
+import { TodayLessons } from "../components/TodayLessons";
 import { firstNameOf } from "../lib/names";
 import { ProjectCard } from "../components/ProjectCard";
 import { tools } from "../lib/navigation";
@@ -153,6 +154,7 @@ export default function Home() {
       {!q && (
         <>
           <InstallApp />
+          <TodayLessons />
           {/* AI көмекшісі */}
           <div className="flex flex-wrap items-stretch gap-7">
             <div className="flex flex-[1_1_420px] flex-col gap-4 rounded-3xl border border-surface/70 bg-surface/70 p-8 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl">

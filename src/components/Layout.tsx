@@ -1,9 +1,11 @@
 import { FolderOpen, Home, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Suspense } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
 import { toolsIn, TOOL_GROUPS } from "../lib/navigation";
 import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
+import { PageLoader } from "./PageLoader";
 import { useCurrentTool } from "../lib/useCurrentTool";
 import { DesktopToolNav, MobileMenu } from "./NavMenus";
 import { UserMenu } from "./UserMenu";
@@ -98,7 +100,9 @@ export function DashboardLayout() {
       </nav>
 
       <main className="min-w-0 flex-1">
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
@@ -154,7 +158,9 @@ export function ToolLayout() {
     <div className="min-h-screen">
       <Topbar />
       <main>
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );
@@ -165,7 +171,9 @@ export function AdminLayout() {
     <div className="min-h-screen">
       <Topbar admin />
       <main>
-        <Outlet />
+        <Suspense fallback={<PageLoader />}>
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   );

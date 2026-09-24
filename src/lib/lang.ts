@@ -1,5 +1,4 @@
 import { uiLang } from "../i18n";
-import en from "../i18n/en";
 
 /** Материал тілі: қазақша немесе орысша. */
 export type Lang = "kk" | "ru" | "en";
@@ -36,9 +35,35 @@ const SUBJECT_RU: Record<string, string> = {
   "Көркем еңбек": "Художественный труд",
 };
 
+const SUBJECT_EN: Record<string, string> = {
+  Математика: "Mathematics",
+  Алгебра: "Algebra",
+  Геометрия: "Geometry",
+  "Қазақ тілі": "Kazakh language",
+  "Қазақ әдебиеті": "Kazakh literature",
+  "Орыс тілі": "Russian language",
+  "Орыс әдебиеті": "Russian literature",
+  "Ағылшын тілі": "English",
+  Дүниетану: "Knowledge of the world",
+  Жаратылыстану: "Natural science",
+  Биология: "Biology",
+  Химия: "Chemistry",
+  Физика: "Physics",
+  География: "Geography",
+  Информатика: "Computer science",
+  "Қазақстан тарихы": "History of Kazakhstan",
+  "Дүниежүзі тарихы": "World history",
+  "Құқық негіздері": "Fundamentals of law",
+  "Өзін-өзі тану": "Self-knowledge",
+  "Дене шынықтыру": "Physical education",
+  Музыка: "Music",
+  "Бейнелеу өнері": "Visual arts",
+  "Көркем еңбек": "Arts and crafts",
+};
+
 /** Пән атауы материал тілінде (каталогтағы атаулар қазақша). */
 export const subjectIn = (subject: string, lang: Lang | undefined) =>
-  lang === "ru" ? (SUBJECT_RU[subject] ?? subject) : lang === "en" ? (en[subject] ?? subject) : subject;
+  lang === "ru" ? (SUBJECT_RU[subject] ?? subject) : lang === "en" ? (SUBJECT_EN[subject] ?? subject) : subject;
 
 /** «5-сынып» → «5 класс» (орысша материалда). */
 export const gradeIn = (grade: string, lang: Lang | undefined) =>

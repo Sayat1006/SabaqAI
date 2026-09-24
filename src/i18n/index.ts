@@ -3,9 +3,6 @@
 // Тіл ауысқанда бет қайта жүктеледі, сондықтан t() кез келген жерде (тұрақтыларда да) жұмыс істейді.
 // Материал тілі (ҚМЖ, тест, құжат қай тілде жасалады) — бұдан бөлек, lib/lang.ts.
 
-import en from "./en";
-import ru from "./ru";
-
 export type UiLang = "kk" | "ru" | "en";
 
 export const UI_LANGS: { id: UiLang; label: string; short: string }[] = [
@@ -27,11 +24,18 @@ function read(): UiLang {
 
 export const uiLang: UiLang = read();
 
-const DICTS: Record<Exclude<UiLang, "kk">, Record<string, string>> = { ru, en };
+// Сөздік тек керек тілде ғана жүктеледі (қазақша интерфейске ешқайсысы керек емес).
+let dict: Record<string, string> = {};
+
+/** main.tsx қосымшаны көрсетпес бұрын шақырады: осыдан кейін tr() аударманы қайтарады. */
+export async function loadUiDict() {
+  if (uiLang === "ru") dict = (await import("./ru")).default;
+  else if (uiLang === "en") dict = (await import("./en")).default;
+}
 
 /** Аударма. {name} түріндегі орындарға vars мәндері қойылады. */
 export function tr(key: string, vars?: Record<string, string | number>): string {
-  const s = uiLang === "kk" ? key : (DICTS[uiLang][key] ?? key);
+  const s = dict[key] ?? key;
   return vars ? s.replace(/\{(\w+)\}/g, (m, k: string) => (k in vars ? String(vars[k]) : m)) : s;
 }
 

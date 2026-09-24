@@ -1,60 +1,68 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AdminLayout, DashboardLayout, ToolLayout } from "./components/Layout";
 import RequireAdmin from "./components/RequireAdmin";
 import RequireAuth from "./components/RequireAuth";
 import { AuthProvider } from "./context/AuthContext";
-import AdminPage from "./pages/Admin";
-import Home from "./pages/Home";
-import ImagesPage from "./pages/Images";
-import LoginPage from "./pages/Login";
-import PresentationPage from "./pages/Presentation";
-import ProfilePage from "./pages/Profile";
-import ProjectsPage from "./pages/Projects";
-import QmzhPage from "./pages/Qmzh";
-import TakeTestPage from "./pages/TakeTest";
-import ClassToolsPage from "./pages/ClassTools";
-import TestsPage from "./pages/Tests";
-import DocsPage from "./pages/Docs";
-import KtzhPage from "./pages/Ktzh";
-import ProgressPage from "./pages/Progress";
-import LiveHostPage from "./pages/LiveHost";
-import LivePlayPage from "./pages/LivePlay";
+import { PageLoader } from "./components/PageLoader";
+
+// Әр бет өз файлымен, ашылғанда ғана жүктеледі — алғашқы ашылу жылдамырақ.
+const AdminPage = lazy(() => import("./pages/Admin"));
+const Home = lazy(() => import("./pages/Home"));
+const ImagesPage = lazy(() => import("./pages/Images"));
+const LoginPage = lazy(() => import("./pages/Login"));
+const PresentationPage = lazy(() => import("./pages/Presentation"));
+const ProfilePage = lazy(() => import("./pages/Profile"));
+const ProjectsPage = lazy(() => import("./pages/Projects"));
+const QmzhPage = lazy(() => import("./pages/Qmzh"));
+const TakeTestPage = lazy(() => import("./pages/TakeTest"));
+const ClassToolsPage = lazy(() => import("./pages/ClassTools"));
+const TestsPage = lazy(() => import("./pages/Tests"));
+const DocsPage = lazy(() => import("./pages/Docs"));
+const KtzhPage = lazy(() => import("./pages/Ktzh"));
+const ProgressPage = lazy(() => import("./pages/Progress"));
+const LiveHostPage = lazy(() => import("./pages/LiveHost"));
+const LivePlayPage = lazy(() => import("./pages/LivePlay"));
+const SchedulePage = lazy(() => import("./pages/Schedule"));
 
 export default function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route path="login" element={<LoginPage />} />
-        {/* Оқушы беті: жүйеге кірусіз, мұғалім жіберген сілтеме арқылы. */}
-        <Route path="t/:code" element={<TakeTestPage />} />
-        <Route path="l" element={<LivePlayPage />} />
-        <Route path="l/:code" element={<LivePlayPage />} />
-        <Route element={<RequireAuth />}>
-          {/* Тірі викторина: тақтаға толық бетпен шығады (мәзірсіз). */}
-          <Route path="live/:id" element={<LiveHostPage />} />
-          <Route element={<DashboardLayout />}>
-            <Route index element={<Home />} />
-          </Route>
-          <Route element={<ToolLayout />}>
-            <Route path="qmzh" element={<QmzhPage />} />
-            <Route path="presentation" element={<PresentationPage />} />
-            <Route path="images" element={<ImagesPage />} />
-            <Route path="tests" element={<TestsPage />} />
-            <Route path="tools" element={<ClassToolsPage />} />
-            <Route path="docs" element={<DocsPage />} />
-            <Route path="ktzh" element={<KtzhPage />} />
-            <Route path="progress" element={<ProgressPage />} />
-            <Route path="projects" element={<ProjectsPage />} />
-            <Route path="profile" element={<ProfilePage />} />
-          </Route>
-          <Route element={<RequireAdmin />}>
-            <Route element={<AdminLayout />}>
-              <Route path="admin" element={<AdminPage />} />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="login" element={<LoginPage />} />
+          {/* Оқушы беті: жүйеге кірусіз, мұғалім жіберген сілтеме арқылы. */}
+          <Route path="t/:code" element={<TakeTestPage />} />
+          <Route path="l" element={<LivePlayPage />} />
+          <Route path="l/:code" element={<LivePlayPage />} />
+          <Route element={<RequireAuth />}>
+            {/* Тірі викторина: тақтаға толық бетпен шығады (мәзірсіз). */}
+            <Route path="live/:id" element={<LiveHostPage />} />
+            <Route element={<DashboardLayout />}>
+              <Route index element={<Home />} />
+            </Route>
+            <Route element={<ToolLayout />}>
+              <Route path="schedule" element={<SchedulePage />} />
+              <Route path="qmzh" element={<QmzhPage />} />
+              <Route path="presentation" element={<PresentationPage />} />
+              <Route path="images" element={<ImagesPage />} />
+              <Route path="tests" element={<TestsPage />} />
+              <Route path="tools" element={<ClassToolsPage />} />
+              <Route path="docs" element={<DocsPage />} />
+              <Route path="ktzh" element={<KtzhPage />} />
+              <Route path="progress" element={<ProgressPage />} />
+              <Route path="projects" element={<ProjectsPage />} />
+              <Route path="profile" element={<ProfilePage />} />
+            </Route>
+            <Route element={<RequireAdmin />}>
+              <Route element={<AdminLayout />}>
+                <Route path="admin" element={<AdminPage />} />
+              </Route>
             </Route>
           </Route>
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AuthProvider>
   );
 }

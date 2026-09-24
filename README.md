@@ -18,6 +18,7 @@
 - **Презентация** — тақырып бойынша слайдтар: 3D карусель, толық экран, PPTX
 - **Сурет генерациясы** — сабақ иллюстрациялары (SVG/PNG)
 - **Тапсырмалар** — деңгейлік тест, PISA, ҰБТ, БЖБ/ТЖБ, шығармашылық тапсырмалар; оқушыларға сілтемемен жіберу және **тірі викторина** (оқушылар телефоннан 6 таңбалы кодпен қосылып, уақытқа жарысады; көшбасшылар кестесі)
+- **Сабақ кестесі** — апталық кесте (күн, уақыт, пән, сынып); әр сабақтың тақырыбы КТЖ-дан алынады, басты бетте «Бүгінгі сабақтар» және бір батырмамен ҚМЖ
 - **КТЖ** — тоқсандық/жылдық күнтізбелік-тақырыптық жоспар: бөлімдер, тақырыптар, оқу мақсаттары, БЖБ/ТЖБ, күндері автоматты; өңдеу, Word (альбомдық), әр сабақтан ҚМЖ жасау
 - **Оқушы прогресі** — барлық тест нәтижелері сынып кестесінде (оқушы × тест), әр оқушының графигі, A/B/C деңгейлері, қайталау керек тақырыптар, AI тоқсандық қорытындысы, Excel
 - **Құжаттар** — оқушыға мінездеме, ата-ана жиналысының баяндамасы, тәрбие сағаты мен іс-шара сценарийі, тоқсандық есеп; өңдеу және ресми рәсімдегі Word
@@ -36,7 +37,7 @@
 ## Тегін орнату
 
 ### 1. Supabase
-[supabase/README.md](supabase/README.md) нұсқаулығы бойынша: жоба құру → `schema.sql`, `update-2-projects-profile.sql` `update-3-editing-sharing.sql`, `update-4-feedback.sql`, `update-5-task-types.sql`, `update-6-telegram.sql`, `update-7-docs-live.sql`, `update-8-ktzh.sql` және `update-9-english.sql` орындау → бірінші әкімші → `admin-actions` және `ai-generate` функцияларын жариялау → `GEMINI_API_KEY` секретін қою ([aistudio.google.com/apikey](https://aistudio.google.com/apikey) сайтынан тегін алынады).
+[supabase/README.md](supabase/README.md) нұсқаулығы бойынша: жоба құру → `schema.sql`, `update-2-projects-profile.sql` `update-3-editing-sharing.sql`, `update-4-feedback.sql`, `update-5-task-types.sql`, `update-6-telegram.sql`, `update-7-docs-live.sql`, `update-8-ktzh.sql`, `update-9-english.sql` және `update-10-schedule.sql` орындау → бірінші әкімші → `admin-actions` және `ai-generate` функцияларын жариялау → `GEMINI_API_KEY` секретін қою ([aistudio.google.com/apikey](https://aistudio.google.com/apikey) сайтынан тегін алынады).
 
 ### 2. Vercel
 1. [vercel.com](https://vercel.com) → GitHub арқылы кіру → **Add New → Project** → осы репозиторийді таңдау.
