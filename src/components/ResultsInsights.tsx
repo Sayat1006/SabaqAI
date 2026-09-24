@@ -2,6 +2,7 @@ import { Check, Copy, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import type { SavedTest, TestLevel, TestSubmission } from "../lib/projects";
 import { analyzeClassResults, type ClassAnalysis, generatePersonalTasks, levelBadge, levelLabel, type PersonalPlan } from "../lib/studio";
+import { tr } from "../i18n";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 const aiBtn = "inline-flex items-center gap-2 rounded-[11px] bg-violet-600 px-3.5 py-2.5 text-sm font-semibold text-white disabled:opacity-70";
@@ -13,9 +14,9 @@ const groupOf = (s: TestSubmission): TestLevel => {
 };
 
 const GROUP_TITLES: Record<TestLevel, string> = {
-  C: "Жоғары деңгей (85%+)",
-  B: "Орта деңгей (50–84%)",
-  A: "Қолдау қажет (<50%)",
+  C: tr("Жоғары деңгей (85%+)"),
+  B: tr("Орта деңгей (50–84%)"),
+  A: tr("Қолдау қажет (<50%)"),
 };
 
 function CopyButton({ text }: { text: string }) {
@@ -34,7 +35,7 @@ function CopyButton({ text }: { text: string }) {
       }
       className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 bg-surface px-3 py-2 text-[13px] font-semibold hover:border-violet-500"
     >
-      {done ? <Check size={14} /> : <Copy size={14} />} {done ? "Көшірілді" : "Көшіру"}
+      {done ? <Check size={14} /> : <Copy size={14} />} {done ? tr("Көшірілді") : tr("Көшіру")}
     </button>
   );
 }
@@ -51,7 +52,7 @@ export function StudentDetail({ test, sub }: { test: SavedTest; sub: TestSubmiss
     try {
       setPlan(await generatePersonalTasks(test, sub.answers));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Тапсырма жасау мүмкін болмады.");
+      setError(e instanceof Error ? e.message : tr("Тапсырма жасау мүмкін болмады."));
     } finally {
       setBusy(false);
     }
@@ -64,14 +65,14 @@ export function StudentDetail({ test, sub }: { test: SavedTest; sub: TestSubmiss
 
   return (
     <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4">
-      <div className="flex flex-wrap gap-1.5" aria-label="Сұрақтар бойынша жауаптары">
+      <div className="flex flex-wrap gap-1.5" aria-label={tr("Сұрақтар бойынша жауаптары")}>
         {test.questions.map((q, i) => {
           const a = sub.answers[i];
           const ok = a === q.correctIndex;
           return (
             <span
               key={i}
-              title={`${q.question}\nЖауабы: ${a === null || a === undefined ? "жоқ" : q.options[a]}\nДұрысы: ${q.options[q.correctIndex]}`}
+              title={`${q.question}\n${tr("Жауабы")}: ${a === null || a === undefined ? tr("жоқ") : q.options[a]}\n${tr("Дұрысы")}: ${q.options[q.correctIndex]}`}
               className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold ${ok ? "bg-fuchsia-100 text-fuchsia-800" : "bg-rose-50 text-rose-700"}`}
             >
               {ok ? <Check size={12} /> : <X size={12} />}
@@ -85,16 +86,16 @@ export function StudentDetail({ test, sub }: { test: SavedTest; sub: TestSubmiss
       {!plan && (
         <div>
           <button type="button" onClick={makeTasks} disabled={busy} className={aiBtn}>
-            <Sparkles size={15} className={busy ? "animate-spin" : ""} /> {busy ? "AI құрастыруда..." : "AI: жеке тапсырма құрастыру"}
+            <Sparkles size={15} className={busy ? "animate-spin" : ""} /> {busy ? tr("AI құрастыруда...") : tr("AI: жеке тапсырма құрастыру")}
           </button>
-          <p className="mt-1.5 text-xs text-slate-500">Қателеріне және деңгейіне қарай 3 тапсырма мен кері байланыс дайындалады.</p>
+          <p className="mt-1.5 text-xs text-slate-500">{tr("Қателеріне және деңгейіне қарай 3 тапсырма мен кері байланыс дайындалады.")}</p>
         </div>
       )}
       {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
       {plan && (
         <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-surface p-4">
           <div className="text-[14.5px]">
-            <b>Кері байланыс:</b> {plan.feedback}
+            <b>{tr("Кері байланыс:")}</b> {plan.feedback}
           </div>
           <ol className="flex flex-col gap-2.5">
             {plan.tasks.map((t, i) => (
@@ -104,17 +105,17 @@ export function StudentDetail({ test, sub }: { test: SavedTest; sub: TestSubmiss
                   {i + 1}. {t.title}
                 </div>
                 <div className="mt-1 text-[14.5px]">{t.text}</div>
-                {t.answer && <div className="mt-1 text-[13px] text-slate-500">Жауабы (мұғалімге): {t.answer}</div>}
+                {t.answer && <div className="mt-1 text-[13px] text-slate-500">{tr("Жауабы (мұғалімге):")} {t.answer}</div>}
               </li>
             ))}
           </ol>
           <div className="flex flex-wrap gap-2">
             <CopyButton text={planText} />
             <button type="button" onClick={makeTasks} disabled={busy} className="rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-violet-500 disabled:opacity-60">
-              {busy ? "Құрастырылуда..." : "Басқа нұсқа"}
+              {busy ? tr("Құрастырылуда...") : tr("Басқа нұсқа")}
             </button>
           </div>
-          <p className="text-xs text-slate-500">«Көшіру» — жауаптарсыз мәтін, оқушыға WhatsApp арқылы жіберуге болады.</p>
+          <p className="text-xs text-slate-500">{tr("«Көшіру» — жауаптарсыз мәтін, оқушыға WhatsApp арқылы жіберуге болады.")}</p>
         </div>
       )}
     </div>
@@ -143,7 +144,7 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
         }),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Талдау мүмкін болмады.");
+      setError(e instanceof Error ? e.message : tr("Талдау мүмкін болмады."));
     } finally {
       setBusy(false);
     }
@@ -152,7 +153,7 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
   return (
     <div className="flex flex-col gap-4 border-t border-slate-200 pt-5">
       <div>
-        <div className="mb-2 text-[13px] font-semibold text-slate-500">Саралау топтары</div>
+        <div className="mb-2 text-[13px] font-semibold text-slate-500">{tr("Саралау топтары")}</div>
         <div className="grid gap-2.5 sm:grid-cols-3">
           {(["C", "B", "A"] as const).map((g) => (
             <div key={g} className="rounded-xl border border-slate-200 p-3">
@@ -169,21 +170,21 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
       {!analysis && (
         <div>
           <button type="button" onClick={analyze} disabled={busy} className={aiBtn}>
-            <Sparkles size={15} className={busy ? "animate-spin" : ""} /> {busy ? "AI талдауда..." : "AI: сынып нәтижесін талдау"}
+            <Sparkles size={15} className={busy ? "animate-spin" : ""} /> {busy ? tr("AI талдауда...") : tr("AI: сынып нәтижесін талдау")}
           </button>
-          <p className="mt-1.5 text-xs text-slate-500">Қай ұғымдар нашар меңгерілгенін анықтап, келесі сабаққа ұсыныстар мен топтарға тапсырма береді.</p>
+          <p className="mt-1.5 text-xs text-slate-500">{tr("Қай ұғымдар нашар меңгерілгенін анықтап, келесі сабаққа ұсыныстар мен топтарға тапсырма береді.")}</p>
         </div>
       )}
       {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
       {analysis && (
         <div className="flex flex-col gap-3 rounded-2xl bg-violet-100/60 p-5 text-[14.5px]">
           <div className="flex items-center gap-2 text-base font-bold">
-            <Sparkles size={17} className="text-violet-600" /> AI талдауы
+            <Sparkles size={17} className="text-violet-600" /> {tr("AI талдауы")}
           </div>
           <p>{analysis.summary}</p>
           {analysis.difficulties.length > 0 && (
             <div>
-              <b>Қиындық тудырған ұғымдар:</b>
+              <b>{tr("Қиындық тудырған ұғымдар:")}</b>
               <ul className="mt-1 list-disc pl-5">
                 {analysis.difficulties.map((d, i) => (
                   <li key={i}>{d}</li>
@@ -193,7 +194,7 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
           )}
           {analysis.recommendations.length > 0 && (
             <div>
-              <b>Келесі сабаққа ұсыныстар:</b>
+              <b>{tr("Келесі сабаққа ұсыныстар:")}</b>
               <ul className="mt-1 list-disc pl-5">
                 {analysis.recommendations.map((d, i) => (
                   <li key={i}>{d}</li>
@@ -203,7 +204,7 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
           )}
           {analysis.groups.length > 0 && (
             <div>
-              <b>Топтарға жұмыс:</b>
+              <b>{tr("Топтарға жұмыс:")}</b>
               <ul className="mt-1 flex flex-col gap-1">
                 {analysis.groups.map((g, i) => (
                   <li key={i}>
@@ -216,7 +217,7 @@ export function ClassInsights({ test, subs, perQuestion, average }: { test: Save
           )}
           <div>
             <button type="button" onClick={analyze} disabled={busy} className="rounded-[10px] border border-slate-300 bg-surface px-3 py-2 text-[13px] font-semibold disabled:opacity-60">
-              {busy ? "Талдауда..." : "Қайта талдау"}
+              {busy ? tr("Талдауда...") : tr("Қайта талдау")}
             </button>
           </div>
         </div>

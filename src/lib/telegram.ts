@@ -2,11 +2,12 @@
 // Бот кілті тек `telegram-bot` Edge Function ішінде сақталады.
 
 import { supabase } from "./supabaseClient";
+import { tr } from "../i18n";
 
 async function call<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("telegram-bot", { body });
   if (error) {
-    let message = error.name === "FunctionsFetchError" ? "Telegram бот әлі орнатылмаған (telegram-bot функциясы жоқ)." : error.message;
+    let message = error.name === "FunctionsFetchError" ? tr("Telegram бот әлі орнатылмаған (telegram-bot функциясы жоқ).") : error.message;
     const context = (error as { context?: Response }).context;
     if (context && typeof context.json === "function") {
       try {
@@ -45,7 +46,7 @@ export async function getTelegramStatus(userId: string): Promise<TelegramStatus 
 
 export async function createLinkCode(): Promise<string> {
   const { data, error } = await supabase.rpc("telegram_link_code");
-  if (error) throw new Error(/Could not find the function|PGRST202/.test(error.message + error.code) ? "Әкімші Supabase-те update-6-telegram.sql файлын орындауы керек." : error.message);
+  if (error) throw new Error(/Could not find the function|PGRST202/.test(error.message + error.code) ? tr("Әкімші Supabase-те update-6-telegram.sql файлын орындауы керек.") : error.message);
   return data as string;
 }
 

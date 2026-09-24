@@ -10,25 +10,26 @@ import { tools } from "../lib/navigation";
 import { deleteProject, getRecentProjects, statsOf, type RecentProject } from "../lib/projects";
 import { useLoad } from "../lib/useLoad";
 import { useCountUp } from "../lib/useCountUp";
+import { tr } from "../i18n";
 
 const announcements = [
   {
     id: "a1",
-    title: "ІІ тоқсанның ҚМЖ-ларын тапсыру мерзімі",
-    body: "Барлық пән мұғалімдері 2-тоқсанға арналған қысқа мерзімді жоспарларды әдістемелік кеңеске 25-күніне дейін тапсыруы тиіс.",
-    date: "Бүгін",
+    title: tr("ІІ тоқсанның ҚМЖ-ларын тапсыру мерзімі"),
+    body: tr("Барлық пән мұғалімдері 2-тоқсанға арналған қысқа мерзімді жоспарларды әдістемелік кеңеске 25-күніне дейін тапсыруы тиіс."),
+    date: tr("Бүгін"),
   },
   {
     id: "a2",
-    title: "БЖБ/ТЖБ кестесі жаңартылды",
-    body: "Тоқсандық жиынтық бағалау кестесін «Сабақ кестесі» бетінен тексеріңіз.",
-    date: "Кеше",
+    title: tr("БЖБ/ТЖБ кестесі жаңартылды"),
+    body: tr("Тоқсандық жиынтық бағалау кестесін «Сабақ кестесі» бетінен тексеріңіз."),
+    date: tr("Кеше"),
   },
   {
     id: "a3",
-    title: "Әдістемелік семинар",
-    body: "«Оқыту мақсаттарын критериалды бағалаумен байланыстыру» — бейсенбі, 15:00, әдіскерлер бөлмесі.",
-    date: "2 күн бұрын",
+    title: tr("Әдістемелік семинар"),
+    body: tr("«Оқыту мақсаттарын критериалды бағалаумен байланыстыру» — бейсенбі, 15:00, әдіскерлер бөлмесі."),
+    date: tr("2 күн бұрын"),
   },
 ];
 
@@ -36,10 +37,10 @@ function greeting(): string {
   const hour = Number(
     new Intl.DateTimeFormat("en-US", { hour: "numeric", hour12: false, timeZone: "Asia/Almaty" }).format(new Date()),
   );
-  if (hour < 5) return "Қайырлы түн";
-  if (hour < 12) return "Қайырлы таң";
-  if (hour < 18) return "Қайырлы күн";
-  return "Қайырлы кеш";
+  if (hour < 5) return tr("Қайырлы түн");
+  if (hour < 12) return tr("Қайырлы таң");
+  if (hour < 18) return tr("Қайырлы күн");
+  return tr("Қайырлы кеш");
 }
 
 function Stat({ value, label }: { value: number; label: string }) {
@@ -82,12 +83,12 @@ export default function Home() {
     : projects.slice(0, 6);
 
   async function handleDelete(p: RecentProject) {
-    if (!window.confirm(`«${p.title}» жобасын жоясыз ба?`)) return;
+    if (!window.confirm(tr("«{title}» жобасын жоясыз ба?", { title: p.title }))) return;
     try {
       await deleteProject(p.id);
       setData(projects.filter((x) => x.id !== p.id));
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Жою мүмкін болмады.");
+      window.alert(e instanceof Error ? e.message : tr("Жою мүмкін болмады."));
     }
   }
 
@@ -100,24 +101,24 @@ export default function Home() {
             {greeting()}
             {user ? `, ${firstNameOf(user.name)}` : ""}!
           </h1>
-          <p className="mt-1.5 text-[15.5px] text-slate-500">Бүгін қандай сабаққа дайындаласыз?</p>
+          <p className="mt-1.5 text-[15.5px] text-slate-500">{tr("Бүгін қандай сабаққа дайындаласыз?")}</p>
         </div>
         <div className="flex w-full items-center gap-3 sm:w-auto">
           <label className="flex h-11 flex-1 items-center gap-2.5 rounded-[14px] border border-slate-200 bg-surface px-4 sm:w-[260px] sm:flex-none">
             <Search size={17} className="text-slate-500" />
-            <span className="sr-only">Жобалар мен құралдарды іздеу</span>
+            <span className="sr-only">{tr("Жобалар мен құралдарды іздеу")}</span>
             <input
               type="search"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Жобаларды іздеу"
+              placeholder={tr("Жобаларды іздеу")}
               className="w-full bg-transparent text-sm outline-none"
             />
           </label>
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            aria-label="Хабарландырулар"
+            aria-label={tr("Хабарландырулар")}
             className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-slate-200 bg-surface transition hover:-translate-y-0.5"
           >
             <Bell size={19} strokeWidth={1.8} />
@@ -129,7 +130,7 @@ export default function Home() {
 
       {q && (
         <section>
-          <h2 className="mb-4 text-xl font-bold">Іздеу нәтижесі: «{query.trim()}»</h2>
+          <h2 className="mb-4 text-xl font-bold">{tr("Іздеу нәтижесі: «{q}»", { q: query.trim() })}</h2>
           {matchedTools.length > 0 && (
             <div className="mb-4 flex flex-wrap gap-2">
               {matchedTools.map((t) => (
@@ -144,7 +145,7 @@ export default function Home() {
             </div>
           )}
           {matchedTools.length === 0 && shownProjects.length === 0 && (
-            <p className="text-slate-500">Ештеңе табылмады.</p>
+            <p className="text-slate-500">{tr("Ештеңе табылмады.")}</p>
           )}
         </section>
       )}
@@ -156,14 +157,14 @@ export default function Home() {
           <div className="flex flex-wrap items-stretch gap-7">
             <div className="flex flex-[1_1_420px] flex-col gap-4 rounded-3xl border border-surface/70 bg-surface/70 p-8 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl">
               <div className="flex items-center gap-2 text-[13px] font-semibold tracking-wide text-violet-600 uppercase">
-                <Sparkles size={15} /> AI көмекшісі
+                <Sparkles size={15} /> {tr("AI көмекшісі")}
               </div>
-              <h2 className="text-[23px] leading-snug font-bold">Сабақты үш қадамда дайындаңыз</h2>
+              <h2 className="text-[23px] leading-snug font-bold">{tr("Сабақты үш қадамда дайындаңыз")}</h2>
               <div className="flex flex-col gap-2">
                 {[
-                  ["Тақырып", "Қолмен жазасыз — мыс.: «Жай бөлшектерді салыстыру»"],
-                  ["Оқу мақсаты", "Қолмен жазасыз — мыс.: «5.1.2.7 — жай бөлшектерді салыстыру»"],
-                  ["Құндылық", "AI сабақ мазмұнына сай құндылықты өзі енгізеді"],
+                  [tr("Тақырып"), tr("Қолмен жазасыз — мыс.: «Жай бөлшектерді салыстыру»")],
+                  [tr("Оқу мақсаты"), tr("Қолмен жазасыз — мыс.: «5.1.2.7 — жай бөлшектерді салыстыру»")],
+                  [tr("Құндылық"), tr("AI сабақ мазмұнына сай құндылықты өзі енгізеді")],
                 ].map(([t, d]) => (
                   <div key={t} className="rounded-xl border border-slate-200 bg-surface px-4 py-3">
                     <div className="mb-0.5 text-[13px] font-bold">{t}</div>
@@ -176,19 +177,19 @@ export default function Home() {
                   to="/qmzh"
                   className="inline-flex items-center gap-2.5 rounded-[14px] bg-violet-600 px-6 py-3.5 text-[15px] font-semibold tracking-wide text-white uppercase transition hover:-translate-y-0.5 hover:shadow-[0_14px_26px_-10px_rgba(224,115,61,.4)]"
                 >
-                  Сабақты генерациялау <ArrowRight size={16} />
+                  {tr("Сабақты генерациялау")} <ArrowRight size={16} />
                 </Link>
               </div>
             </div>
 
             <div aria-hidden className="relative hidden min-h-[280px] flex-[1_1_320px] [perspective:1400px] md:block">
               <div className="absolute top-[8%] left-[6%] h-[150px] w-[230px] animate-[floatC_6s_ease-in-out_infinite] rounded-[18px] bg-navy-900 p-[18px] shadow-[0_30px_50px_-20px_rgba(27,26,46,.25)]">
-                <div className="text-[11px] text-[#9c98b3]">СУРЕТ</div>
+                <div className="text-[11px] text-[#9c98b3]">{tr("СУРЕТ")}</div>
                 <div className="mt-2.5 h-2 w-3/5 rounded bg-violet-500" />
                 <div className="mt-2 h-2 w-4/5 rounded bg-[#3a4568]" />
               </div>
               <div className="absolute top-[30%] left-[30%] h-[150px] w-[230px] animate-[floatB_5.2s_ease-in-out_infinite] rounded-[18px] border border-slate-200 bg-surface p-[18px] shadow-[0_30px_50px_-18px_rgba(27,26,46,.19)]">
-                <div className="text-[11px] text-slate-500">ПРЕЗЕНТАЦИЯ</div>
+                <div className="text-[11px] text-slate-500">{tr("ПРЕЗЕНТАЦИЯ")}</div>
                 <div className="mt-2.5 h-2 w-[70%] rounded bg-fuchsia-500" />
                 <div className="mt-2 flex gap-1.5">
                   <div className="h-[26px] w-[26px] rounded-md bg-fuchsia-100" />
@@ -196,7 +197,7 @@ export default function Home() {
                 </div>
               </div>
               <div className="absolute top-[2%] left-[52%] h-[150px] w-[230px] animate-[floatA_4.6s_ease-in-out_infinite] rounded-[18px] bg-violet-500 p-[18px] shadow-[0_30px_55px_-18px_rgba(224,115,61,.28)]">
-                <div className="text-[11px] text-white/85">ҚМЖ</div>
+                <div className="text-[11px] text-white/85">{tr("ҚМЖ")}</div>
                 <div className="mt-2.5 h-2 w-3/5 rounded bg-surface/85" />
                 <div className="mt-2 h-2 w-[85%] rounded bg-surface/55" />
                 <div className="mt-2 h-2 w-[45%] rounded bg-surface/55" />
@@ -206,15 +207,15 @@ export default function Home() {
 
           {/* Статистика */}
           <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-            <Stat value={stats.qmzh} label="жасалған ҚМЖ жоспары" />
-            <Stat value={stats.slides} label="құрастырылған слайд" />
-            <Stat value={stats.images} label="генерацияланған сурет" />
-            <Stat value={stats.tests} label="тапсырмалар жинағы" />
+            <Stat value={stats.qmzh} label={tr("жасалған ҚМЖ жоспары")} />
+            <Stat value={stats.slides} label={tr("құрастырылған слайд")} />
+            <Stat value={stats.images} label={tr("генерацияланған сурет")} />
+            <Stat value={stats.tests} label={tr("тапсырмалар жинағы")} />
           </div>
 
           {/* Жылдам жасау */}
           <section>
-            <h2 className="mb-[18px] text-xl font-bold">Жылдам жасау</h2>
+            <h2 className="mb-[18px] text-xl font-bold">{tr("Жылдам жасау")}</h2>
             <div className="flex flex-wrap gap-[22px] [perspective:1400px]">
               {tools.map((c, i) => (
                 <Link
@@ -229,7 +230,7 @@ export default function Home() {
                   <span className="text-[17px] font-semibold">{c.label}</span>
                   <span className="text-sm leading-relaxed text-slate-500">{c.description}</span>
                   <span className={`mt-auto inline-flex items-center gap-1.5 text-sm font-semibold transition-transform group-hover:translate-x-1 ${TONES[i % 2].link}`}>
-                    Бастау <ArrowRight size={14} />
+                    {tr("Бастау")} <ArrowRight size={14} />
                   </span>
                 </Link>
               ))}
@@ -242,18 +243,18 @@ export default function Home() {
       {/* Соңғы жобалар */}
       <section>
         <div className="mb-[18px] flex items-center justify-between gap-3">
-          <h2 className="text-xl font-bold">{q ? "Жобалар" : "Соңғы жобалар"}</h2>
+          <h2 className="text-xl font-bold">{q ? tr("Жобалар") : tr("Соңғы жобалар")}</h2>
           <Link to="/projects" className="text-sm font-semibold text-violet-600">
-            Барлығын көру
+            {tr("Барлығын көру")}
           </Link>
         </div>
         {loadError ? (
           <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{loadError}</div>
         ) : loading ? (
-          <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">Жүктелуде...</div>
+          <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">{tr("Жүктелуде...")}</div>
         ) : shownProjects.length === 0 ? (
           <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
-            {q ? "Жоба табылмады." : "Әзірге жоба жоқ. Жоғарыдағы құралдардың бірін таңдап, алғашқы материалыңызды жасаңыз."}
+            {q ? tr("Жоба табылмады.") : tr("Әзірге жоба жоқ. Жоғарыдағы құралдардың бірін таңдап, алғашқы материалыңызды жасаңыз.")}
           </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[18px]">
@@ -265,20 +266,20 @@ export default function Home() {
       </section>
 
       {/* Хабарландырулар */}
-      {drawerOpen && <button aria-label="Жабу" className="fixed inset-0 z-40 cursor-default" onClick={() => setDrawerOpen(false)} />}
+      {drawerOpen && <button aria-label={tr("Жабу")} className="fixed inset-0 z-40 cursor-default" onClick={() => setDrawerOpen(false)} />}
       <aside
-        aria-label="Хабарландырулар"
+        aria-label={tr("Хабарландырулар")}
         aria-hidden={!drawerOpen}
         className={`fixed top-0 right-0 z-50 flex h-screen w-full max-w-[380px] flex-col gap-4 overflow-y-auto border-l border-slate-200 bg-surface/95 px-6 py-7 shadow-[-24px_0_60px_-20px_rgba(27,26,46,.22)] backdrop-blur-xl transition-transform duration-500 ${
           drawerOpen ? "translate-x-0" : "invisible translate-x-[105%]"
         }`}
       >
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-bold">Хабарландырулар</h3>
+          <h3 className="text-lg font-bold">{tr("Хабарландырулар")}</h3>
           <button
             type="button"
             onClick={() => setDrawerOpen(false)}
-            aria-label="Жабу"
+            aria-label={tr("Жабу")}
             className="flex h-9 w-9 items-center justify-center rounded-xl hover:bg-slate-100"
           >
             <X size={18} />

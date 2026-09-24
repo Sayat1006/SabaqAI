@@ -24,6 +24,8 @@ import {
   taskTypeOf,
   TEST_LEVELS,
 } from "../lib/studio";
+import { tr } from "../i18n";
+import { defaultMaterialLang } from "../lib/lang";
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 
@@ -63,9 +65,9 @@ export default function TestsPage() {
   const [objective, setObjective] = useState(() => (plan?.objectiveCode ? `${plan.objectiveCode} — ${plan.objectiveText}` : ""));
   const [differentiate, setDifferentiate] = useState(true);
   const [count, setCount] = useState<number>(10);
-  const [difficulty, setDifficulty] = useState<string>("Орташа");
+  const [difficulty, setDifficulty] = useState<string>(tr("Орташа"));
   const [notes, setNotes] = useState("");
-  const [lang, setLang] = useState<Lang>(plan?.lang ?? "kk");
+  const [lang, setLang] = useState<Lang>(plan?.lang ?? defaultMaterialLang);
   const [generating, setGenerating] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -94,7 +96,7 @@ export default function TestsPage() {
         setTaskType(t.taskType ?? "levels");
         setLang(t.lang ?? "kk");
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Тапсырманы ашу мүмкін болмады."));
+      .catch((e) => setError(e instanceof Error ? e.message : tr("Тапсырманы ашу мүмкін болмады.")));
   }, [openedId]);
 
   const runGenerate = useCallback(async () => {
@@ -124,7 +126,7 @@ export default function TestsPage() {
       }
       setShowAnswers(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Тапсырма жасау мүмкін болмады.");
+      setError(err instanceof Error ? err.message : tr("Тапсырма жасау мүмкін болмады."));
     } finally {
       setGenerating(false);
     }
@@ -142,7 +144,7 @@ export default function TestsPage() {
     e.preventDefault();
     if (generating) return;
     if (topic.trim().length < 3) {
-      setError("Тақырыпты жазыңыз.");
+      setError(tr("Тақырыпты жазыңыз."));
       return;
     }
     void runGenerate();
@@ -165,9 +167,9 @@ export default function TestsPage() {
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10 print:p-0">
       <PageHeader
-        crumb="Тапсырмалар"
-        title="Тапсырмалар"
-        subtitle="Тапсырма түрін таңдаңыз: деңгейлік тест, функционалдық сауаттылық (PISA), ҰБТ сұрақтары, БЖБ/ТЖБ немесе шығармашылық тапсырмалар. AI жауап кілтімен, бағалау критерийлерімен бірге құрастырады."
+        crumb={tr("Тапсырмалар")}
+        title={tr("Тапсырмалар")}
+        subtitle={tr("Тапсырма түрін таңдаңыз: деңгейлік тест, функционалдық сауаттылық (PISA), ҰБТ сұрақтары, БЖБ/ТЖБ немесе шығармашылық тапсырмалар. AI жауап кілтімен, бағалау критерийлерімен бірге құрастырады.")}
       />
 
       <div className="mt-8 flex flex-wrap items-start gap-7">
@@ -179,16 +181,16 @@ export default function TestsPage() {
           {planContext && (
             <div className="flex items-start gap-2 rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-[13px] text-fuchsia-800">
               <span className="flex-1">
-                ҚМЖ негізінде{plan ? <>: <b>{plan.topic}</b></> : ""} — тапсырмалар сабақ мақсаттарының орындалуын тексереді.
+                {tr("ҚМЖ негізінде")}{plan ? <>: <b>{plan.topic}</b></> : ""} — {tr("тапсырмалар сабақ мақсаттарының орындалуын тексереді.")}
               </span>
-              <button type="button" aria-label="ҚМЖ-сыз жасау" title="ҚМЖ-сыз жасау" onClick={() => setPlanContext("")} className="rounded-md p-0.5 hover:bg-fuchsia-200">
+              <button type="button" aria-label={tr("ҚМЖ-сыз жасау")} title={tr("ҚМЖ-сыз жасау")} onClick={() => setPlanContext("")} className="rounded-md p-0.5 hover:bg-fuchsia-200">
                 <X size={15} />
               </button>
             </div>
           )}
 
           <fieldset>
-            <legend className="mb-2 block text-[13px] font-semibold text-slate-500">Тапсырма түрі</legend>
+            <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тапсырма түрі")}</legend>
             <div className="flex flex-col gap-2">
               {TASK_TYPES.map((t) => {
                 const Icon = TYPE_ICONS[t.key];
@@ -220,36 +222,36 @@ export default function TestsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
-              <span className="mb-2 block text-[13px] font-semibold text-slate-500">Пән</span>
+              <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Пән")}</span>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldClass}>
                 {SUBJECTS.map((s) => (
-                  <option key={s}>{s}</option>
+                  <option key={s} value={s}>{tr(s)}</option>
                 ))}
               </select>
             </label>
             <label className="block">
-              <span className="mb-2 block text-[13px] font-semibold text-slate-500">Сынып</span>
+              <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Сынып")}</span>
               <select value={grade} onChange={(e) => setGrade(e.target.value)} className={fieldClass}>
                 {GRADES.map((g) => (
-                  <option key={g}>{g}</option>
+                  <option key={g} value={g}>{tr(g)}</option>
                 ))}
               </select>
             </label>
           </div>
           <label className="block">
-            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{taskType === "bzb" ? "Бөлім / тақырып" : "Тақырып"}</span>
-            <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={300} placeholder="мыс.: Жай бөлшектерді салыстыру" className={fieldClass} />
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{taskType === "bzb" ? tr("Бөлім / тақырып") : tr("Тақырып")}</span>
+            <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={300} placeholder={tr("мыс.: Жай бөлшектерді салыстыру")} className={fieldClass} />
           </label>
           <label className="block">
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">
-              Оқу мақсаты <span className="font-normal">(ҮОБ бойынша)</span>
+              {tr("Оқу мақсаты")} <span className="font-normal">{tr("(ҮОБ бойынша)")}</span>
             </span>
             <input
               value={objective}
               onChange={(e) => setObjective(e.target.value)}
               list="objective-suggestions"
               maxLength={400}
-              placeholder="мыс.: 5.2.1.4 — жай бөлшектерді салыстыру"
+              placeholder={tr("мыс.: 5.2.1.4 — жай бөлшектерді салыстыру")}
               className={fieldClass}
             />
             <datalist id="objective-suggestions">
@@ -259,7 +261,7 @@ export default function TestsPage() {
             </datalist>
           </label>
           <div>
-            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{typeDef.unit === "сұрақ" ? "Сұрақ саны" : "Тапсырма саны"}</span>
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{typeDef.unit === "сұрақ" ? tr("Сұрақ саны") : tr("Тапсырма саны")}</span>
             <div className="grid grid-cols-4 gap-2">
               {typeDef.counts.map((n) => (
                 <button key={n} type="button" aria-pressed={count === n} onClick={() => setCount(n)} className={chipClass(count === n)}>
@@ -269,11 +271,11 @@ export default function TestsPage() {
             </div>
           </div>
           <div>
-            <span className="mb-2 block text-[13px] font-semibold text-slate-500">Қиындық деңгейі</span>
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Қиындық деңгейі")}</span>
             <div className="grid grid-cols-3 gap-2">
               {DIFFICULTIES.map((d) => (
                 <button key={d} type="button" aria-pressed={difficulty === d} onClick={() => setDifficulty(d)} className={chipClass(difficulty === d)}>
-                  {d}
+                  {tr(d)}
                 </button>
               ))}
             </div>
@@ -282,21 +284,21 @@ export default function TestsPage() {
             <label className="flex cursor-pointer items-start gap-2.5 text-sm">
               <input type="checkbox" checked={differentiate} onChange={(e) => setDifferentiate(e.target.checked)} className="mt-0.5 h-4 w-4 accent-violet-600" />
               <span>
-                Саралау: A / B / C деңгейлері
-                <span className="block text-xs text-slate-500">Білу және түсіну → қолдану → жоғары деңгей дағдылары. Сұрақтар біртіндеп күрделенеді.</span>
+                {tr("Саралау: A / B / C деңгейлері")}
+                <span className="block text-xs text-slate-500">{tr("Білу және түсіну → қолдану → жоғары деңгей дағдылары. Сұрақтар біртіндеп күрделенеді.")}</span>
               </span>
             </label>
           )}
           <label className="block">
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">
-              Қосымша тілек <span className="font-normal">(міндетті емес)</span>
+              {tr("Қосымша тілек")} <span className="font-normal">{tr("(міндетті емес)")}</span>
             </span>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               maxLength={500}
               rows={2}
-              placeholder="мыс.: есептер көбірек болсын, ауыл өмірінен мысалдар алынсын"
+              placeholder={tr("мыс.: есептер көбірек болсын, ауыл өмірінен мысалдар алынсын")}
               className={`${fieldClass} resize-y`}
             />
           </label>
@@ -311,7 +313,7 @@ export default function TestsPage() {
             className="flex w-full items-center justify-center gap-2.5 rounded-[14px] bg-violet-600 px-5 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
           >
             <Sparkles size={17} className={generating ? "animate-spin" : ""} />
-            {generating ? "Құрастырылуда..." : "Тапсырма жасау"}
+            {generating ? tr("Құрастырылуда...") : tr("Тапсырма жасау")}
           </button>
         </form>
 
@@ -319,16 +321,16 @@ export default function TestsPage() {
           {generating ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface">
               <Sparkles size={34} className="animate-spin text-violet-500" />
-              <div className="text-base">{typeDef.label} құрастырылуда...</div>
-              <div className="text-[12.5px] text-slate-500">Әдетте 10–40 секунд алады</div>
+              <div className="text-base">{typeDef.label} {tr("құрастырылуда...")}</div>
+              <div className="text-[12.5px] text-slate-500">{tr("Әдетте 10–40 секунд алады")}</div>
             </div>
           ) : !test ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3.5 rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center text-slate-500">
               <span className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-violet-100 text-violet-500">
                 <FileText size={32} />
               </span>
-              <div className="text-base text-slate-900">Тапсырма түрін таңдап, «Тапсырма жасау» батырмасын басыңыз</div>
-              <div className="text-[13.5px]">Дайын тапсырмалар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.</div>
+              <div className="text-base text-slate-900">{tr("Тапсырма түрін таңдап, «Тапсырма жасау» батырмасын басыңыз")}</div>
+              <div className="text-[13.5px]">{tr("Дайын тапсырмалар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.")}</div>
             </div>
           ) : (
             <article className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-6 rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-8 print:border-0 print:p-0">
@@ -337,12 +339,12 @@ export default function TestsPage() {
                   <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{shownType.label}</div>
                   <h2 className="text-[22px] font-bold">{test.topic}</h2>
                   <div className="mt-1 text-slate-500">
-                    {test.subject} · {test.grade} · Қиындығы: {test.difficulty} ·{" "}
-                    {written ? `${written.length} тапсырма · ${written.reduce((s, t) => s + t.points, 0)} балл` : `${test.questions.length} сұрақ`}
+                    {tr(test.subject)} · {tr(test.grade)} · {tr("Қиындығы:")} {tr(test.difficulty)} ·{" "}
+                    {written ? tr("{n} тапсырма · {p} балл", { n: written.length, p: written.reduce((s, t) => s + t.points, 0) }) : tr("{n} сұрақ", { n: test.questions.length })}
                   </div>
                   {test.objective && (
                     <div className="mt-1.5 text-[13.5px]">
-                      <b>Оқу мақсаты:</b> {test.objective}
+                      <b>{tr("Оқу мақсаты:")}</b> {test.objective}
                     </div>
                   )}
                   {!written && test.questions.some((q) => q.level) && (
@@ -359,10 +361,10 @@ export default function TestsPage() {
                   )}
                 </div>
                 <span className="rounded-full bg-fuchsia-100 px-3 py-1.5 text-xs font-semibold text-fuchsia-700 print:hidden">
-                  {written ? "Критерийлерімен" : "Жауап кілтімен"}
+                  {written ? tr("Критерийлерімен") : tr("Жауап кілтімен")}
                 </span>
               </div>
-              <div className="hidden text-sm print:block">Оқушының аты-жөні: ______________________ Сынып: ______ Күні: __________</div>
+              <div className="hidden text-sm print:block">{tr("Оқушының аты-жөні: ______________________ Сынып: ______ Күні: __________")}</div>
 
               {written ? (
                 <WrittenTasksView tasks={written} showAnswers={showAnswers} />
@@ -373,7 +375,7 @@ export default function TestsPage() {
                       <li key={i} className="break-inside-avoid">
                         {q.context && q.context !== test.questions[i - 1]?.context && (
                           <div className="mb-3 whitespace-pre-line rounded-[14px] border-l-4 border-violet-600 bg-violet-100/50 px-4 py-3 text-[14.5px]">
-                            <div className="mb-1 text-[12px] font-bold uppercase tracking-wide text-violet-700">Жағдаят</div>
+                            <div className="mb-1 text-[12px] font-bold uppercase tracking-wide text-violet-700">{tr("Жағдаят")}</div>
                             {q.context}
                           </div>
                         )}
@@ -398,7 +400,7 @@ export default function TestsPage() {
                                 >
                                   <span className="font-bold">{letter(oi)})</span>
                                   <span>{opt}</span>
-                                  {correct && <Check size={16} className="mt-0.5 shrink-0" aria-label="дұрыс жауап" />}
+                                  {correct && <Check size={16} className="mt-0.5 shrink-0" aria-label={tr("дұрыс жауап")} />}
                                 </div>
                               );
                             })}
@@ -411,7 +413,7 @@ export default function TestsPage() {
 
                   {showAnswers && (
                     <div className="rounded-[14px] bg-fuchsia-100 px-5 py-4 print:break-before-page print:bg-transparent print:px-0">
-                      <div className="mb-2 text-[15px] font-bold">Жауаптар кілті</div>
+                      <div className="mb-2 text-[15px] font-bold">{tr("Жауаптар кілті")}</div>
                       <div className="flex flex-wrap gap-x-5 gap-y-1 text-[14.5px]">
                         {test.questions.map((q, i) => (
                           <span key={i}>
@@ -427,16 +429,16 @@ export default function TestsPage() {
               <div className="flex flex-wrap gap-2.5 border-t border-slate-200 pt-5 print:hidden">
                 <button type="button" onClick={() => setShowAnswers((v) => !v)} className={ghostBtn}>
                   {showAnswers ? <EyeOff size={15} /> : <Eye size={15} />}
-                  {showAnswers ? "Жауаптарды жасыру" : written ? "Жауаптар мен дескрипторлар" : "Жауаптарды көрсету"}
+                  {showAnswers ? tr("Жауаптарды жасыру") : written ? tr("Жауаптар мен дескрипторлар") : tr("Жауаптарды көрсету")}
                 </button>
                 <button type="button" onClick={handleDocx} disabled={exporting} className={ghostBtn}>
-                  <Download size={15} /> {exporting ? "Дайындалуда..." : "Word түрінде жүктеу"}
+                  <Download size={15} /> {exporting ? tr("Дайындалуда...") : tr("Word түрінде жүктеу")}
                 </button>
-                <button type="button" onClick={() => window.print()} title="Жауаптар көрсетілсе, олар да басып шығарылады" className={ghostBtn}>
-                  <Printer size={15} /> PDF / басып шығару
+                <button type="button" onClick={() => window.print()} title={tr("Жауаптар көрсетілсе, олар да басып шығарылады")} className={ghostBtn}>
+                  <Printer size={15} /> {tr("PDF / басып шығару")}
                 </button>
                 <Link to="/projects" className={ghostBtn}>
-                  Барлық жобалар
+                  {tr("Барлық жобалар")}
                 </Link>
               </div>
             </article>
@@ -459,13 +461,13 @@ function WrittenTasksView({ tasks, showAnswers }: { tasks: NonNullable<SavedTest
           <li key={i} className="break-inside-avoid rounded-[14px] border border-slate-200 p-4 print:border-0 print:p-0">
             <div className="flex items-start justify-between gap-3">
               <div className="font-semibold">
-                {i + 1}-тапсырма. {t.title}
+                {tr("{n}-тапсырма.", { n: i + 1 })} {t.title}
               </div>
               <span className="flex shrink-0 items-center gap-1.5">
                 <span title={levelLabel(t.level)} className={`rounded-md px-2 py-0.5 text-[11.5px] font-bold ${levelBadge(t.level)}`}>
                   {t.level}
                 </span>
-                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11.5px] font-bold">{t.points} балл</span>
+                <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11.5px] font-bold">{t.points} {tr("балл")}</span>
               </span>
             </div>
             <div className="mt-2 whitespace-pre-line text-[14.5px]">{t.text}</div>
@@ -473,12 +475,12 @@ function WrittenTasksView({ tasks, showAnswers }: { tasks: NonNullable<SavedTest
               <div className="mt-3 flex flex-col gap-2 rounded-xl bg-slate-50 p-3 text-[13.5px]">
                 {t.criterion && (
                   <div>
-                    <b>Бағалау критерийі:</b> {t.criterion}
+                    <b>{tr("Бағалау критерийі:")}</b> {t.criterion}
                   </div>
                 )}
                 {t.descriptors.length > 0 && (
                   <div>
-                    <b>Дескрипторлар:</b>
+                    <b>{tr("Дескрипторлар:")}</b>
                     <ul className="mt-1 list-disc pl-5">
                       {t.descriptors.map((d, di) => (
                         <li key={di}>{d}</li>
@@ -488,7 +490,7 @@ function WrittenTasksView({ tasks, showAnswers }: { tasks: NonNullable<SavedTest
                 )}
                 {t.answer && (
                   <div className="text-fuchsia-800">
-                    <b>Үлгі жауап:</b> {t.answer}
+                    <b>{tr("Үлгі жауап:")}</b> {t.answer}
                   </div>
                 )}
               </div>
@@ -497,7 +499,7 @@ function WrittenTasksView({ tasks, showAnswers }: { tasks: NonNullable<SavedTest
         ))}
       </ol>
       <div className="rounded-[14px] bg-violet-100/60 px-5 py-3 text-[14.5px]">
-        Жалпы балл: <b>{total}</b>
+        {tr("Жалпы балл:")} <b>{total}</b>
       </div>
     </>
   );

@@ -5,6 +5,7 @@
 // API-ын (service_role кілтін) қажет етеді.
 
 import { supabase } from "./supabaseClient";
+import { tr } from "../i18n";
 
 export type Role = "admin" | "teacher";
 export type AccountStatus = "active" | "disabled";
@@ -169,7 +170,7 @@ async function callAdminAction<T>(action: string, payload: Record<string, unknow
   }
   if (isFetchError(error)) {
     throw new Error(
-      "Сервер функциясына (admin-actions) қосылу мүмкін болмады. Supabase → Edge Functions бөлімінде «admin-actions» функциясы жарияланғанын тексеріңіз (supabase/README.md, 4-қадам).",
+      tr("Сервер функциясына (admin-actions) қосылу мүмкін болмады. Supabase → Edge Functions бөлімінде «admin-actions» функциясы жарияланғанын тексеріңіз (supabase/README.md, 4-қадам)."),
     );
   }
   if (error) {
@@ -211,7 +212,7 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
     });
     return { ok: true };
   } catch (e) {
-    const message = e instanceof Error ? e.message : "Белгісіз қате";
+    const message = e instanceof Error ? e.message : tr("Белгісіз қате");
     if (/already|duplicate|registered/i.test(message)) {
       return { ok: false, reason: "duplicate_email" };
     }
@@ -246,7 +247,7 @@ export async function deleteUser(user: UserAccount): Promise<{ ok: boolean; mess
     await callAdminAction("delete", { userId: user.id });
     return { ok: true };
   } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : "Белгісіз қате" };
+    return { ok: false, message: e instanceof Error ? e.message : tr("Белгісіз қате") };
   }
 }
 
@@ -256,7 +257,7 @@ export async function resetPassword(user: UserAccount): Promise<{ ok: true; newP
     await callAdminAction("reset-password", { userId: user.id, newPassword });
     return { ok: true, newPassword };
   } catch (e) {
-    return { ok: false, message: e instanceof Error ? e.message : "Белгісіз қате" };
+    return { ok: false, message: e instanceof Error ? e.message : tr("Белгісіз қате") };
   }
 }
 
@@ -288,7 +289,7 @@ export async function updateMyProfile(input: ProfileInput): Promise<void> {
   });
   if (error) {
     if (/update_my_profile/.test(error.message) && /(find|exist)/i.test(error.message)) {
-      throw new Error("Профильді сақтау функциясы табылмады. Әкімші Supabase-те supabase/update-2-projects-profile.sql файлын орындауы керек.");
+      throw new Error(tr("Профильді сақтау функциясы табылмады. Әкімші Supabase-те supabase/update-2-projects-profile.sql файлын орындауы керек."));
     }
     throw new Error(error.message);
   }
@@ -298,11 +299,11 @@ export async function updateMyProfile(input: ProfileInput): Promise<void> {
 /** Қазіргі құпия сөзді тексеріп, жаңасын орнатады. */
 export async function changeMyPassword(email: string, current: string, next: string): Promise<void> {
   const check = await supabase.auth.signInWithPassword({ email, password: current });
-  if (check.error) throw new Error("Қазіргі құпия сөз қате.");
+  if (check.error) throw new Error(tr("Қазіргі құпия сөз қате."));
   const { error } = await supabase.auth.updateUser({ password: next });
   if (error) {
-    if (/should be different/i.test(error.message)) throw new Error("Жаңа құпия сөз ескісінен өзгеше болуы керек.");
-    if (/at least|weak|short/i.test(error.message)) throw new Error("Құпия сөз тым әлсіз: кемінде 8 таңба, әріп пен сан қолданыңыз.");
+    if (/should be different/i.test(error.message)) throw new Error(tr("Жаңа құпия сөз ескісінен өзгеше болуы керек."));
+    if (/at least|weak|short/i.test(error.message)) throw new Error(tr("Құпия сөз тым әлсіз: кемінде 8 таңба, әріп пен сан қолданыңыз."));
     throw new Error(error.message);
   }
   await supabase.rpc("log_audit", { p_action: "Құпия сөз өзгертілді", p_detail: "" });

@@ -5,6 +5,7 @@ import { tools } from "../lib/navigation";
 import { Avatar } from "./Avatar";
 import { Logo } from "./Logo";
 import { UserMenu } from "./UserMenu";
+import { tr } from "../i18n";
 
 /* AI Nur құрылымы: басты бетте — қою көк бүйір мәзір, құрал беттерінде — жоғарғы мәзір. */
 
@@ -27,7 +28,7 @@ export function DashboardLayout() {
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
       <nav
-        aria-label="Негізгі мәзір"
+        aria-label={tr("Негізгі мәзір")}
         className="flex items-center gap-3 overflow-x-auto bg-navy-900 px-4 py-3 text-[#f4f1ea] lg:sticky lg:top-0 lg:h-screen lg:w-[264px] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-0 lg:overflow-visible lg:px-5 lg:py-8"
       >
         <NavLink to="/" className="flex shrink-0 items-center gap-3 lg:mb-11 lg:px-1.5">
@@ -39,7 +40,7 @@ export function DashboardLayout() {
 
         <div className="flex gap-1 lg:flex-col">
           <NavLink to="/" end className={sideLink}>
-            <Home size={19} strokeWidth={1.8} /> Басты бет
+            <Home size={19} strokeWidth={1.8} /> {tr("Басты бет")}
           </NavLink>
           {tools.map((t) => (
             <NavLink key={t.to} to={t.to} className={sideLink}>
@@ -48,14 +49,14 @@ export function DashboardLayout() {
           ))}
           <div className="mx-1.5 my-3.5 hidden h-px bg-navy-700 lg:block" />
           <NavLink to="/projects" className={sideLink}>
-            <FolderOpen size={19} strokeWidth={1.8} /> Менің жобаларым
+            <FolderOpen size={19} strokeWidth={1.8} /> {tr("Менің жобаларым")}
           </NavLink>
           <NavLink to="/profile" className={sideLink}>
-            <UserRound size={19} strokeWidth={1.8} /> Жеке бет
+            <UserRound size={19} strokeWidth={1.8} /> {tr("Жеке бет")}
           </NavLink>
           {user?.role === "admin" && (
             <NavLink to="/admin" className={sideLink}>
-              <ShieldCheck size={19} strokeWidth={1.8} /> Әкімші панелі
+              <ShieldCheck size={19} strokeWidth={1.8} /> {tr("Әкімші панелі")}
             </NavLink>
           )}
         </div>
@@ -69,7 +70,7 @@ export function DashboardLayout() {
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold text-white">{user.name}</p>
                 <p className="truncate text-xs text-[#b4b0c8]">
-                  {user.role === "admin" ? "Әкімші" : user.subject ? `${user.subject} мұғалімі` : "Мұғалім"}
+                  {user.role === "admin" ? tr("Әкімші") : user.subject ? tr("{subject} мұғалімі", { subject: tr(user.subject) }) : tr("Мұғалім")}
                 </p>
               </div>
             </NavLink>
@@ -78,7 +79,7 @@ export function DashboardLayout() {
               onClick={handleLogout}
               className="flex items-center gap-3 rounded-xl px-3.5 py-2 text-left text-sm text-[#c7c4da] hover:bg-navy-800 hover:text-white"
             >
-              <LogOut size={17} /> Шығу
+              <LogOut size={17} /> {tr("Шығу")}
             </button>
           </div>
         )}
@@ -93,7 +94,7 @@ export function DashboardLayout() {
 
 const topLink = ({ isActive }: { isActive: boolean }) =>
   `rounded-[11px] px-1 py-2 text-center text-[12px] font-semibold whitespace-nowrap transition-colors sm:px-4 sm:text-[13.5px] ${
-    isActive ? "bg-navy-900 text-white" : "text-slate-500 hover:bg-violet-100 hover:text-violet-700"
+    isActive ? "bg-navy-900 text-white dark:bg-violet-600" : "text-slate-500 hover:bg-violet-100 hover:text-violet-700"
   }`;
 
 function Topbar({ admin = false }: { admin?: boolean }) {
@@ -102,27 +103,27 @@ function Topbar({ admin = false }: { admin?: boolean }) {
       <NavLink to={admin ? "/admin" : "/"} className="flex items-center gap-3 font-bold">
         <Logo className="h-9 w-9" />
         <span className="text-[16.5px]">
-          AI Nur{admin && <span className="text-[13.5px] font-semibold text-slate-500"> · Әкімші</span>}
+          AI Nur{admin && <span className="text-[13.5px] font-semibold text-slate-500"> · {tr("Әкімші")}</span>}
         </span>
       </NavLink>
       <nav
-        aria-label={admin ? "Әкімші мәзірі" : "Құралдар"}
+        aria-label={admin ? tr("Әкімші мәзірі") : tr("Құралдар")}
         className={`order-3 grid w-full gap-1 rounded-[14px] border border-slate-200 bg-surface p-1 sm:flex sm:overflow-x-auto md:order-none md:w-auto ${admin ? "grid-cols-2" : "grid-cols-4"}`}
       >
         {admin ? (
           <>
-            <NavLink to="/admin" className={topLink}>Аккаунттар</NavLink>
-            <NavLink to="/" end className={topLink}>Қосымшаны қарау</NavLink>
+            <NavLink to="/admin" className={topLink}>{tr("Аккаунттар")}</NavLink>
+            <NavLink to="/" end className={topLink}>{tr("Қосымшаны қарау")}</NavLink>
           </>
         ) : (
           <>
-            <NavLink to="/" end className={topLink}>Басты бет</NavLink>
+            <NavLink to="/" end className={topLink}>{tr("Басты бет")}</NavLink>
             {tools.map((t) => (
               <NavLink key={t.to} to={t.to} className={topLink}>
                 {t.short}
               </NavLink>
             ))}
-            <NavLink to="/projects" className={topLink}>Жобалар</NavLink>
+            <NavLink to="/projects" className={topLink}>{tr("Жобалар")}</NavLink>
           </>
         )}
       </nav>

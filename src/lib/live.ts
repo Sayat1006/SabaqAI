@@ -3,6 +3,7 @@
 // функцияларда (7-жаңарту): дұрыс жауап оқушыға тек «reveal» кезеңінде көрінеді.
 // Нақты уақыт үшін екі жақ та күйді секунд сайын сұрайды (Realtime баптауын қажет етпейді).
 
+import { tr } from "../i18n";
 import type { Lang } from "./lang";
 import { supabase } from "./supabaseClient";
 
@@ -71,7 +72,7 @@ const KNOWN = ["not_found", "name_taken", "full", "bad_name", "closed", "bad_cho
 
 function wrap(error: { message: string; code?: string }): LiveError {
   if (error.code === "PGRST202" || error.code === "42P01" || /Could not find the (function|table)|does not exist/i.test(error.message)) {
-    return new LiveError("setup", "Тірі викторина әлі қосылмаған. Әкімші Supabase-те supabase/update-7-docs-live.sql файлын орындауы керек.");
+    return new LiveError("setup", tr("Тірі викторина әлі қосылмаған. Әкімші Supabase-те supabase/update-7-docs-live.sql файлын орындауы керек."));
   }
   const code = KNOWN.find((k) => error.message.includes(k));
   if (code) return new LiveError(code);

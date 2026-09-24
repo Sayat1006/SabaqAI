@@ -1,6 +1,7 @@
 import { ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { TASK_KINDS, type LessonPlan, type QmzhActivityRow, type QmzhStage, type QmzhTask } from "../lib/generators";
+import { tr } from "../i18n";
 
 // ҚМЖ өңдегіші: жоспардың көшірмесімен (draft) жұмыс істейді, «Сақтау» басылғанда ғана
 // сыртқа береді. Тізім өрістері «әр жол — бір пункт» мәтіні ретінде өңделеді.
@@ -34,7 +35,7 @@ function Text({ title, hint, value, onChange, rows = 1 }: { title: string; hint?
 }
 
 /** Көпжолды өріс: мәтінді өзі сақтайды (курсор секірмеуі үшін), өзгергенде parse арқылы жібереді. */
-function Lines<T>({ title, hint = "әр жол — бір пункт", initial, parse, onChange, rows = 3 }: { title: string; hint?: string; initial: string; parse: (t: string) => T; onChange: (v: T) => void; rows?: number }) {
+function Lines<T>({ title, hint = tr("әр жол — бір пункт"), initial, parse, onChange, rows = 3 }: { title: string; hint?: string; initial: string; parse: (t: string) => T; onChange: (v: T) => void; rows?: number }) {
   const [text, setText] = useState(initial);
   return (
     <Label title={title} hint={hint}>
@@ -72,11 +73,11 @@ function move<T>(list: T[], i: number, dir: -1 | 1): T[] {
 
 const emptyRow = (): QmzhActivityRow => ({ teacherAction: [], studentAction: [], assessmentType: "", assessmentDetail: "", resources: "" });
 const emptyTask = (): QmzhTask => ({
-  title: "Жаңа тапсырма",
-  kind: "Жеке жұмыс",
+  title: tr("Жаңа тапсырма"),
+  kind: tr("Жеке жұмыс"),
   method: "",
   level: "A",
-  time: "5 мин",
+  time: tr("5 мин"),
   condition: [],
   tableTitle: "",
   tableHeaders: [],
@@ -106,31 +107,31 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
   return (
     <div className="flex flex-col gap-3">
       <div className="sticky top-20 z-10 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-violet-200 bg-violet-100/90 px-4 py-3 backdrop-blur">
-        <span className="text-sm font-semibold text-violet-800">Өңдеу режимі — өзгерістерді «Сақтау» арқылы сақтаңыз</span>
+        <span className="text-sm font-semibold text-violet-800">{tr("Өңдеу режимі — өзгерістерді «Сақтау» арқылы сақтаңыз")}</span>
         <div className="flex gap-2">
           <button type="button" onClick={onCancel} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-300 bg-surface px-3 py-2 text-sm font-semibold">
-            <X size={15} /> Болдырмау
+            <X size={15} /> {tr("Болдырмау")}
           </button>
           <button type="button" onClick={() => onSave(d)} disabled={saving} className="inline-flex items-center gap-1.5 rounded-[10px] bg-violet-600 px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-60">
-            <Save size={15} /> {saving ? "Сақталуда..." : "Сақтау"}
+            <Save size={15} /> {saving ? tr("Сақталуда...") : tr("Сақтау")}
           </button>
         </div>
       </div>
 
-      <Section title="Жалпы мәліметтер" open>
+      <Section title={tr("Жалпы мәліметтер")} open>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Text title="Бөлім" value={d.section} onChange={(section) => set({ section })} />
-          <Text title="Сабақтың тақырыбы" value={d.topic} onChange={(topic) => set({ topic })} />
-          <Text title="Педагогтің аты-жөні" value={d.teacherName} onChange={(teacherName) => set({ teacherName })} />
-          <Text title="Күні" value={d.date} onChange={(date) => set({ date })} />
-          <Text title="Оқу мақсатының коды" value={d.objectiveCode} onChange={(objectiveCode) => set({ objectiveCode })} />
+          <Text title={tr("Бөлім")} value={d.section} onChange={(section) => set({ section })} />
+          <Text title={tr("Сабақтың тақырыбы")} value={d.topic} onChange={(topic) => set({ topic })} />
+          <Text title={tr("Педагогтің аты-жөні")} value={d.teacherName} onChange={(teacherName) => set({ teacherName })} />
+          <Text title={tr("Күні")} value={d.date} onChange={(date) => set({ date })} />
+          <Text title={tr("Оқу мақсатының коды")} value={d.objectiveCode} onChange={(objectiveCode) => set({ objectiveCode })} />
         </div>
-        <Text title="Оқыту мақсаты" value={d.objectiveText} onChange={(objectiveText) => set({ objectiveText })} rows={2} />
-        <Lines title="Сабақтың мақсаты" initial={d.goals.join("\n")} parse={lines} onChange={(goals) => set({ goals })} />
-        <Text title="Құндылықтарды дарыту" value={d.valuesText} onChange={(valuesText) => set({ valuesText })} rows={2} />
+        <Text title={tr("Оқыту мақсаты")} value={d.objectiveText} onChange={(objectiveText) => set({ objectiveText })} rows={2} />
+        <Lines title={tr("Сабақтың мақсаты")} initial={d.goals.join("\n")} parse={lines} onChange={(goals) => set({ goals })} />
+        <Text title={tr("Құндылықтарды дарыту")} value={d.valuesText} onChange={(valuesText) => set({ valuesText })} rows={2} />
         <Lines
-          title="Пәндік лексика"
-          hint="әр жол: термин — анықтамасы"
+          title={tr("Пәндік лексика")}
+          hint={tr("әр жол: термин — анықтамасы")}
           initial={(d.vocabulary ?? []).map((v) => `${v.term} — ${v.definition}`).join("\n")}
           parse={(t) =>
             lines(t).map((l) => {
@@ -142,34 +143,34 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
         />
       </Section>
 
-      <Section title="Сабақтың барысы (кезеңдер)">
+      <Section title={tr("Сабақтың барысы (кезеңдер)")}>
         {d.stages.map((stage, si) => (
           <div key={`${si}-${version}`} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3">
             <div className="grid gap-3 sm:grid-cols-[1fr_140px]">
-              <Text title="Кезең" value={stage.name} onChange={(name) => setStage(si, { name })} />
-              <Text title="Уақыты" value={stage.timeRange} onChange={(timeRange) => setStage(si, { timeRange })} />
+              <Text title={tr("Кезең")} value={stage.name} onChange={(name) => setStage(si, { name })} />
+              <Text title={tr("Уақыты")} value={stage.timeRange} onChange={(timeRange) => setStage(si, { timeRange })} />
             </div>
             {stage.rows.map((row, ri) => (
               <div key={ri} className="flex flex-col gap-2.5 rounded-lg bg-slate-50 p-3">
                 <div className="flex items-center justify-between text-xs font-semibold text-slate-500">
-                  {ri + 1}-жол
+                  {tr("{n}-жол", { n: ri + 1 })}
                   <button
                     type="button"
                     onClick={() => structural((p) => ({ ...p, stages: p.stages.map((s, i) => (i === si ? { ...s, rows: s.rows.filter((_, j) => j !== ri) } : s)) }))}
                     disabled={stage.rows.length <= 1}
-                    aria-label="Жолды өшіру"
+                    aria-label={tr("Жолды өшіру")}
                     className={iconBtn}
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
                 <div className="grid gap-2.5 sm:grid-cols-2">
-                  <Lines title="Педагогтің әрекеті" initial={row.teacherAction.join("\n")} parse={lines} onChange={(teacherAction) => setRow(si, ri, { teacherAction })} />
-                  <Lines title="Оқушының әрекеті" initial={row.studentAction.join("\n")} parse={lines} onChange={(studentAction) => setRow(si, ri, { studentAction })} />
-                  <Text title="Бағалау түрі" value={row.assessmentType} onChange={(assessmentType) => setRow(si, ri, { assessmentType })} />
-                  <Text title="Бағалау сипаттамасы" value={row.assessmentDetail} onChange={(assessmentDetail) => setRow(si, ri, { assessmentDetail })} />
+                  <Lines title={tr("Педагогтің әрекеті")} initial={row.teacherAction.join("\n")} parse={lines} onChange={(teacherAction) => setRow(si, ri, { teacherAction })} />
+                  <Lines title={tr("Оқушының әрекеті")} initial={row.studentAction.join("\n")} parse={lines} onChange={(studentAction) => setRow(si, ri, { studentAction })} />
+                  <Text title={tr("Бағалау түрі")} value={row.assessmentType} onChange={(assessmentType) => setRow(si, ri, { assessmentType })} />
+                  <Text title={tr("Бағалау сипаттамасы")} value={row.assessmentDetail} onChange={(assessmentDetail) => setRow(si, ri, { assessmentDetail })} />
                 </div>
-                <Text title="Ресурстар" value={row.resources} onChange={(resources) => setRow(si, ri, { resources })} />
+                <Text title={tr("Ресурстар")} value={row.resources} onChange={(resources) => setRow(si, ri, { resources })} />
               </div>
             ))}
             <button
@@ -177,61 +178,61 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
               onClick={() => structural((p) => ({ ...p, stages: p.stages.map((s, i) => (i === si ? { ...s, rows: [...s.rows, emptyRow()] } : s)) }))}
               className="inline-flex w-fit items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-1.5 text-[13px] font-semibold hover:border-violet-500"
             >
-              <Plus size={14} /> Жол қосу
+              <Plus size={14} /> {tr("Жол қосу")}
             </button>
           </div>
         ))}
       </Section>
 
-      <Section title={`Тапсырмалар (${d.tasks.length})`}>
+      <Section title={tr("Тапсырмалар ({n})", { n: d.tasks.length })}>
         {d.tasks.map((task, ti) => (
           <div key={`${ti}-${version}`} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold">{ti + 1}-тапсырма</span>
+              <span className="font-semibold">{tr("{n}-тапсырма", { n: ti + 1 })}</span>
               <div className="flex gap-1.5">
-                <button type="button" onClick={() => structural((p) => ({ ...p, tasks: move(p.tasks, ti, -1) }))} disabled={ti === 0} aria-label="Жоғары" className={iconBtn}>
+                <button type="button" onClick={() => structural((p) => ({ ...p, tasks: move(p.tasks, ti, -1) }))} disabled={ti === 0} aria-label={tr("Жоғары")} className={iconBtn}>
                   <ArrowUp size={14} />
                 </button>
-                <button type="button" onClick={() => structural((p) => ({ ...p, tasks: move(p.tasks, ti, 1) }))} disabled={ti === d.tasks.length - 1} aria-label="Төмен" className={iconBtn}>
+                <button type="button" onClick={() => structural((p) => ({ ...p, tasks: move(p.tasks, ti, 1) }))} disabled={ti === d.tasks.length - 1} aria-label={tr("Төмен")} className={iconBtn}>
                   <ArrowDown size={14} />
                 </button>
                 <button
                   type="button"
-                  onClick={() => window.confirm(`${ti + 1}-тапсырманы өшіру керек пе?`) && structural((p) => ({ ...p, tasks: p.tasks.filter((_, i) => i !== ti) }))}
-                  aria-label="Тапсырманы өшіру"
+                  onClick={() => window.confirm(tr("{n}-тапсырманы өшіру керек пе?", { n: ti + 1 })) && structural((p) => ({ ...p, tasks: p.tasks.filter((_, i) => i !== ti) }))}
+                  aria-label={tr("Тапсырманы өшіру")}
                   className={`${iconBtn} hover:border-rose-400 hover:text-rose-700`}
                 >
                   <Trash2 size={14} />
                 </button>
               </div>
             </div>
-            <Text title="Атауы" value={task.title} onChange={(title) => setTask(ti, { title })} />
+            <Text title={tr("Атауы")} value={task.title} onChange={(title) => setTask(ti, { title })} />
             <div className="grid gap-3 sm:grid-cols-4">
-              <Label title="Жұмыс түрі">
+              <Label title={tr("Жұмыс түрі")}>
                 <select value={task.kind ?? ""} onChange={(e) => setTask(ti, { kind: e.target.value })} className={field}>
                   {[...new Set([task.kind ?? "", ...TASK_KINDS])].filter(Boolean).map((k) => (
                     <option key={k}>{k}</option>
                   ))}
                 </select>
               </Label>
-              <Text title="Әдіс-тәсіл" value={task.method ?? ""} onChange={(method) => setTask(ti, { method })} />
-              <Label title="Деңгейі">
+              <Text title={tr("Әдіс-тәсіл")} value={task.method ?? ""} onChange={(method) => setTask(ti, { method })} />
+              <Label title={tr("Деңгейі")}>
                 <select value={task.level ?? "A"} onChange={(e) => setTask(ti, { level: e.target.value as QmzhTask["level"] })} className={field}>
-                  <option value="A">A — білу/түсіну</option>
-                  <option value="B">B — қолдану</option>
-                  <option value="C">C — жоғары деңгей</option>
+                  <option value="A">{tr("A — білу/түсіну")}</option>
+                  <option value="B">{tr("B — қолдану")}</option>
+                  <option value="C">{tr("C — жоғары деңгей")}</option>
                 </select>
               </Label>
-              <Text title="Уақыты" value={task.time ?? ""} onChange={(time) => setTask(ti, { time })} />
+              <Text title={tr("Уақыты")} value={task.time ?? ""} onChange={(time) => setTask(ti, { time })} />
             </div>
-            <Lines title="Шарты" initial={task.condition.join("\n")} parse={lines} onChange={(condition) => setTask(ti, { condition })} />
-            <Text title="Кесте атауы" value={task.tableTitle} onChange={(tableTitle) => setTask(ti, { tableTitle })} />
-            <Lines title="Кесте бағандары" hint="| арқылы бөліңіз; кесте керек болмаса, бос қалдырыңыз" rows={1} initial={task.tableHeaders.join(" | ")} parse={(t) => cells(t.replace(/\n/g, " ")).filter(Boolean)} onChange={(tableHeaders) => setTask(ti, { tableHeaders })} />
-            <Lines title="Кесте жолдары" hint="әр жол — кестенің бір жолы, ұяшықтар | арқылы" initial={task.tableRows.map((r) => r.join(" | ")).join("\n")} parse={(t) => lines(t).map(cells)} onChange={(tableRows) => setTask(ti, { tableRows })} />
-            <Lines title="Орындау қадамдары" initial={task.steps.join("\n")} parse={lines} onChange={(steps) => setTask(ti, { steps })} />
+            <Lines title={tr("Шарты")} initial={task.condition.join("\n")} parse={lines} onChange={(condition) => setTask(ti, { condition })} />
+            <Text title={tr("Кесте атауы")} value={task.tableTitle} onChange={(tableTitle) => setTask(ti, { tableTitle })} />
+            <Lines title={tr("Кесте бағандары")} hint={tr("| арқылы бөліңіз; кесте керек болмаса, бос қалдырыңыз")} rows={1} initial={task.tableHeaders.join(" | ")} parse={(t) => cells(t.replace(/\n/g, " ")).filter(Boolean)} onChange={(tableHeaders) => setTask(ti, { tableHeaders })} />
+            <Lines title={tr("Кесте жолдары")} hint={tr("әр жол — кестенің бір жолы, ұяшықтар | арқылы")} initial={task.tableRows.map((r) => r.join(" | ")).join("\n")} parse={(t) => lines(t).map(cells)} onChange={(tableRows) => setTask(ti, { tableRows })} />
+            <Lines title={tr("Орындау қадамдары")} initial={task.steps.join("\n")} parse={lines} onChange={(steps) => setTask(ti, { steps })} />
             <Lines
-              title="Бағалау критерийлері"
-              hint="әр жол: Критерий: дескриптор 1; дескриптор 2"
+              title={tr("Бағалау критерийлері")}
+              hint={tr("әр жол: Критерий: дескриптор 1; дескриптор 2")}
               initial={task.criteria.map((c) => `${c.criterion}: ${c.descriptors.join("; ")}`).join("\n")}
               parse={(t) =>
                 lines(t).map((l) => {
@@ -243,9 +244,9 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
               }
               onChange={(criteria) => setTask(ti, { criteria })}
             />
-            <Text title="Саралау" value={task.differentiation} onChange={(differentiation) => setTask(ti, { differentiation })} rows={2} />
-            <Lines title="Күтілетін нәтиже кестесі" hint="кесте жолдары, ұяшықтар | арқылы" initial={task.expectedResultRows.map((r) => r.join(" | ")).join("\n")} parse={(t) => lines(t).map(cells)} onChange={(expectedResultRows) => setTask(ti, { expectedResultRows })} />
-            <Text title="Күтілетін нәтиже / жауап" value={task.expectedConclusion} onChange={(expectedConclusion) => setTask(ti, { expectedConclusion })} rows={2} />
+            <Text title={tr("Саралау")} value={task.differentiation} onChange={(differentiation) => setTask(ti, { differentiation })} rows={2} />
+            <Lines title={tr("Күтілетін нәтиже кестесі")} hint={tr("кесте жолдары, ұяшықтар | арқылы")} initial={task.expectedResultRows.map((r) => r.join(" | ")).join("\n")} parse={(t) => lines(t).map(cells)} onChange={(expectedResultRows) => setTask(ti, { expectedResultRows })} />
+            <Text title={tr("Күтілетін нәтиже / жауап")} value={task.expectedConclusion} onChange={(expectedConclusion) => setTask(ti, { expectedConclusion })} rows={2} />
           </div>
         ))}
         <button
@@ -253,16 +254,16 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
           onClick={() => structural((p) => ({ ...p, tasks: [...p.tasks, emptyTask()] }))}
           className="inline-flex w-fit items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-violet-500"
         >
-          <Plus size={14} /> Тапсырма қосу
+          <Plus size={14} /> {tr("Тапсырма қосу")}
         </button>
       </Section>
 
-      <Section title="Саралау, бағалау, қауіпсіздік · Рефлексия · Үй тапсырмасы">
-        <Text title="Саралау" value={planning.differentiation} onChange={(v) => set({ planning: { ...planning, differentiation: v } })} rows={2} />
-        <Text title="Бағалау" value={planning.assessment} onChange={(v) => set({ planning: { ...planning, assessment: v } })} rows={2} />
-        <Text title="Денсаулық және қауіпсіздік" value={planning.safety} onChange={(v) => set({ planning: { ...planning, safety: v } })} rows={2} />
-        <Lines title="Рефлексия сұрақтары" initial={(d.reflection ?? []).join("\n")} parse={lines} onChange={(reflection) => set({ reflection })} />
-        <Text title="Үй тапсырмасы" value={d.homework ?? ""} onChange={(homework) => set({ homework })} rows={2} />
+      <Section title={tr("Саралау, бағалау, қауіпсіздік · Рефлексия · Үй тапсырмасы")}>
+        <Text title={tr("Саралау")} value={planning.differentiation} onChange={(v) => set({ planning: { ...planning, differentiation: v } })} rows={2} />
+        <Text title={tr("Бағалау")} value={planning.assessment} onChange={(v) => set({ planning: { ...planning, assessment: v } })} rows={2} />
+        <Text title={tr("Денсаулық және қауіпсіздік")} value={planning.safety} onChange={(v) => set({ planning: { ...planning, safety: v } })} rows={2} />
+        <Lines title={tr("Рефлексия сұрақтары")} initial={(d.reflection ?? []).join("\n")} parse={lines} onChange={(reflection) => set({ reflection })} />
+        <Text title={tr("Үй тапсырмасы")} value={d.homework ?? ""} onChange={(homework) => set({ homework })} rows={2} />
       </Section>
     </div>
   );

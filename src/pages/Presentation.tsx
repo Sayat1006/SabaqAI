@@ -12,6 +12,8 @@ import { blankSlide, finalizeSlide, normalizeSlide, type SlideData, type SlideLa
 import { generatePresentation, illustrateSlide, illustrateSlides, planToContext, PRESENTATION_STYLES, SLIDE_COUNTS } from "../lib/studio";
 import "./presentation.css";
 import { scrollToResult } from "../lib/scrollToResult";
+import { tr } from "../i18n";
+import { defaultMaterialLang } from "../lib/lang";
 
 interface Deck {
   /** Сақталған жобаның id-і (өңдегенде сол жоба жаңартылады). */
@@ -33,11 +35,11 @@ function deckFromPlan(plan: LessonPlan): Deck {
         : { layout: s.kind, heading: s.title, subheading: s.bullets.join(" · ") },
     ),
   );
-  return { title: plan.topic, topic: plan.topic, style: "minimal", lang: plan.lang, slides, subtitle: `ҚМЖ негізінде · ${slides.length} слайд` };
+  return { title: plan.topic, topic: plan.topic, style: "minimal", lang: plan.lang, slides, subtitle: tr("ҚМЖ негізінде · {n} слайд", { n: slides.length }) };
 }
 
 function deckFromSaved(p: SavedPresentation): Deck {
-  return { id: p.id, title: p.title, topic: p.topic, style: p.style, lang: p.lang, slides: p.slides.map((s) => normalizeSlide(s as SlideData & Record<string, unknown>)), subtitle: `${p.slides.length} слайд` };
+  return { id: p.id, title: p.title, topic: p.topic, style: p.style, lang: p.lang, slides: p.slides.map((s) => normalizeSlide(s as SlideData & Record<string, unknown>)), subtitle: tr("{n} слайд", { n: p.slides.length }) };
 }
 
 function place(i: number, active: number): React.CSSProperties {
@@ -57,21 +59,21 @@ function chipClass(active: boolean) {
 }
 
 const LAYOUT_LABELS: Record<SlideLayout, string> = {
-  title: "Титул",
-  bullets: "Тізім",
-  image: "Сурет",
-  diagram: "Сызба",
-  chart: "Диаграмма",
-  table: "Кесте",
-  two_column: "Екі баған",
-  highlight: "Басты ой",
-  timeline: "Уақыт сызығы",
-  quiz: "Тест сұрағы",
-  task: "Тапсырма",
-  closing: "Қорытынды",
+  title: tr("Титул"),
+  bullets: tr("Тізім"),
+  image: tr("Сурет"),
+  diagram: tr("Сызба"),
+  chart: tr("Диаграмма"),
+  table: tr("Кесте"),
+  two_column: tr("Екі баған"),
+  highlight: tr("Басты ой"),
+  timeline: tr("Уақыт сызығы"),
+  quiz: tr("Тест сұрағы"),
+  task: tr("Тапсырма"),
+  closing: tr("Қорытынды"),
 };
 
-const PHASES = ["Құрылым мен мазмұн жасалуда...", "Сызбалар мен кестелер дайындалуда...", "Тапсырмалар мен тест сұрақтары құрастырылуда..."];
+const PHASES = [tr("Құрылым мен мазмұн жасалуда..."), tr("Сызбалар мен кестелер дайындалуда..."), tr("Тапсырмалар мен тест сұрақтары құрастырылуда...")];
 
 export default function PresentationPage() {
   const location = useLocation();
@@ -84,7 +86,7 @@ export default function PresentationPage() {
   const [style, setStyle] = useState<string>("minimal");
   const [count, setCount] = useState<number>(10);
   const [withImages, setWithImages] = useState(true);
-  const [lang, setLang] = useState<Lang>(plan?.lang ?? "kk");
+  const [lang, setLang] = useState<Lang>(plan?.lang ?? defaultMaterialLang);
   const [generating, setGenerating] = useState(false);
   const [phase, setPhase] = useState(0);
   const [pending, setPending] = useState<Set<number>>(new Set());
@@ -112,7 +114,7 @@ export default function PresentationPage() {
         setLang(p.lang ?? "kk");
         setSaveState("saved");
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Презентацияны ашу мүмкін болмады."));
+      .catch((e) => setError(e instanceof Error ? e.message : tr("Презентацияны ашу мүмкін болмады.")));
   }, [openedId]);
 
   const runGeneration = useCallback(
@@ -133,9 +135,9 @@ export default function PresentationPage() {
         setGenerating(false);
         if (fallback) {
           setDeck(fallback);
-          setError("AI қолжетімсіз болды, сондықтан ҚМЖ-дан қарапайым слайдтар жасалды. Кейінірек «Слайд жасау» арқылы қайталап көріңіз.");
+          setError(tr("AI қолжетімсіз болды, сондықтан ҚМЖ-дан қарапайым слайдтар жасалды. Кейінірек «Слайд жасау» арқылы қайталап көріңіз."));
         } else {
-          setError(err instanceof Error ? err.message : "Презентация жасау мүмкін болмады.");
+          setError(err instanceof Error ? err.message : tr("Презентация жасау мүмкін болмады."));
         }
         return;
       }
@@ -143,7 +145,7 @@ export default function PresentationPage() {
       setGenerating(false);
 
       const slides = result.slides;
-      setDeck({ title: result.title, topic: theTopic, style, lang, slides, subtitle: `${slides.length} слайд` });
+      setDeck({ title: result.title, topic: theTopic, style, lang, slides, subtitle: tr("{n} слайд", { n: slides.length }) });
       setActive(0);
 
       // Иллюстрациялар бірінен соң бірі пайда болады; бәрі біткен соң презентация сақталады.
@@ -169,7 +171,7 @@ export default function PresentationPage() {
         setSaveState("saved");
       } catch (err) {
         setSaveState("");
-        setError(err instanceof Error ? `Презентация дайын, бірақ сақталмады: ${err.message}` : "Презентация сақталмады.");
+        setError(err instanceof Error ? tr("Презентация дайын, бірақ сақталмады: {msg}", { msg: err.message }) : tr("Презентация сақталмады."));
       }
     },
     [style, count, withImages, lang],
@@ -217,7 +219,7 @@ export default function PresentationPage() {
     e.preventDefault();
     if (busy) return;
     if (topic.trim().length < 3) {
-      setError("Презентация тақырыбын жазыңыз.");
+      setError(tr("Презентация тақырыбын жазыңыз."));
       return;
     }
     void runGeneration(topic.trim(), plan ? planToContext(plan) : undefined);
@@ -259,7 +261,7 @@ export default function PresentationPage() {
 
   function removeSlide() {
     if (!deck || deck.slides.length <= 1) return;
-    if (!window.confirm(`${active + 1}-слайдты өшіру керек пе?`)) return;
+    if (!window.confirm(tr("{n}-слайдты өшіру керек пе?", { n: active + 1 }))) return;
     changeDeck((d) => ({ ...d, slides: d.slides.filter((_, i) => i !== active) }), true);
     setActive(Math.max(0, Math.min(active, deck.slides.length - 2)));
   }
@@ -273,7 +275,7 @@ export default function PresentationPage() {
     try {
       updateSlide(index, { image_svg: await illustrateSlide(slide.image_prompt.trim(), deck.style) });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Сурет салу мүмкін болмады.");
+      setError(err instanceof Error ? err.message : tr("Сурет салу мүмкін болмады."));
     } finally {
       setRegenIndex(null);
     }
@@ -290,13 +292,13 @@ export default function PresentationPage() {
       let id = deck.id;
       if (id) await updatePresentation(id, data);
       else id = (await savePresentation(data)).id;
-      setDeck((d) => (d ? { ...d, id, title, slides, subtitle: `${slides.length} слайд` } : d));
+      setDeck((d) => (d ? { ...d, id, title, slides, subtitle: tr("{n} слайд", { n: slides.length }) } : d));
       setStructVersion((v) => v + 1);
       setDirty(false);
       setSaveState("saved");
     } catch (err) {
       setSaveState("");
-      setError(err instanceof Error ? err.message : "Өзгерістер сақталмады.");
+      setError(err instanceof Error ? err.message : tr("Өзгерістер сақталмады."));
     }
   }
 
@@ -316,9 +318,9 @@ export default function PresentationPage() {
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
       <PageHeader
-        crumb="Презентация жасау"
-        title="Презентация генераторы"
-        subtitle="Тақырыпты жазыңыз — AI иллюстрациялары, сызбалары, кестелері, тапсырмалары мен тест сұрақтары бар әдемі презентация құрастырады. PowerPoint түрінде жүктеуге немесе бірден көрсетуге болады."
+        crumb={tr("Презентация жасау")}
+        title={tr("Презентация генераторы")}
+        subtitle={tr("Тақырыпты жазыңыз — AI иллюстрациялары, сызбалары, кестелері, тапсырмалары мен тест сұрақтары бар әдемі презентация құрастырады. PowerPoint түрінде жүктеуге немесе бірден көрсетуге болады.")}
       />
 
       <div className="mt-8 flex flex-wrap items-start gap-7">
@@ -329,23 +331,23 @@ export default function PresentationPage() {
         >
           {plan && (
             <div className="rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-[13px] text-fuchsia-800">
-              ҚМЖ негізінде: <b>{plan.topic}</b> — мақсаттары, кезеңдері мен тапсырмалары ескеріледі.
+              {tr("ҚМЖ негізінде:")} <b>{plan.topic}</b> — {tr("мақсаттары, кезеңдері мен тапсырмалары ескеріледі.")}
             </div>
           )}
           <LangPicker value={lang} onChange={setLang} />
           <label className="block">
-            <span className="mb-2 block text-[13px] font-semibold text-slate-500">Тақырып</span>
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тақырып")}</span>
             <textarea
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               maxLength={500}
               rows={3}
-              placeholder="мыс.: 7-сынып, биология: өсімдік жасушасының құрылысы"
+              placeholder={tr("мыс.: 7-сынып, биология: өсімдік жасушасының құрылысы")}
               className="w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-fuchsia-500"
             />
           </label>
           <div>
-            <span className="mb-2 block text-[13px] font-semibold text-slate-500">Стиль</span>
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Стиль")}</span>
             <div className="grid grid-cols-2 gap-2">
               {PRESENTATION_STYLES.map((s) => (
                 <button key={s.key} type="button" aria-pressed={style === s.key} onClick={() => setStyle(s.key)} className={chipClass(style === s.key)}>
@@ -355,7 +357,7 @@ export default function PresentationPage() {
             </div>
           </div>
           <div>
-            <span className="mb-2 block text-[13px] font-semibold text-slate-500">Слайд саны</span>
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Слайд саны")}</span>
             <div className="grid grid-cols-4 gap-2">
               {SLIDE_COUNTS.map((n) => (
                 <button key={n} type="button" aria-pressed={count === n} onClick={() => setCount(n)} className={chipClass(count === n)}>
@@ -367,8 +369,8 @@ export default function PresentationPage() {
           <label className="flex cursor-pointer items-start gap-2.5 text-sm">
             <input type="checkbox" checked={withImages} onChange={(e) => setWithImages(e.target.checked)} className="mt-0.5 h-4 w-4 accent-fuchsia-500" />
             <span>
-              AI иллюстрациялар салу
-              <span className="block text-xs text-slate-500">Титул мен суретті слайдтарға (ең көбі 4). Ұзағырақ уақыт алады.</span>
+              {tr("AI иллюстрациялар салу")}
+              <span className="block text-xs text-slate-500">{tr("Титул мен суретті слайдтарға (ең көбі 4). Ұзағырақ уақыт алады.")}</span>
             </span>
           </label>
           {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
@@ -378,7 +380,7 @@ export default function PresentationPage() {
             className="flex w-full items-center justify-center gap-2.5 rounded-[14px] bg-fuchsia-500 px-5 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
           >
             <Sparkles size={17} className={busy ? "animate-spin" : ""} />
-            {generating ? "Слайдтар жасалуда..." : pending.size ? "Суреттер салынуда..." : "Слайд жасау"}
+            {generating ? tr("Слайдтар жасалуда...") : pending.size ? tr("Суреттер салынуда...") : tr("Слайд жасау")}
           </button>
         </form>
 
@@ -387,15 +389,15 @@ export default function PresentationPage() {
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface p-6 text-center">
               <Sparkles size={34} className="animate-spin text-fuchsia-500" />
               <div className="text-base">{PHASES[phase]}</div>
-              <div className="text-[12.5px] text-slate-500">Әдетте 20–60 секунд алады, иллюстрациялар кейін бірінен соң бірі қосылады</div>
+              <div className="text-[12.5px] text-slate-500">{tr("Әдетте 20–60 секунд алады, иллюстрациялар кейін бірінен соң бірі қосылады")}</div>
             </div>
           ) : !deck ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3.5 rounded-3xl border-2 border-dashed border-slate-200 p-10 text-center text-slate-500">
               <span className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-fuchsia-100 text-fuchsia-500">
                 <Sparkles size={32} />
               </span>
-              <div className="text-base text-slate-900">Тақырыпты жазып, «Слайд жасау» батырмасын басыңыз</div>
-              <div className="text-[13.5px]">Иллюстрация, сызба, кесте, тапсырма және тест слайдтары 3D каруселде көрсетіледі.</div>
+              <div className="text-base text-slate-900">{tr("Тақырыпты жазып, «Слайд жасау» батырмасын басыңыз")}</div>
+              <div className="text-[13.5px]">{tr("Иллюстрация, сызба, кесте, тапсырма және тест слайдтары 3D каруселде көрсетіледі.")}</div>
             </div>
           ) : (
             <div className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col items-center gap-5">
@@ -403,44 +405,44 @@ export default function PresentationPage() {
                 <h2 className="text-[21px] font-bold">{deck.title}</h2>
                 <div className="mt-1 flex items-center justify-center gap-2 text-[13.5px] text-slate-500">
                   {deck.subtitle}
-                  {pending.size > 0 && <span>· {pending.size} сурет салынуда...</span>}
-                  {saveState === "saving" && <span>· сақталуда...</span>}
-                  {dirty && saveState !== "saving" && <span className="text-violet-600">· сақталмаған өзгерістер бар</span>}
+                  {pending.size > 0 && <span>· {pending.size} {tr("сурет салынуда...")}</span>}
+                  {saveState === "saving" && <span>· {tr("сақталуда...")}</span>}
+                  {dirty && saveState !== "saving" && <span className="text-violet-600">· {tr("сақталмаған өзгерістер бар")}</span>}
                   {saveState === "saved" && (
                     <span className="inline-flex items-center gap-1 text-fuchsia-700">
-                      · <Check size={14} /> сақталды
+                      · <Check size={14} /> {tr("сақталды")}
                     </span>
                   )}
                 </div>
               </div>
               <div className="carousel">
                 {deck.slides.map((s, i) => (
-                  <button key={i} type="button" aria-label={`${i + 1}-слайд: ${s.heading}`} onClick={() => go(i)} className="slide-btn" style={place(i, active)}>
+                  <button key={i} type="button" aria-label={tr("{n}-слайд: {title}", { n: i + 1, title: s.heading })} onClick={() => go(i)} className="slide-btn" style={place(i, active)}>
                     <SlideView slide={s} style={deck.style} lang={deck.lang} index={i} total={total} imagePending={pending.has(i) || regenIndex === i} />
                   </button>
                 ))}
               </div>
               <div className="flex items-center gap-4">
-                <button type="button" aria-label="Алдыңғы слайд" onClick={() => go(active - 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-surface hover:border-fuchsia-500 hover:bg-fuchsia-100">
+                <button type="button" aria-label={tr("Алдыңғы слайд")} onClick={() => go(active - 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-surface hover:border-fuchsia-500 hover:bg-fuchsia-100">
                   <ChevronLeft size={18} />
                 </button>
                 <div className="dots">
                   {deck.slides.map((_, i) => (
-                    <button key={i} type="button" aria-label={`${i + 1}-слайдқа өту`} aria-current={i === active} onClick={() => go(i)} className="dot" />
+                    <button key={i} type="button" aria-label={tr("{n}-слайдқа өту", { n: i + 1 })} aria-current={i === active} onClick={() => go(i)} className="dot" />
                   ))}
                 </div>
-                <button type="button" aria-label="Келесі слайд" onClick={() => go(active + 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-surface hover:border-fuchsia-500 hover:bg-fuchsia-100">
+                <button type="button" aria-label={tr("Келесі слайд")} onClick={() => go(active + 1)} className="flex h-[46px] w-[46px] items-center justify-center rounded-full border border-slate-200 bg-surface hover:border-fuchsia-500 hover:bg-fuchsia-100">
                   <ChevronRight size={18} />
                 </button>
               </div>
               {current?.notes && (
                 <div className="w-full max-w-[720px] rounded-[14px] border border-slate-200 bg-surface px-4 py-3.5 text-sm">
-                  <b>Мұғалімге жазба:</b> {current.notes}
+                  <b>{tr("Мұғалімге жазба:")}</b> {current.notes}
                 </div>
               )}
               <div className="flex flex-wrap justify-center gap-2.5">
                 <button type="button" onClick={() => setPresenting(true)} className="inline-flex items-center gap-2 rounded-[14px] bg-fuchsia-500 px-5 py-3 font-semibold text-white">
-                  <Maximize size={16} /> Көрсету
+                  <Maximize size={16} /> {tr("Көрсету")}
                 </button>
                 <button
                   type="button"
@@ -451,7 +453,7 @@ export default function PresentationPage() {
                     editing ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface hover:border-violet-500 hover:text-violet-600"
                   }`}
                 >
-                  <Pencil size={15} /> {editing ? "Өңдеуді жабу" : "Өңдеу"}
+                  <Pencil size={15} /> {editing ? tr("Өңдеуді жабу") : tr("Өңдеу")}
                 </button>
                 {(dirty || editing) && (
                   <button
@@ -460,18 +462,18 @@ export default function PresentationPage() {
                     disabled={!dirty || saveState === "saving" || regenIndex !== null}
                     className="inline-flex items-center gap-2 rounded-[11px] border border-violet-600 bg-surface px-4 py-2.5 text-sm font-semibold text-violet-700 disabled:opacity-50"
                   >
-                    <Save size={15} /> {saveState === "saving" ? "Сақталуда..." : "Сақтау"}
+                    <Save size={15} /> {saveState === "saving" ? tr("Сақталуда...") : tr("Сақтау")}
                   </button>
                 )}
                 <button type="button" onClick={handleExport} disabled={exporting || pending.size > 0} className="inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-4 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60">
-                  <Download size={15} /> {exporting ? "Дайындалуда..." : "PowerPoint (.pptx)"}
+                  <Download size={15} /> {exporting ? tr("Дайындалуда...") : "PowerPoint (.pptx)"}
                 </button>
               </div>
 
               {editing && current && (
                 <div className="w-full rounded-[20px] border border-slate-200 bg-surface p-5 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)]">
                   <label className="mb-4 block">
-                    <span className="mb-1.5 block text-[12.5px] font-semibold text-slate-500">Презентация атауы</span>
+                    <span className="mb-1.5 block text-[12.5px] font-semibold text-slate-500">{tr("Презентация атауы")}</span>
                     <input
                       value={deck.title}
                       maxLength={300}
@@ -480,9 +482,9 @@ export default function PresentationPage() {
                     />
                   </label>
                   <div className="mb-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
-                    <span className="mr-auto text-[15px] font-bold">{active + 1}-слайд</span>
+                    <span className="mr-auto text-[15px] font-bold">{tr("{n}-слайд", { n: active + 1 })}</span>
                     <select
-                      aria-label="Слайд түрі"
+                      aria-label={tr("Слайд түрі")}
                       value={current.layout}
                       onChange={(e) => updateSlide(active, { layout: e.target.value as SlideLayout })}
                       className="rounded-[10px] border border-slate-200 bg-surface px-2.5 py-2 text-[13px]"
@@ -493,17 +495,17 @@ export default function PresentationPage() {
                         </option>
                       ))}
                     </select>
-                    <button type="button" onClick={() => moveSlide(-1)} disabled={active === 0} aria-label="Слайдты солға жылжыту" title="Солға жылжыту" className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
+                    <button type="button" onClick={() => moveSlide(-1)} disabled={active === 0} aria-label={tr("Слайдты солға жылжыту")} title={tr("Солға жылжыту")} className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
                       <ArrowLeft size={15} />
                     </button>
-                    <button type="button" onClick={() => moveSlide(1)} disabled={active === total - 1} aria-label="Слайдты оңға жылжыту" title="Оңға жылжыту" className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
+                    <button type="button" onClick={() => moveSlide(1)} disabled={active === total - 1} aria-label={tr("Слайдты оңға жылжыту")} title={tr("Оңға жылжыту")} className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
                       <ArrowRight size={15} />
                     </button>
                     <button type="button" onClick={addSlide} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-violet-500">
-                      <Plus size={15} /> Слайд қосу
+                      <Plus size={15} /> {tr("Слайд қосу")}
                     </button>
                     <button type="button" onClick={removeSlide} disabled={total <= 1} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-rose-400 hover:text-rose-700 disabled:opacity-40">
-                      <Trash2 size={15} /> Өшіру
+                      <Trash2 size={15} /> {tr("Өшіру")}
                     </button>
                   </div>
                   <SlideEditor
@@ -522,7 +524,7 @@ export default function PresentationPage() {
                     key={i}
                     type="button"
                     onClick={() => go(i)}
-                    aria-label={`${i + 1}-слайдты ашу`}
+                    aria-label={tr("{n}-слайдты ашу", { n: i + 1 })}
                     className={`thumb rounded-[12px] p-1 transition ${i === active ? "bg-fuchsia-500" : "bg-transparent hover:bg-slate-200"}`}
                   >
                     <SlideView slide={s} style={deck.style} lang={deck.lang} imagePending={pending.has(i)} />
@@ -540,17 +542,17 @@ export default function PresentationPage() {
             <SlideView key={active} slide={current} style={deck.style} lang={deck.lang} index={active} total={total} interactive imagePending={pending.has(active)} />
           </div>
           <div className="flex items-center gap-3 text-[#c7c4da]">
-            <button type="button" onClick={() => go(active - 1)} aria-label="Алдыңғы слайд" className="rounded-lg border border-navy-700 p-2">
+            <button type="button" onClick={() => go(active - 1)} aria-label={tr("Алдыңғы слайд")} className="rounded-lg border border-navy-700 p-2">
               <ChevronLeft size={18} />
             </button>
             <span>
               {active + 1} / {total}
             </span>
-            <button type="button" onClick={() => go(active + 1)} aria-label="Келесі слайд" className="rounded-lg border border-navy-700 p-2">
+            <button type="button" onClick={() => go(active + 1)} aria-label={tr("Келесі слайд")} className="rounded-lg border border-navy-700 p-2">
               <ChevronRight size={18} />
             </button>
             <button type="button" onClick={() => setPresenting(false)} className="inline-flex items-center gap-1.5 rounded-lg border border-navy-700 px-3 py-2">
-              <X size={16} /> Шығу (Esc)
+              <X size={16} /> {tr("Шығу (Esc)")}
             </button>
           </div>
         </div>

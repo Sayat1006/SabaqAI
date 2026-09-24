@@ -3,6 +3,7 @@ import { Badge, Button, Card, Field, Select, TextInput } from "../components/ui"
 import { useAuth } from "../context/useAuth";
 import * as auth from "../lib/auth";
 import type { AccountStatus, AuditEntry, Role, UserAccount } from "../lib/auth";
+import { tr } from "../i18n";
 
 function genPasswordSuggestion(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -67,7 +68,7 @@ export default function AdminPage() {
     setCreating(false);
     if (!result.ok) {
       setCreateError(
-        result.reason === "duplicate_email" ? "Бұл email-мен аккаунт бұрыннан бар." : (result.message ?? "Құру мүмкін болмады."),
+        result.reason === "duplicate_email" ? tr("Бұл email-мен аккаунт бұрыннан бар.") : (result.message ?? tr("Құру мүмкін болмады.")),
       );
       return;
     }
@@ -97,12 +98,12 @@ export default function AdminPage() {
 
   async function handleDelete(target: UserAccount) {
     if (target.id === currentUser?.id) return;
-    if (!window.confirm(`«${target.name}» аккаунтын жоюды растайсыз ба? Бұл әрекетті кері қайтару мүмкін емес.`)) return;
+    if (!window.confirm(tr("«{name}» аккаунтын жоюды растайсыз ба? Бұл әрекетті кері қайтару мүмкін емес.", { name: target.name }))) return;
     setBusyId(target.id);
     const result = await auth.deleteUser(target);
     setBusyId(null);
     if (!result.ok) {
-      window.alert(result.message ?? "Жою мүмкін болмады.");
+      window.alert(result.message ?? tr("Жою мүмкін болмады."));
       return;
     }
     await refreshAll();
@@ -113,7 +114,7 @@ export default function AdminPage() {
     const result = await auth.resetPassword(target);
     setBusyId(null);
     if (!result.ok) {
-      window.alert(result.message ?? "Құпия сөзді ысыру мүмкін болмады.");
+      window.alert(result.message ?? tr("Құпия сөзді ысыру мүмкін болмады."));
       return;
     }
     setRevealedPassword({ id: target.id, value: result.newPassword });
@@ -156,44 +157,43 @@ export default function AdminPage() {
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
-      <h1 className="text-[28px] font-bold">Әкімші панелі</h1>
+      <h1 className="text-[28px] font-bold">{tr("Әкімші панелі")}</h1>
       <p className="mt-1.5 mb-8 max-w-[680px] text-[14.5px] text-slate-500">
-        Мұғалімдерге аккаунт ашыңыз, қатынасты бақылаңыз — олар «Мұғалім» ретінде осы деректермен
-        қосымшаға кіре алады. Аккаунтты кез келген уақытта өшіруге/қосуға немесе жоюға болады.
+        {tr("Мұғалімдерге аккаунт ашыңыз, қатынасты бақылаңыз — олар «Мұғалім» ретінде осы деректермен қосымшаға кіре алады. Аккаунтты кез келген уақытта өшіруге/қосуға немесе жоюға болады.")}
       </p>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-4">
         <Card className="text-center">
           <p className="text-3xl font-bold text-violet-600">{stats.total}</p>
-          <p className="text-sm text-slate-500">Барлық аккаунт</p>
+          <p className="text-sm text-slate-500">{tr("Барлық аккаунт")}</p>
         </Card>
         <Card className="text-center">
           <p className="text-3xl font-bold text-emerald-600">{stats.active}</p>
-          <p className="text-sm text-slate-500">Белсенді</p>
+          <p className="text-sm text-slate-500">{tr("Белсенді")}</p>
         </Card>
         <Card className="text-center">
           <p className="text-3xl font-bold text-rose-600">{stats.disabled}</p>
-          <p className="text-sm text-slate-500">Өшірілген</p>
+          <p className="text-sm text-slate-500">{tr("Өшірілген")}</p>
         </Card>
         <Card className="text-center">
           <p className="text-3xl font-bold text-fuchsia-600">{stats.admins}</p>
-          <p className="text-sm text-slate-500">Әкімшілер</p>
+          <p className="text-sm text-slate-500">{tr("Әкімшілер")}</p>
         </Card>
       </div>
 
       <Card className="mb-6">
-        <h3 className="mb-3 font-semibold text-slate-900">Жаңа аккаунт құру</h3>
+        <h3 className="mb-3 font-semibold text-slate-900">{tr("Жаңа аккаунт құру")}</h3>
         <form onSubmit={handleCreate} className="grid gap-1 sm:grid-cols-3 sm:gap-x-6">
           <Field>
-            Аты-жөні
-            <TextInput placeholder="мысалы: Айгүл Serikovna" value={name} onChange={(e) => setName(e.target.value)} required />
+            {tr("Аты-жөні")}
+            <TextInput placeholder={tr("мысалы: Айгүл Serikovna")} value={name} onChange={(e) => setName(e.target.value)} required />
           </Field>
           <Field>
             Email
             <TextInput type="email" placeholder="mysal@mektep.kz" value={email} onChange={(e) => setEmail(e.target.value)} required />
           </Field>
           <Field>
-            Уақытша құпия сөз
+            {tr("Уақытша құпия сөз")}
             <div className="flex gap-2">
               <TextInput value={password} onChange={(e) => setPassword(e.target.value)} required />
               <Button type="button" variant="ghost" className="!px-3" onClick={() => setPassword(genPasswordSuggestion())}>
@@ -202,24 +202,24 @@ export default function AdminPage() {
             </div>
           </Field>
           <Field>
-            Рөлі
+            {tr("Рөлі")}
             <Select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              <option value="teacher">Мұғалім</option>
-              <option value="admin">Әкімші</option>
+              <option value="teacher">{tr("Мұғалім")}</option>
+              <option value="admin">{tr("Әкімші")}</option>
             </Select>
           </Field>
           <Field>
-            Пән (міндетті емес)
-            <TextInput placeholder="мысалы: Математика" value={subject} onChange={(e) => setSubject(e.target.value)} />
+            {tr("Пән (міндетті емес)")}
+            <TextInput placeholder={tr("мысалы: Математика")} value={subject} onChange={(e) => setSubject(e.target.value)} />
           </Field>
           <Field>
-            Мектеп (міндетті емес)
-            <TextInput placeholder="мысалы: №25 мектеп-гимназия" value={school} onChange={(e) => setSchool(e.target.value)} />
+            {tr("Мектеп (міндетті емес)")}
+            <TextInput placeholder={tr("мысалы: №25 мектеп-гимназия")} value={school} onChange={(e) => setSchool(e.target.value)} />
           </Field>
           {createError && <p className="text-sm text-rose-600 sm:col-span-3">{createError}</p>}
           <div className="pb-4 sm:col-span-3">
             <Button type="submit" disabled={creating}>
-              {creating ? "Құрылуда..." : "Аккаунт құру"}
+              {creating ? tr("Құрылуда...") : tr("Аккаунт құру")}
             </Button>
           </div>
         </form>
@@ -227,17 +227,17 @@ export default function AdminPage() {
 
       <Card className="mb-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-semibold text-slate-900">Аккаунттар ({filtered.length})</h3>
+          <h3 className="font-semibold text-slate-900">{tr("Аккаунттар ({n})", { n: filtered.length })}</h3>
           <Button variant="ghost" type="button" onClick={handleExport} disabled={exporting}>
-            {exporting ? "Дайындалуда..." : "📊 Excel-ге экспорттау"}
+            {exporting ? tr("Дайындалуда...") : tr("📊 Excel-ге экспорттау")}
           </Button>
         </div>
         <div className="mb-4 grid gap-3 sm:grid-cols-3">
-          <TextInput placeholder="Аты, email, пән бойынша іздеу" value={search} onChange={(e) => setSearch(e.target.value)} className="sm:col-span-2" />
+          <TextInput placeholder={tr("Аты, email, пән бойынша іздеу")} value={search} onChange={(e) => setSearch(e.target.value)} className="sm:col-span-2" />
           <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
-            <option value="Барлығы">Барлығы</option>
-            <option value="active">Белсенді</option>
-            <option value="disabled">Өшірілген</option>
+            <option value="Барлығы">{tr("Барлығы")}</option>
+            <option value="active">{tr("Белсенді")}</option>
+            <option value="disabled">{tr("Өшірілген")}</option>
           </Select>
         </div>
 
@@ -245,12 +245,12 @@ export default function AdminPage() {
           <table className="w-full text-sm">
             <thead className="bg-violet-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Аты-жөні / Email</th>
-                <th className="px-3 py-2 text-left font-medium">Рөлі</th>
-                <th className="px-3 py-2 text-left font-medium">Пән / Мектеп</th>
-                <th className="px-3 py-2 text-left font-medium">Мәртебесі</th>
-                <th className="px-3 py-2 text-left font-medium">Соңғы кіру</th>
-                <th className="px-3 py-2 text-left font-medium">Әрекеттер</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Аты-жөні / Email")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Рөлі")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Пән / Мектеп")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Мәртебесі")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Соңғы кіру")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Әрекеттер")}</th>
               </tr>
             </thead>
             <tbody>
@@ -258,12 +258,12 @@ export default function AdminPage() {
                 <tr key={u.id} className="border-t border-violet-50 align-top">
                   <td className="px-3 py-2">
                     <p className="font-medium text-slate-900">
-                      {u.name} {u.id === currentUser?.id && <span className="text-xs text-violet-500">(сіз)</span>}
+                      {u.name} {u.id === currentUser?.id && <span className="text-xs text-violet-500">{tr("(сіз)")}</span>}
                     </p>
                     <p className="text-xs text-slate-500">{u.email}</p>
                   </td>
                   <td className="px-3 py-2">
-                    <Badge>{u.role === "admin" ? "Әкімші" : "Мұғалім"}</Badge>
+                    <Badge>{u.role === "admin" ? tr("Әкімші") : tr("Мұғалім")}</Badge>
                   </td>
                   <td className="px-3 py-2 text-slate-600">
                     {u.subject || "—"} {u.school && <span className="text-xs text-slate-400">· {u.school}</span>}
@@ -276,7 +276,7 @@ export default function AdminPage() {
                           : "bg-rose-100 text-rose-700"
                       }`}
                     >
-                      {u.status === "active" ? "Белсенді" : "Өшірілген"}
+                      {u.status === "active" ? tr("Белсенді") : tr("Өшірілген")}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-xs text-slate-500">{formatDate(u.lastLoginAt)}</td>
@@ -288,7 +288,7 @@ export default function AdminPage() {
                         disabled={u.id === currentUser?.id || busyId === u.id}
                         className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                       >
-                        {u.status === "active" ? "Өшіру" : "Қосу"}
+                        {u.status === "active" ? tr("Өшіру") : tr("Қосу")}
                       </button>
                       <button
                         type="button"
@@ -296,7 +296,7 @@ export default function AdminPage() {
                         disabled={u.id === currentUser?.id || busyId === u.id}
                         className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                       >
-                        {u.role === "admin" ? "Мұғалім ету" : "Әкімші ету"}
+                        {u.role === "admin" ? tr("Мұғалім ету") : tr("Әкімші ету")}
                       </button>
                       <button
                         type="button"
@@ -304,7 +304,7 @@ export default function AdminPage() {
                         disabled={busyId === u.id}
                         className="rounded-md border border-violet-200 px-2 py-1 text-xs text-violet-700 hover:bg-violet-50 disabled:opacity-40"
                       >
-                        Құпия сөзді ысырту
+                        {tr("Құпия сөзді ысырту")}
                       </button>
                       <button
                         type="button"
@@ -312,14 +312,14 @@ export default function AdminPage() {
                         disabled={u.id === currentUser?.id || busyId === u.id}
                         className="rounded-md border border-rose-200 px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 disabled:opacity-40"
                       >
-                        Жою
+                        {tr("Жою")}
                       </button>
                     </div>
                     {revealedPassword?.id === u.id && (
                       <p className="mt-1.5 rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-800">
-                        Жаңа құпия сөз: <code className="font-mono">{revealedPassword.value}</code>{" "}
+                        {tr("Жаңа құпия сөз:")} <code className="font-mono">{revealedPassword.value}</code>{" "}
                         <button type="button" className="ml-1 underline" onClick={() => setRevealedPassword(null)}>
-                          жасыру
+                          {tr("жасыру")}
                         </button>
                       </p>
                     )}
@@ -329,14 +329,14 @@ export default function AdminPage() {
               {loadingList && (
                 <tr>
                   <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                    Жүктелуде...
+                    {tr("Жүктелуде...")}
                   </td>
                 </tr>
               )}
               {!loadingList && filtered.length === 0 && (
                 <tr>
                   <td colSpan={6} className="px-3 py-6 text-center text-slate-500">
-                    Ешнәрсе табылмады.
+                    {tr("Ешнәрсе табылмады.")}
                   </td>
                 </tr>
               )}
@@ -346,15 +346,15 @@ export default function AdminPage() {
       </Card>
 
       <Card>
-        <h3 className="mb-3 font-semibold text-slate-900">Әрекеттер журналы</h3>
+        <h3 className="mb-3 font-semibold text-slate-900">{tr("Әрекеттер журналы")}</h3>
         <div className="max-h-72 overflow-y-auto rounded-lg border border-violet-100">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-violet-50 text-slate-600">
               <tr>
-                <th className="px-3 py-2 text-left font-medium">Уақыты</th>
-                <th className="px-3 py-2 text-left font-medium">Кім</th>
-                <th className="px-3 py-2 text-left font-medium">Әрекет</th>
-                <th className="px-3 py-2 text-left font-medium">Мәлімет</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Уақыты")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Кім")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Әрекет")}</th>
+                <th className="px-3 py-2 text-left font-medium">{tr("Мәлімет")}</th>
               </tr>
             </thead>
             <tbody>
@@ -362,14 +362,14 @@ export default function AdminPage() {
                 <tr key={entry.id} className="border-t border-violet-50">
                   <td className="px-3 py-2 text-xs text-slate-500">{formatDate(entry.ts)}</td>
                   <td className="px-3 py-2 text-slate-700">{entry.actorEmail}</td>
-                  <td className="px-3 py-2 text-slate-900">{entry.action}</td>
+                  <td className="px-3 py-2 text-slate-900">{tr(entry.action)}</td>
                   <td className="px-3 py-2 text-slate-600">{entry.detail}</td>
                 </tr>
               ))}
               {audit.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-3 py-6 text-center text-slate-500">
-                    Әзірге жазба жоқ.
+                    {tr("Әзірге жазба жоқ.")}
                   </td>
                 </tr>
               )}

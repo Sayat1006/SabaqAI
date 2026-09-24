@@ -10,7 +10,7 @@ const THEMES: { id: ThemePref; icon: typeof Sun; label: string }[] = [
 ];
 
 const seg = (active: boolean) =>
-  `flex flex-1 items-center justify-center gap-1.5 rounded-[9px] px-2 py-1.5 text-[12.5px] font-semibold transition ${active ? "bg-surface text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`;
+  `flex flex-1 items-center justify-center gap-1.5 rounded-[9px] px-2 py-1.5 text-[12.5px] font-semibold transition ${active ? "bg-surface text-slate-900 shadow-sm dark:bg-slate-300" : "text-slate-500 hover:text-slate-900"}`;
 
 /** Режим (күндізгі/түнгі) және интерфейс тілі. */
 export function PrefsControls({ compact = false }: { compact?: boolean }) {

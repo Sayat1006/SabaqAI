@@ -2,6 +2,7 @@ import ExcelJS from "exceljs";
 import { downloadBlob } from "./downloadBlob";
 import type { UserAccount } from "./auth";
 import type { SavedTest, TestSubmission } from "./projects";
+import { tr } from "../i18n";
 
 const HEADER_FILL: ExcelJS.Fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF7DFCB" } };
 
@@ -22,16 +23,16 @@ export async function exportUsersToXlsx(users: UserAccount[]) {
   wb.creator = "AI Nur";
   wb.created = new Date();
 
-  const sheet = wb.addWorksheet("Аккаунттар");
+  const sheet = wb.addWorksheet(tr("Аккаунттар"));
   sheet.columns = [
-    { header: "Аты-жөні", key: "name", width: 24 },
+    { header: tr("Аты-жөні"), key: "name", width: 24 },
     { header: "Email", key: "email", width: 28 },
-    { header: "Рөлі", key: "role", width: 12 },
-    { header: "Мәртебесі", key: "status", width: 14 },
-    { header: "Пән", key: "subject", width: 18 },
-    { header: "Мектеп", key: "school", width: 24 },
-    { header: "Құрылған күні", key: "createdAt", width: 18 },
-    { header: "Соңғы кіру", key: "lastLoginAt", width: 18 },
+    { header: tr("Рөлі"), key: "role", width: 12 },
+    { header: tr("Мәртебесі"), key: "status", width: 14 },
+    { header: tr("Пән"), key: "subject", width: 18 },
+    { header: tr("Мектеп"), key: "school", width: 24 },
+    { header: tr("Құрылған күні"), key: "createdAt", width: 18 },
+    { header: tr("Соңғы кіру"), key: "lastLoginAt", width: 18 },
   ];
   sheet.getRow(1).eachCell((cell) => {
     cell.font = { bold: true };
@@ -43,8 +44,8 @@ export async function exportUsersToXlsx(users: UserAccount[]) {
     sheet.addRow({
       name: u.name,
       email: u.email,
-      role: u.role === "admin" ? "Әкімші" : "Мұғалім",
-      status: u.status === "active" ? "Белсенді" : "Өшірілген",
+      role: u.role === "admin" ? tr("Әкімші") : tr("Мұғалім"),
+      status: u.status === "active" ? tr("Белсенді") : tr("Өшірілген"),
       subject: u.subject,
       school: u.school,
       createdAt: formatKzDate(u.createdAt),
@@ -58,7 +59,7 @@ export async function exportUsersToXlsx(users: UserAccount[]) {
 }
 
 const pctOf = (score: number, total: number) => (total ? Math.round((score / total) * 100) : 0);
-const groupLabel = (p: number) => (p >= 85 ? "C — жоғары" : p >= 50 ? "B — орта" : "A — қолдау қажет");
+const groupLabel = (p: number) => (p >= 85 ? tr("C — жоғары") : p >= 50 ? tr("B — орта") : tr("A — қолдау қажет"));
 
 /** Оқушылар нәтижесі: 1-парақ — оқушылар бойынша, 2-парақ — сұрақтар бойынша. */
 export async function exportResultsToXlsx(test: SavedTest, subs: TestSubmission[]) {
@@ -67,16 +68,16 @@ export async function exportResultsToXlsx(test: SavedTest, subs: TestSubmission[
   wb.creator = "AI Nur";
   wb.created = new Date();
 
-  const sheet = wb.addWorksheet("Нәтижелер");
+  const sheet = wb.addWorksheet(tr("Нәтижелер"));
   sheet.columns = [
     { header: "№", key: "n", width: 5 },
-    { header: "Аты-жөні", key: "name", width: 26 },
-    { header: "Сынып", key: "cls", width: 9 },
-    { header: "Ұпай", key: "score", width: 8 },
-    { header: "Барлығы", key: "total", width: 9 },
+    { header: tr("Аты-жөні"), key: "name", width: 26 },
+    { header: tr("Сынып"), key: "cls", width: 9 },
+    { header: tr("Ұпай"), key: "score", width: 8 },
+    { header: tr("Барлығы"), key: "total", width: 9 },
     { header: "%", key: "pct", width: 7 },
-    { header: "Топ", key: "group", width: 18 },
-    { header: "Уақыты", key: "time", width: 17 },
+    { header: tr("Топ"), key: "group", width: 18 },
+    { header: tr("Уақыты"), key: "time", width: 17 },
     ...test.questions.map((q, i) => ({ header: `${i + 1}${q.level ? ` (${q.level})` : ""}`, key: `q${i}`, width: 7 })),
   ];
   sheet.getRow(1).eachCell((cell) => {
@@ -109,13 +110,13 @@ export async function exportResultsToXlsx(test: SavedTest, subs: TestSubmission[
     });
   });
 
-  const stats = wb.addWorksheet("Сұрақтар бойынша");
+  const stats = wb.addWorksheet(tr("Сұрақтар бойынша"));
   stats.columns = [
     { header: "№", key: "n", width: 5 },
-    { header: "Сұрақ", key: "q", width: 60 },
-    { header: "Деңгейі", key: "level", width: 9 },
-    { header: "Дұрыс жауап", key: "right", width: 24 },
-    { header: "Дұрыс жауап бергендер, %", key: "pct", width: 14 },
+    { header: tr("Сұрақ"), key: "q", width: 60 },
+    { header: tr("Деңгейі"), key: "level", width: 9 },
+    { header: tr("Дұрыс жауап"), key: "right", width: 24 },
+    { header: tr("Дұрыс жауап бергендер, %"), key: "pct", width: 14 },
   ];
   stats.getRow(1).eachCell((cell) => {
     cell.font = { bold: true };

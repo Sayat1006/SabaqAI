@@ -3,6 +3,7 @@ import { PageHeader } from "../components/PageHeader";
 import { ProjectCard } from "../components/ProjectCard";
 import { deleteProject, getRecentProjects, KIND_LABEL, type ProjectKind, type RecentProject } from "../lib/projects";
 import { useLoad } from "../lib/useLoad";
+import { tr } from "../i18n";
 
 const filters: ("" | ProjectKind)[] = ["", "qmzh", "presentation", "image", "test", "document"];
 
@@ -47,24 +48,24 @@ export default function ProjectsPage() {
   const filtered = Boolean(q || kind || subject || grade);
 
   async function handleDelete(p: RecentProject) {
-    if (!window.confirm(`«${p.title}» жобасын жоясыз ба?`)) return;
+    if (!window.confirm(tr("«{title}» жобасын жоясыз ба?", { title: p.title }))) return;
     try {
       await deleteProject(p.id);
       setData(projects.filter((x) => x.id !== p.id));
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Жою мүмкін болмады.");
+      window.alert(e instanceof Error ? e.message : tr("Жою мүмкін болмады."));
     }
   }
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
       <PageHeader
-        crumb="Жобалар"
-        title="Менің жобаларым"
-        subtitle="Жасаған барлық ҚМЖ, презентация, сурет және тапсырмаларыңыз осында сақталады."
+        crumb={tr("Жобалар")}
+        title={tr("Менің жобаларым")}
+        subtitle={tr("Жасаған барлық ҚМЖ, презентация, сурет және тапсырмаларыңыз осында сақталады.")}
       />
       <div className="mt-7 mb-6 flex flex-wrap items-center gap-3">
-        <div role="group" aria-label="Түрі" className="flex flex-wrap gap-2">
+        <div role="group" aria-label={tr("Түрі")} className="flex flex-wrap gap-2">
           {filters.map((f) => (
             <button
               key={f || "all"}
@@ -75,7 +76,7 @@ export default function ProjectsPage() {
                 kind === f ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"
               }`}
             >
-              {f ? KIND_LABEL[f] : "Барлығы"}
+              {f ? KIND_LABEL[f] : tr("Барлығы")}
               <span className={`ml-1.5 text-[12px] ${kind === f ? "text-white/80" : "text-slate-400"}`}>{counts[f] ?? 0}</span>
             </button>
           ))}
@@ -85,32 +86,32 @@ export default function ProjectsPage() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          aria-label="Іздеу"
-          placeholder="Атауы немесе пәні бойынша іздеу"
+          aria-label={tr("Іздеу")}
+          placeholder={tr("Атауы немесе пәні бойынша іздеу")}
           className="w-full rounded-xl border border-slate-200 bg-surface px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 sm:max-w-[320px]"
         />
       </div>
       <div className="mb-6 -mt-2 flex flex-wrap items-center gap-2.5">
         {subjects.length > 0 && (
-          <select value={subject} onChange={(e) => setSubject(e.target.value)} aria-label="Пән" className={selectClass}>
-            <option value="">Барлық пәндер</option>
+          <select value={subject} onChange={(e) => setSubject(e.target.value)} aria-label={tr("Пән")} className={selectClass}>
+            <option value="">{tr("Барлық пәндер")}</option>
             {subjects.map((x) => (
               <option key={x}>{x}</option>
             ))}
           </select>
         )}
         {grades.length > 0 && (
-          <select value={grade} onChange={(e) => setGrade(e.target.value)} aria-label="Сынып" className={selectClass}>
-            <option value="">Барлық сыныптар</option>
+          <select value={grade} onChange={(e) => setGrade(e.target.value)} aria-label={tr("Сынып")} className={selectClass}>
+            <option value="">{tr("Барлық сыныптар")}</option>
             {grades.map((x) => (
               <option key={x}>{x}</option>
             ))}
           </select>
         )}
-        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label="Сұрыптау" className={selectClass}>
-          <option value="new">Алдымен жаңалары</option>
-          <option value="old">Алдымен ескілері</option>
-          <option value="az">Атауы бойынша (А–Я)</option>
+        <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label={tr("Сұрыптау")} className={selectClass}>
+          <option value="new">{tr("Алдымен жаңалары")}</option>
+          <option value="old">{tr("Алдымен ескілері")}</option>
+          <option value="az">{tr("Атауы бойынша (А–Я)")}</option>
         </select>
         {filtered && (
           <button
@@ -123,18 +124,18 @@ export default function ProjectsPage() {
             }}
             className="rounded-xl px-3 py-2.5 text-sm font-semibold text-violet-700 hover:bg-violet-100"
           >
-            Сүзгіні тазалау
+            {tr("Сүзгіні тазалау")}
           </button>
         )}
-        {filtered && <span className="text-sm text-slate-500">Табылды: {shown.length}</span>}
+        {filtered && <span className="text-sm text-slate-500">{tr("Табылды:")} {shown.length}</span>}
       </div>
       {error ? (
         <div role="alert" className="rounded-[18px] border border-rose-200 bg-rose-50 p-5 text-rose-700">{error}</div>
       ) : loading ? (
-        <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">Жүктелуде...</div>
+        <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">{tr("Жүктелуде...")}</div>
       ) : shown.length === 0 ? (
         <div className="rounded-[18px] border border-slate-200 bg-surface p-7 text-center text-slate-500">
-          {filtered ? "Ештеңе табылмады." : "Әзірге жоба жоқ."}
+          {filtered ? tr("Ештеңе табылмады.") : tr("Әзірге жоба жоқ.")}
         </div>
       ) : (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-[18px]">

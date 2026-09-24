@@ -5,6 +5,7 @@ import { customResource, platformKind, platformLabel, type QmzhResource, safeUrl
 import { qmzhLabels } from "../lib/docLabels";
 import type { Lang } from "../lib/lang";
 import { levelBadge, levelLabel } from "../lib/studio";
+import { tr } from "../i18n";
 
 const th = "px-3 py-2 text-left font-medium";
 const td = "px-3 py-2 text-slate-700";
@@ -195,7 +196,7 @@ export function ResourcesSection({
     e.preventDefault();
     const r = customResource(title, url);
     if (!r) {
-      setError("Сілтемені дұрыс жазыңыз (мыс.: https://bilimland.kz/...).");
+      setError(tr("Сілтемені дұрыс жазыңыз (мыс.: https://bilimland.kz/...)."));
       return;
     }
     setError("");
@@ -208,7 +209,7 @@ export function ResourcesSection({
     <div className="mt-8">
       <h3 className="mb-1 text-lg font-bold">{L.resourcesTitle}</h3>
       <p className="mb-3 text-[12.5px] text-slate-500 print:hidden">
-        Сілтемелер сенімді платформалардағы іздеу беттерін ашады — сабаққа сай материалды таңдап алыңыз. Өз сілтемеңізді де қоса аласыз.
+        {tr("Сілтемелер сенімді платформалардағы іздеу беттерін ашады — сабаққа сай материалды таңдап алыңыз. Өз сілтемеңізді де қоса аласыз.")}
       </p>
       {resources.length > 0 ? (
         <div className="overflow-x-auto rounded-lg border border-violet-100">
@@ -243,7 +244,7 @@ export function ResourcesSection({
                       <button
                         type="button"
                         onClick={() => onChange(resources.filter((_, j) => j !== i))}
-                        aria-label={`Өшіру: ${r.title}`}
+                        aria-label={tr("Өшіру: {title}", { title: r.title })}
                         className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-700"
                       >
                         <Trash2 size={14} />
@@ -256,7 +257,7 @@ export function ResourcesSection({
           </table>
         </div>
       ) : (
-        <p className="text-sm text-slate-500">Ресурстар әлі қосылмаған.</p>
+        <p className="text-sm text-slate-500">{tr("Ресурстар әлі қосылмаған.")}</p>
       )}
 
       {onChange && (
@@ -265,7 +266,7 @@ export function ResourcesSection({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={200}
-            placeholder="Атауы (мыс.: BilimLand видеосабағы)"
+            placeholder={tr("Атауы (мыс.: BilimLand видеосабағы)")}
             className="min-w-0 flex-[1_1_180px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-violet-500"
           />
           <input
@@ -274,11 +275,11 @@ export function ResourcesSection({
             maxLength={1000}
             inputMode="url"
             placeholder="https://..."
-            aria-label="Сілтеме"
+            aria-label={tr("Сілтеме")}
             className="min-w-0 flex-[2_1_220px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-violet-500"
           />
           <button type="submit" disabled={saving} className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-            <Plus size={15} /> <Link2 size={14} /> Сілтеме қосу
+            <Plus size={15} /> <Link2 size={14} /> {tr("Сілтеме қосу")}
           </button>
           {error && <p className="w-full text-sm text-rose-700">{error}</p>}
         </form>

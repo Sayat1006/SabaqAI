@@ -1,5 +1,10 @@
+import { uiLang } from "../i18n";
+
 /** Материал тілі: қазақша немесе орысша. */
 export type Lang = "kk" | "ru";
+
+/** Интерфейс орысша болса, материал да әдепкіде орысша. */
+export const defaultMaterialLang: Lang = uiLang === "ru" ? "ru" : "kk";
 
 export const LANGS: { id: Lang; label: string }[] = [
   { id: "kk", label: "Қазақша" },

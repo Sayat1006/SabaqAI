@@ -1,6 +1,7 @@
 import { Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { KIND_LABEL, timeAgo, type RecentProject } from "../lib/projects";
+import { KIND_LABEL, timeAgo, trDetail, type RecentProject } from "../lib/projects";
+import { tr } from "../i18n";
 
 const tone = (kind: RecentProject["kind"]) =>
   kind === "document" ? "bg-slate-100 text-slate-700" : kind === "presentation" || kind === "test" ? "bg-fuchsia-100 text-fuchsia-700" : "bg-violet-100 text-violet-700";
@@ -26,14 +27,14 @@ export function ProjectCard({ project: p, index, onDelete }: { project: RecentPr
         <Link to={p.to} state={p.state} className="text-[15.5px] leading-snug font-semibold after:absolute after:inset-0 after:rounded-[18px]">
           {p.title}
         </Link>
-        <div className="mt-1.5 text-[13px] text-slate-500">{p.detail}</div>
+        <div className="mt-1.5 text-[13px] text-slate-500">{trDetail(p.detail)}</div>
       </div>
       <div className="mt-auto flex items-center justify-between border-t border-slate-200 pt-3 text-[12.5px] text-slate-500">
         <span>{timeAgo(p.savedAt)}</span>
         <button
           type="button"
           onClick={onDelete}
-          aria-label={`Жою: ${p.title}`}
+          aria-label={tr("Жою: {title}", { title: p.title })}
           className="relative z-10 rounded-lg p-1.5 hover:bg-rose-50 hover:text-rose-700"
         >
           <Trash2 size={14} />

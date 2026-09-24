@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes, LabelHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { tr } from "../i18n";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
@@ -52,7 +53,7 @@ export function Button({
   );
 }
 
-export function PrintButton({ label = "PDF-ке экспорттау" }: { label?: string }) {
+export function PrintButton({ label = tr("PDF-ке экспорттау") }: { label?: string }) {
   return (
     <Button type="button" variant="ghost" className="print:hidden" onClick={() => window.print()}>
       🖨️ {label}
