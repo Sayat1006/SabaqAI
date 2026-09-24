@@ -6,7 +6,8 @@ import { PageHeader } from "../components/PageHeader";
 import { QmzhEditor } from "../components/QmzhEditor";
 import { PlanningTable, ResourcesSection, TaskBlock, VocabularyTable } from "../components/QmzhSections";
 import { useAuth } from "../context/useAuth";
-import { GRADES, SUBJECTS } from "../lib/catalog";
+import { GRADES } from "../lib/catalog";
+import { allowedSubjects, pickSubject } from "../lib/subjects";
 import { qmzhLabels } from "../lib/docLabels";
 import { generateLessonPlan, LESSON_TYPES, TASK_KINDS, type LessonPlan } from "../lib/generators";
 import { gradeIn, subjectIn, type Lang } from "../lib/lang";
@@ -53,10 +54,11 @@ export default function QmzhPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const subjects = allowedSubjects(user);
   // КТЖ-дан «ҚМЖ» басылса: форма сол сабақтың деректерімен толтырылады.
   const prefill = (location.state as { prefill?: { subject: string; grade: string; topic: string; objectives: string; date: string; lang?: Lang } } | null)?.prefill;
   const [subject, setSubject] = useState(() =>
-    prefill && SUBJECTS.includes(prefill.subject) ? prefill.subject : user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0],
+    pickSubject(subjects, prefill?.subject, user?.subject),
   );
   const [grade, setGrade] = useState(() => (prefill && GRADES.includes(prefill.grade) ? prefill.grade : (user?.grades?.[0] ?? GRADES[4])));
   const [topic, setTopic] = useState(prefill?.topic ?? "");
@@ -230,7 +232,7 @@ export default function QmzhPage() {
             <div className="grid grid-cols-2 gap-3">
               <FormField label={tr("Пән")}>
                 <select value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldClass}>
-                  {SUBJECTS.map((s) => (
+                  {(subjects.includes(subject) ? subjects : [subject, ...subjects]).map((s) => (
                     <option key={s} value={s}>{tr(s)}</option>
                   ))}
                 </select>

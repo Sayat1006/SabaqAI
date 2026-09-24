@@ -5,7 +5,8 @@ import { LessonItem } from "../components/LessonItem";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../context/useAuth";
 import { tr } from "../i18n";
-import { GRADES, SUBJECTS } from "../lib/catalog";
+import { GRADES } from "../lib/catalog";
+import { allowedSubjects, pickSubject } from "../lib/subjects";
 import {
   BELLS,
   dateOfWeekday,
@@ -28,6 +29,7 @@ const ghost =
 
 export default function SchedulePage() {
   const { user } = useAuth();
+  const subjects = allowedSubjects(user);
   const { data, error: loadError, loading, reload } = useLoad(loadScheduleWithPlans);
   const slots = data?.slots ?? [];
   const [editing, setEditing] = useState<boolean | null>(null);
@@ -62,7 +64,7 @@ export default function SchedulePage() {
     const list = sortSlots(rows.filter((s) => s.day === day));
     const last = list[list.length - 1];
     const next = last ? (BELLS.find((b) => b > last.time) ?? last.time) : BELLS[0];
-    const subject = last?.subject ?? (user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]);
+    const subject = pickSubject(subjects, last?.subject, user?.subject);
     const grade = last?.grade ?? user?.grades?.[0] ?? GRADES[4];
     setDraft([...rows, { id: newSlotId(), day, time: next, subject, grade, letter: last?.letter ?? "А" }]);
   }
@@ -183,7 +185,7 @@ export default function SchedulePage() {
                         <div key={s.id} className="grid grid-cols-[84px_1fr_34px] gap-1.5 rounded-[12px] border border-slate-200 bg-surface p-2">
                           <input type="time" aria-label={tr("Уақыты")} value={s.time} onChange={(e) => patch(s.id, { time: e.target.value })} className={field} />
                           <select aria-label={tr("Пән")} value={s.subject} onChange={(e) => patch(s.id, { subject: e.target.value })} className={field}>
-                            {SUBJECTS.map((x) => (
+                            {(subjects.includes(s.subject) ? subjects : [s.subject, ...subjects]).map((x) => (
                               <option key={x} value={x}>
                                 {tr(x)}
                               </option>

@@ -6,7 +6,8 @@ import { TestSharePanel } from "../components/TestSharePanel";
 import { LiveLauncher } from "../components/LiveLauncher";
 import { LangPicker } from "../components/LangPicker";
 import { useAuth } from "../context/useAuth";
-import { GRADES, SUBJECTS } from "../lib/catalog";
+import { GRADES } from "../lib/catalog";
+import { allowedSubjects, pickSubject } from "../lib/subjects";
 import type { LessonPlan } from "../lib/generators";
 import type { Lang } from "../lib/lang";
 import { getTest, saveTest, type SavedTest, type TaskType } from "../lib/projects";
@@ -49,6 +50,7 @@ const ghostBtn =
 
 export default function TestsPage() {
   const { user } = useAuth();
+  const subjects = allowedSubjects(user);
   const location = useLocation();
   const navState = location.state as { testId?: string; plan?: LessonPlan } | null;
   const plan = navState?.plan;
@@ -56,7 +58,7 @@ export default function TestsPage() {
   const [error, setError] = useState("");
   const [taskType, setTaskType] = useState<TaskType>("levels");
   const [subject, setSubject] = useState(() =>
-    plan && SUBJECTS.includes(plan.subject) ? plan.subject : user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0],
+    pickSubject(subjects, plan?.subject, user?.subject),
   );
   const [grade, setGrade] = useState(() => (plan && GRADES.includes(plan.grade) ? plan.grade : (user?.grades?.[0] ?? GRADES[4])));
   const [topic, setTopic] = useState(plan?.topic ?? "");
@@ -224,7 +226,7 @@ export default function TestsPage() {
             <label className="block">
               <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Пән")}</span>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldClass}>
-                {SUBJECTS.map((s) => (
+                {(subjects.includes(subject) ? subjects : [subject, ...subjects]).map((s) => (
                   <option key={s} value={s}>{tr(s)}</option>
                 ))}
               </select>

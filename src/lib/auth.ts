@@ -17,6 +17,8 @@ export interface UserAccount {
   role: Role;
   status: AccountStatus;
   subject: string;
+  /** Әкімші бекіткен пәндер (ең көбі 2). Бос болса — шектеу жоқ. */
+  subjects: string[];
   school: string;
   createdAt: string;
   lastLoginAt: string | null;
@@ -53,6 +55,8 @@ interface ProfileRow {
   experience_years?: number | null;
   phone?: string;
   bio?: string;
+  // 13-жаңарту SQL-ы орындалмаған болса, болмауы мүмкін.
+  subjects?: string[];
 }
 
 function mapProfile(row: ProfileRow): UserAccount {
@@ -63,6 +67,7 @@ function mapProfile(row: ProfileRow): UserAccount {
     role: row.role,
     status: row.status,
     subject: row.subject,
+    subjects: row.subjects ?? [],
     school: row.school,
     createdAt: row.created_at,
     lastLoginAt: row.last_login_at,
@@ -195,6 +200,8 @@ export interface CreateUserInput {
   password: string;
   role: Role;
   subject: string;
+  /** Мұғалімге бекітілетін пәндер (ең көбі 2). */
+  subjects: string[];
   school: string;
 }
 
@@ -202,14 +209,18 @@ export type CreateUserResult = { ok: true } | { ok: false; reason: "duplicate_em
 
 export async function createUser(input: CreateUserInput): Promise<CreateUserResult> {
   try {
-    await callAdminAction("create", {
+    const created = await callAdminAction<{ id?: string }>("create", {
       name: input.name.trim(),
       email: input.email.trim().toLowerCase(),
       password: input.password,
       role: input.role,
-      subject: input.subject.trim(),
+      subject: (input.subjects[0] ?? input.subject).trim(),
       school: input.school.trim(),
     });
+    if (created?.id && input.subjects.length) {
+      const set = await setSubjects(created.id, input.subjects);
+      if (!set.ok) return { ok: false, reason: "error", message: tr("Аккаунт құрылды, бірақ пәндер сақталмады: {msg}", { msg: set.message }) };
+    }
     return { ok: true };
   } catch (e) {
     const message = e instanceof Error ? e.message : tr("Белгісіз қате");
@@ -218,6 +229,23 @@ export async function createUser(input: CreateUserInput): Promise<CreateUserResu
     }
     return { ok: false, reason: "error", message };
   }
+}
+
+/** Әкімші мұғалімге пәндерді бекітеді (ең көбі 2); негізгі пән солардың біріне ауысады. */
+export async function setSubjects(userId: string, subjects: string[]): Promise<{ ok: true } | { ok: false; message: string }> {
+  const list = [...new Set(subjects)].slice(0, 2);
+  const { data: current } = await supabase.from("profiles").select("subject").eq("id", userId).maybeSingle();
+  const patch: Record<string, unknown> = { subjects: list };
+  if (list.length && !list.includes((current as { subject?: string } | null)?.subject ?? "")) patch.subject = list[0];
+  const { data, error } = await supabase.from("profiles").update(patch).eq("id", userId).select("id");
+  if (error) {
+    if (/subjects/.test(error.message) && /(column|schema cache)/i.test(error.message)) {
+      return { ok: false, message: tr("Пәндерді бекіту үшін Supabase-те supabase/update-13-subjects.sql файлын орындаңыз.") };
+    }
+    return { ok: false, message: error.message };
+  }
+  if (!data?.length) return { ok: false, message: tr("Өзгерту мүмкін болмады: рұқсат жоқ.") };
+  return { ok: true };
 }
 
 export async function toggleStatus(user: UserAccount): Promise<boolean> {

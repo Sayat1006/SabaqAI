@@ -5,7 +5,8 @@ import { LangPicker } from "../components/LangPicker";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../context/useAuth";
 import { tr } from "../i18n";
-import { GRADES, SUBJECTS } from "../lib/catalog";
+import { GRADES } from "../lib/catalog";
+import { allowedSubjects, pickSubject } from "../lib/subjects";
 import { assignDates, DEFAULT_WEEKS, defaultStart, generateKtzh, kindLabel, KTZH_PERIODS, ktzhTotalHours, parseDate, WEEKDAYS, type KtzhData, type KtzhRow } from "../lib/ktzh";
 import { defaultMaterialLang, type Lang } from "../lib/lang";
 import { deleteProject, getKtzh, getKtzhList, saveKtzh, timeAgo, updateKtzh, type SavedKtzh } from "../lib/projects";
@@ -33,11 +34,12 @@ function FormField({ label, hint, children }: { label: React.ReactNode; hint?: s
 
 export default function KtzhPage() {
   const { user } = useAuth();
+  const subjects = allowedSubjects(user);
   const navigate = useNavigate();
   const location = useLocation();
   const openedId = (location.state as { ktzhId?: string } | null)?.ktzhId ?? new URLSearchParams(location.search).get("id") ?? undefined;
 
-  const [subject, setSubject] = useState(user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]);
+  const [subject, setSubject] = useState(() => pickSubject(subjects, user?.subject));
   const [grade, setGrade] = useState(user?.grades?.[0] ?? GRADES[4]);
   const [period, setPeriod] = useState(KTZH_PERIODS[0]);
   const [hoursPerWeek, setHoursPerWeek] = useState(2);
@@ -215,7 +217,7 @@ export default function KtzhPage() {
             <div className="grid grid-cols-2 gap-3">
               <FormField label={tr("Пән")}>
                 <select value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldClass}>
-                  {SUBJECTS.map((s) => (
+                  {(subjects.includes(subject) ? subjects : [subject, ...subjects]).map((s) => (
                     <option key={s} value={s}>
                       {tr(s)}
                     </option>

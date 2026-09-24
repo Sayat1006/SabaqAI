@@ -101,7 +101,7 @@ function parseRequest(raw: string, prof: { subject?: string; grades?: string[] }
     .trim();
   return {
     grade: grade || prof.grades?.[0] || "5-сынып",
-    subject: subject || (prof.subject && SUBJECTS.includes(prof.subject) ? prof.subject : "Математика"),
+    subject: subject || (prof.subject && SUBJECTS.includes(prof.subject) ? prof.subject : (prof.subjects?.[0] ?? "Математика")),
     topic,
   };
 }
@@ -375,6 +375,12 @@ const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0,
 // deno-lint-ignore no-explicit-any
 async function runGeneration(admin: any, token: string, chatId: number, kind: "qmzh" | "test", prof: Json, args: string, site: string) {
   const { subject, grade, topic } = parseRequest(args, prof);
+  // Әкімші бекіткен пәндерден тыс материал жасалмайды (дерекқор да сақтамайды).
+  const allowed: string[] = Array.isArray(prof.subjects) ? prof.subjects : [];
+  if (allowed.length && !allowed.includes(subject)) {
+    await send(token, chatId, `⛔ «${esc(subject)}» пәніне рұқсат жоқ. Сізге бекітілген пәндер: ${esc(allowed.join(", "))}.`);
+    return;
+  }
   const log: UsageLog = async (e) => {
     await admin.from("ai_usage").insert({ ...e, user_id: prof.id, source: "telegram", tool: kind });
   };
@@ -451,7 +457,8 @@ Deno.serve(async (req: Request) => {
     }
     const kind = cmd[1].toLowerCase() as "qmzh" | "test";
     const args = cmd[2].trim();
-    const { data: prof } = await admin.from("profiles").select("id, name, subject, grades, status").eq("telegram_chat_id", chatId).maybeSingle();
+    // «*»: 13-жаңартудағы subjects бағаны әлі жоқ болса да сұраныс бұзылмайды.
+    const { data: prof } = await admin.from("profiles").select("*").eq("telegram_chat_id", chatId).maybeSingle();
     if (!prof || prof.status !== "active") {
       await send(token, chatId, "Алдымен аккаунтыңызды қосыңыз: сайттағы <b>Жеке бет → Telegram-ды қосу</b>.");
       return new Response("ok");

@@ -4,7 +4,8 @@ import { useLocation } from "react-router-dom";
 import { LangPicker } from "../components/LangPicker";
 import { PageHeader } from "../components/PageHeader";
 import { useAuth } from "../context/useAuth";
-import { GRADES, SUBJECTS } from "../lib/catalog";
+import { GRADES } from "../lib/catalog";
+import { allowedSubjects, pickSubject } from "../lib/subjects";
 import { DOC_LENGTHS, DOC_TYPES, docTypeOf, generateDocument, QUARTERS, type DocData, type DocInput, type DocSection, type DocType } from "../lib/documents";
 import type { Lang } from "../lib/lang";
 import { deleteProject, getDocument, getDocuments, saveDocument, timeAgo, updateDocument, type SavedDocument } from "../lib/projects";
@@ -28,6 +29,7 @@ function FormField({ label, hint, children }: { label: React.ReactNode; hint?: s
 
 export default function DocsPage() {
   const { user } = useAuth();
+  const subjects = allowedSubjects(user);
   const location = useLocation();
   const openedId = (location.state as { docId?: string } | null)?.docId ?? new URLSearchParams(location.search).get("id") ?? undefined;
 
@@ -35,7 +37,7 @@ export default function DocsPage() {
   const [lang, setLang] = useState<Lang>(defaultMaterialLang);
   const [topic, setTopic] = useState("");
   const [grade, setGrade] = useState(user?.grades?.[0] ?? GRADES[4]);
-  const [subject, setSubject] = useState(user?.subject && SUBJECTS.includes(user.subject) ? user.subject : SUBJECTS[0]);
+  const [subject, setSubject] = useState(() => pickSubject(subjects, user?.subject));
   const [student, setStudent] = useState("");
   const [quarter, setQuarter] = useState(QUARTERS[0]);
   const [notes, setNotes] = useState("");
@@ -234,7 +236,7 @@ export default function DocsPage() {
             {def.fields.includes("subject") && (
               <FormField label={tr("Пән")}>
                 <select value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldClass}>
-                  {SUBJECTS.map((s) => (
+                  {(subjects.includes(subject) ? subjects : [subject, ...subjects]).map((s) => (
                     <option key={s} value={s}>{tr(s)}</option>
                   ))}
                 </select>
