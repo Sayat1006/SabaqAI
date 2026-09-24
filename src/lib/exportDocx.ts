@@ -16,13 +16,15 @@ import {
   VerticalMergeType,
   WidthType,
   convertMillimetersToTwip,
+  PageOrientation,
 } from "docx";
 import { downloadBlob } from "./downloadBlob";
 import type { LessonPlan } from "./generators";
 import { platformKind, platformLabel } from "./resources";
 import type { SavedTest } from "./projects";
 import type { DocData } from "./documents";
-import { difficultyIn, qmzhLabels, testLabels } from "./docLabels";
+import { difficultyIn, ktzhLabels, periodIn, qmzhLabels, testLabels } from "./docLabels";
+import { kindLabel, ktzhTotalHours, type KtzhData } from "./ktzh";
 import { gradeIn, subjectIn } from "./lang";
 
 // Ресми құжат конвенциясына сай: A4, Times New Roman, 1.5 жол аралығы,
@@ -540,4 +542,68 @@ export async function exportDocumentToDocx(d: DocData) {
   });
   const safe = d.title.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0, 80) || "AI Nur";
   downloadBlob(await Packer.toBlob(doc), `${safe}.docx`);
+}
+
+/* ---------------------------------------------------------------------- КТЖ */
+
+// Ресми КТЖ кестесі: альбомдық A4, бөлім атауы бөлімнің бірінші жолында, БЖБ/ТЖБ жолдары қалың.
+export async function exportKtzhToDocx(d: KtzhData) {
+  const L = ktzhLabels(d.lang);
+  const widths = [5, 17, 30, 28, 7, 8, 5];
+  const small = (text: string, bold = false) => new Paragraph({ children: [new TextRun({ text, bold, size: 22 })] });
+  const info = (label: string, value: string) =>
+    new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: `${label}: `, bold: true }), new TextRun(value)] });
+  const rows: TableRow[] = [
+    new TableRow({ tableHeader: true, children: L.cols.map((c, i) => headerCell(c, widths[i])) }),
+    ...d.rows.map((r, i) => {
+      const firstOfSection = i === 0 || d.rows[i - 1].section !== r.section;
+      const bold = r.kind !== "lesson";
+      const topic = r.kind === "lesson" ? r.topic : `${kindLabel(r.kind, d.lang)}. ${r.topic}`;
+      return new TableRow({
+        cantSplit: true,
+        children: [
+          cell([small(String(i + 1))]),
+          cell([small(firstOfSection ? r.section : "", true)]),
+          cell([small(topic, bold)]),
+          cell([small(r.objectives)]),
+          cell([small(String(r.hours || 1))]),
+          cell([small(r.date)]),
+          cell([small(r.note)]),
+        ],
+      });
+    }),
+  ];
+  const children: (Paragraph | Table)[] = [
+    new Paragraph({ text: L.title, heading: HeadingLevel.HEADING_1 }),
+    info(L.subject, subjectIn(d.subject, d.lang)),
+    info(L.grade, gradeIn(d.grade, d.lang)),
+    info(L.period, periodIn(d.period, d.lang)),
+    info(L.perWeek, String(d.hoursPerWeek)),
+    info(L.total, String(ktzhTotalHours(d))),
+    ...(d.teacher ? [info(L.teacher, d.teacher)] : []),
+    spacer(),
+    table(rows),
+  ];
+  const doc = new Document({
+    styles: {
+      default: {
+        document: { run: { font: "Times New Roman", size: 24 } },
+        heading1: { run: { font: "Times New Roman", size: 30, bold: true, color: INK }, paragraph: { spacing: { after: 160 }, alignment: AlignmentType.CENTER } },
+      },
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: convertMillimetersToTwip(210), height: convertMillimetersToTwip(297), orientation: PageOrientation.LANDSCAPE },
+            margin: { top: convertMillimetersToTwip(12), bottom: convertMillimetersToTwip(12), left: convertMillimetersToTwip(15), right: convertMillimetersToTwip(12) },
+          },
+        },
+        footers: { default: pageFooter() },
+        children,
+      },
+    ],
+  });
+  const safe = `${d.subject} ${d.grade} ${d.period}`.replace(/[\\/:*?"<>|]+/g, " ").trim();
+  downloadBlob(await Packer.toBlob(doc), `${L.file} - ${safe}.docx`);
 }

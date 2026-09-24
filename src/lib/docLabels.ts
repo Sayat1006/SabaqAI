@@ -160,3 +160,34 @@ export const testLabels = (lang: Lang | undefined): TestLabels => TEST[lang === 
 /** Сложность (Жеңіл/Орташа/Қиын) орысша. */
 export const difficultyIn = (d: string, lang: Lang | undefined) =>
   lang === "ru" ? ({ Жеңіл: "Лёгкий", Орташа: "Средний", Қиын: "Сложный" } as Record<string, string>)[d] ?? d : d;
+
+const KTZH = {
+  kk: {
+    title: "Күнтізбелік-тақырыптық жоспар",
+    subject: "Пән",
+    grade: "Сынып",
+    period: "Кезең",
+    perWeek: "Аптасына сағат саны",
+    total: "Барлығы",
+    teacher: "Мұғалім",
+    cols: ["№", "Бөлім", "Сабақ тақырыбы", "Оқу мақсаттары", "Сағат саны", "Күні", "Ескерту"],
+    file: "KTZh",
+  },
+  ru: {
+    title: "Календарно-тематический план",
+    subject: "Предмет",
+    grade: "Класс",
+    period: "Период",
+    perWeek: "Часов в неделю",
+    total: "Всего часов",
+    teacher: "Учитель",
+    cols: ["№", "Раздел", "Тема урока", "Цели обучения", "Кол-во часов", "Дата", "Примечание"],
+    file: "KTP",
+  },
+} satisfies Record<Lang, unknown>;
+
+export const ktzhLabels = (lang: Lang | undefined) => KTZH[lang === "ru" ? "ru" : "kk"];
+
+/** «1-тоқсан» → «1 четверть», «Жылдық» → «Учебный год» (орысша материалда). */
+export const periodIn = (p: string, lang: Lang | undefined) =>
+  lang === "ru" ? (p === "Жылдық" ? "Учебный год" : p.replace(/^(\d)-тоқсан$/, "$1 четверть")) : p;

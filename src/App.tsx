@@ -15,6 +15,8 @@ import TakeTestPage from "./pages/TakeTest";
 import ClassToolsPage from "./pages/ClassTools";
 import TestsPage from "./pages/Tests";
 import DocsPage from "./pages/Docs";
+import KtzhPage from "./pages/Ktzh";
+import ProgressPage from "./pages/Progress";
 import LiveHostPage from "./pages/LiveHost";
 import LivePlayPage from "./pages/LivePlay";
 
@@ -40,6 +42,8 @@ export default function App() {
             <Route path="tests" element={<TestsPage />} />
             <Route path="tools" element={<ClassToolsPage />} />
             <Route path="docs" element={<DocsPage />} />
+            <Route path="ktzh" element={<KtzhPage />} />
+            <Route path="progress" element={<ProgressPage />} />
             <Route path="projects" element={<ProjectsPage />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>

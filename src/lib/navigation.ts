@@ -1,4 +1,4 @@
-import { ClipboardList, FileCheck2, FileText, Image, Presentation, Timer, type LucideIcon } from "lucide-react";
+import { CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
 import { tr } from "../i18n";
 
 export interface Tool {
@@ -17,6 +17,13 @@ export const tools: Tool[] = [
     short: tr("ҚМЖ"),
     icon: ClipboardList,
     description: tr("Қысқа мерзімді жоспарды пән мен сыныпқа сай бірнеше минутта дайында."),
+  },
+  {
+    to: "/ktzh",
+    label: tr("КТЖ"),
+    short: tr("КТЖ"),
+    icon: CalendarDays,
+    description: tr("Тоқсанға арналған күнтізбелік-тақырыптық жоспар: бөлімдер, тақырыптар, оқу мақсаттары, БЖБ/ТЖБ және күндері."),
   },
   {
     to: "/presentation",
@@ -38,6 +45,13 @@ export const tools: Tool[] = [
     short: tr("Тапсырмалар"),
     icon: FileCheck2,
     description: tr("Деңгейлік тест, PISA, ҰБТ, БЖБ/ТЖБ және шығармашылық тапсырмаларды құрастырыңыз."),
+  },
+  {
+    to: "/progress",
+    label: tr("Оқушы прогресі"),
+    short: tr("Прогресс"),
+    icon: LineChart,
+    description: tr("Сынып бойынша тест нәтижелері: әр оқушының дамуы, әлсіз тақырыптары және AI қорытындысы."),
   },
   {
     to: "/docs",

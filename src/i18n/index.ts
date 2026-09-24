@@ -46,7 +46,9 @@ export function setUiLang(lang: UiLang) {
 }
 
 /** Күн/уақытты пішімдеу үшін локаль. */
-export const uiLocale = uiLang === "en" ? "en-GB" : uiLang === "ru" ? "ru-RU" : "kk-KZ";
+// «kk-KZ» локалін кейбір браузерлер толық қолдамай, АҚШ ретімен (ай/күн) шығарады —
+// қазақша интерфейсте де күн.ай.жыл ретін береміз.
+export const uiLocale = uiLang === "en" ? "en-GB" : "ru-RU";
 
 export function initUiLang() {
   document.documentElement.lang = uiLang === "kk" ? "kk" : uiLang;

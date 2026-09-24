@@ -3,6 +3,7 @@
 // Бұрын браузерде (localStorage) сақталған жобалар бірінші кіргенде дерекқорға көшіріледі.
 
 import type { DocData } from "./documents";
+import type { KtzhData } from "./ktzh";
 import type { LessonPlan } from "./generators";
 import type { Lang } from "./lang";
 import { supabase } from "./supabaseClient";
@@ -80,7 +81,7 @@ export type SavedImage = Saved & ImageData;
 export type SavedTest = Saved & TestData;
 export type SavedQmzh = Saved & { plan: LessonPlan };
 
-export type ProjectKind = "qmzh" | "presentation" | "image" | "test" | "document";
+export type ProjectKind = "qmzh" | "presentation" | "image" | "test" | "document" | "ktzh";
 
 export const KIND_LABEL: Record<ProjectKind, string> = {
   qmzh: tr("ҚМЖ"),
@@ -88,6 +89,7 @@ export const KIND_LABEL: Record<ProjectKind, string> = {
   image: tr("Сурет"),
   test: tr("Тапсырма"),
   document: tr("Құжат"),
+  ktzh: tr("КТЖ"),
 };
 
 interface ProjectRow {
@@ -307,6 +309,38 @@ export async function getDocuments(limit = 12): Promise<SavedDocument[]> {
   return (await list("document", limit)).map(toDocument);
 }
 
+export type SavedKtzh = Saved & KtzhData;
+const toKtzh = (r: ProjectRow): SavedKtzh => ({ id: r.id, savedAt: savedAt(r), ...(r.data as KtzhData) });
+const ktzhTitle = (d: KtzhData) => `${d.subject} · ${d.grade} · ${d.period}`;
+const ktzhDetail = (d: KtzhData) => `${d.rows.length} сағат`;
+
+export async function saveKtzh(d: KtzhData): Promise<SavedKtzh> {
+  const { data: row, error } = await supabase
+    .from("projects")
+    .insert({ kind: "ktzh", title: ktzhTitle(d).slice(0, 300), detail: ktzhDetail(d), data: d })
+    .select("id, kind, title, detail, data, created_at")
+    .single();
+  if (error) {
+    if (error.code === "23514" || /projects_kind_check/.test(error.message)) {
+      throw new ProjectsError(tr("КТЖ сақтау үшін әкімші Supabase-те supabase/update-8-ktzh.sql файлын орындауы керек."));
+    }
+    throw wrapError(error);
+  }
+  return toKtzh(row as ProjectRow);
+}
+export async function updateKtzh(id: string, d: KtzhData): Promise<void> {
+  const { data, error } = await supabase.from("projects").update({ title: ktzhTitle(d).slice(0, 300), detail: ktzhDetail(d), data: d }).eq("id", id).select("id");
+  if (error) throw wrapError(error);
+  if (!data?.length) throw new ProjectsError(tr("Өзгерістер сақталмады. Қайталап көріңіз."));
+}
+export async function getKtzh(id: string): Promise<SavedKtzh | null> {
+  const row = await getRow(id, "ktzh");
+  return row && toKtzh(row);
+}
+export async function getKtzhList(limit = 12): Promise<SavedKtzh[]> {
+  return (await list("ktzh", limit)).map(toKtzh);
+}
+
 /* ------------------------------------------------------- басты бет пен «Жобалар» */
 
 export interface RecentProject {
@@ -326,6 +360,7 @@ const ROUTES: Record<ProjectKind, { to: string; key: string }> = {
   image: { to: "/images", key: "imageId" },
   test: { to: "/tests", key: "testId" },
   document: { to: "/docs", key: "docId" },
+  ktzh: { to: "/ktzh", key: "ktzhId" },
 };
 
 function toRecent(r: ProjectRow): RecentProject {
@@ -497,7 +532,7 @@ export function trDetail(detail: string): string {
   return detail
     .split(" · ")
     .map((part) => {
-      const m = part.match(/^(\d+)(-сынып| сұрақ| тапсырма| слайд)$/);
+      const m = part.match(/^(\d+)(-сынып| сұрақ| тапсырма| слайд| сағат)$/);
       if (m) return tr(`{n}${m[2]}`, { n: m[1] });
       return tr(part);
     })

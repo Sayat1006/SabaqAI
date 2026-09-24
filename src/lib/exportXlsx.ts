@@ -133,3 +133,45 @@ export async function exportResultsToXlsx(test: SavedTest, subs: TestSubmission[
   const safe = test.topic.replace(/[\\/:*?"<>|]+/g, " ").trim() || "test";
   downloadBlob(blob, `Natizheler - ${safe}.xlsx`);
 }
+
+/** Оқушы прогресі: оқушы × тест матрицасы (%), орташа және динамика. */
+export async function exportProgressToXlsx(
+  students: { name: string; cls: string; avg: number; trend: number; attempts: { testId: string; pct: number }[] }[],
+  tests: { id: string; topic: string; subject: string; createdAt: number }[],
+  cls: string,
+) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "AI Nur";
+  const sheet = wb.addWorksheet(tr("Оқушы прогресі"));
+  const d = (ts: number) => formatKzDate(new Date(ts).toISOString()).slice(0, 10);
+  sheet.columns = [
+    { header: tr("Оқушы"), key: "name", width: 28 },
+    { header: tr("Сынып"), key: "cls", width: 8 },
+    ...tests.map((t, i) => ({ header: `${t.topic} (${d(t.createdAt)})`, key: `t${i}`, width: 16 })),
+    { header: tr("Орташа"), key: "avg", width: 10 },
+    { header: tr("Динамика"), key: "trend", width: 11 },
+  ];
+  sheet.getRow(1).eachCell((cell) => {
+    cell.font = { bold: true };
+    cell.fill = HEADER_FILL;
+    cell.alignment = { wrapText: true, vertical: "middle" };
+  });
+  sheet.getRow(1).height = 42;
+  sheet.views = [{ state: "frozen", xSplit: 2, ySplit: 1 }];
+  const fill = (p: number): ExcelJS.Fill => ({ type: "pattern", pattern: "solid", fgColor: { argb: p >= 85 ? "FFD1FAE5" : p >= 50 ? "FFFEF3C7" : "FFFFE4E6" } });
+  for (const s of students) {
+    const row: Record<string, string | number> = { name: s.name, cls: s.cls, avg: s.avg, trend: s.trend };
+    tests.forEach((t, i) => {
+      const a = s.attempts.find((x) => x.testId === t.id);
+      if (a) row[`t${i}`] = a.pct;
+    });
+    const r = sheet.addRow(row);
+    tests.forEach((_, i) => {
+      const c = r.getCell(`t${i}`);
+      if (typeof c.value === "number") c.fill = fill(c.value);
+    });
+  }
+  const buffer = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  downloadBlob(blob, `AI-Nur-progress${cls ? `-${cls}` : ""}.xlsx`);
+}
