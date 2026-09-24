@@ -1,4 +1,4 @@
-import { FolderOpen, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Compass, FolderOpen, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
@@ -62,6 +62,9 @@ export function UserMenu() {
           </Link>
           <Link to="/projects" className={item} onClick={() => setOpen(false)}>
             <FolderOpen size={16} /> {tr("Менің жобаларым")}
+          </Link>
+          <Link to="/?tour=1" className={item} onClick={() => setOpen(false)}>
+            <Compass size={16} /> {tr("Нұсқаулық")}
           </Link>
           {user.role === "admin" && (
             <Link to="/admin" className={item} onClick={() => setOpen(false)}>

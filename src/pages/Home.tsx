@@ -6,34 +6,15 @@ import { useAuth } from "../context/useAuth";
 import { UserMenu } from "../components/UserMenu";
 import { InstallApp } from "../components/InstallApp";
 import { TodayLessons } from "../components/TodayLessons";
+import { WelcomeTour } from "../components/WelcomeTour";
 import { firstNameOf } from "../lib/names";
 import { ProjectCard } from "../components/ProjectCard";
 import { tools } from "../lib/navigation";
-import { deleteProject, getRecentProjects, statsOf, type RecentProject } from "../lib/projects";
+import { deleteProject, getRecentProjects, statsOf, timeAgo, type RecentProject } from "../lib/projects";
+import { getAnnouncements, lastSeen, markSeen } from "../lib/announcements";
 import { useLoad } from "../lib/useLoad";
 import { useCountUp } from "../lib/useCountUp";
 import { tr } from "../i18n";
-
-const announcements = [
-  {
-    id: "a1",
-    title: tr("ІІ тоқсанның ҚМЖ-ларын тапсыру мерзімі"),
-    body: tr("Барлық пән мұғалімдері 2-тоқсанға арналған қысқа мерзімді жоспарларды әдістемелік кеңеске 25-күніне дейін тапсыруы тиіс."),
-    date: tr("Бүгін"),
-  },
-  {
-    id: "a2",
-    title: tr("БЖБ/ТЖБ кестесі жаңартылды"),
-    body: tr("Тоқсандық жиынтық бағалау кестесін «Сабақ кестесі» бетінен тексеріңіз."),
-    date: tr("Кеше"),
-  },
-  {
-    id: "a3",
-    title: tr("Әдістемелік семинар"),
-    body: tr("«Оқыту мақсаттарын критериалды бағалаумен байланыстыру» — бейсенбі, 15:00, әдіскерлер бөлмесі."),
-    date: tr("2 күн бұрын"),
-  },
-];
 
 function greeting(): string {
   const hour = Number(
@@ -67,6 +48,18 @@ export default function Home() {
   const { data, setData, error: loadError, loading } = useLoad(getRecentProjects);
   const projects = useMemo(() => data ?? [], [data]);
   const stats = statsOf(projects);
+  const news = useLoad(getAnnouncements);
+  const [seen, setSeen] = useState(lastSeen);
+  const newest = news.data?.[0]?.createdAt ?? 0;
+  const unread = news.data?.filter((a) => a.createdAt > seen).length ?? 0;
+
+  function openDrawer() {
+    setDrawerOpen(true);
+    if (newest > seen) {
+      markSeen(newest);
+      setSeen(newest);
+    }
+  }
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -119,12 +112,16 @@ export default function Home() {
           </label>
           <button
             type="button"
-            onClick={() => setDrawerOpen(true)}
-            aria-label={tr("Хабарландырулар")}
+            onClick={openDrawer}
+            aria-label={unread ? tr("Хабарландырулар: {n} жаңа", { n: unread }) : tr("Хабарландырулар")}
             className="relative flex h-11 w-11 items-center justify-center rounded-[14px] border border-slate-200 bg-surface transition hover:-translate-y-0.5"
           >
             <Bell size={19} strokeWidth={1.8} />
-            <span className="absolute top-2.5 right-2.5 h-2 w-2 rounded-full border-2 border-surface bg-violet-500" />
+            {unread > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-slate-50 bg-violet-500 px-1 text-[10.5px] font-bold text-white">
+                {unread > 9 ? "9+" : unread}
+              </span>
+            )}
           </button>
           <UserMenu />
         </div>
@@ -268,6 +265,8 @@ export default function Home() {
         )}
       </section>
 
+      <WelcomeTour />
+
       {/* Хабарландырулар */}
       {drawerOpen && <button aria-label={tr("Жабу")} className="fixed inset-0 z-40 cursor-default" onClick={() => setDrawerOpen(false)} />}
       <aside
@@ -288,13 +287,21 @@ export default function Home() {
             <X size={18} />
           </button>
         </div>
-        {announcements.map((a) => (
-          <div key={a.id} className="rounded-[14px] border border-slate-200 bg-surface px-4 py-3.5">
-            <div className="text-sm font-semibold">{a.title}</div>
-            <div className="mt-1 text-[13px] text-slate-500">{a.body}</div>
-            <div className="mt-2 text-xs text-slate-500">{a.date}</div>
-          </div>
-        ))}
+        {news.loading ? (
+          <Loading variant="inline" />
+        ) : news.error ? (
+          <p className="rounded-[14px] bg-slate-50 px-4 py-3.5 text-[13px] text-slate-500">{news.error}</p>
+        ) : !news.data?.length ? (
+          <p className="rounded-[14px] border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">{tr("Әзірге хабарландыру жоқ.")}</p>
+        ) : (
+          news.data.map((a) => (
+            <div key={a.id} className="rounded-[14px] border border-slate-200 bg-surface px-4 py-3.5">
+              <div className="text-sm font-semibold">{a.title}</div>
+              {a.body && <div className="mt-1 text-[13px] whitespace-pre-line text-slate-500">{a.body}</div>}
+              <div className="mt-2 text-xs text-slate-500">{timeAgo(a.createdAt)}</div>
+            </div>
+          ))
+        )}
       </aside>
     </div>
   );
