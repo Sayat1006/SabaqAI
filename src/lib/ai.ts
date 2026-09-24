@@ -6,8 +6,12 @@ import { tr } from "../i18n";
 
 export class AiGenerationError extends Error {}
 
+/** Статистика үшін: сұраныс қай құралдан жіберілді (URL-дің бірінші бөлігі, мыс. «qmzh»). */
+const currentTool = () => window.location.pathname.split("/")[1] || "home";
+
 export async function aiGenerate(prompt: string, schema?: object): Promise<string> {
-  const invoke = () => supabase.functions.invoke("ai-generate", { body: schema ? { prompt, schema } : { prompt } });
+  const tool = currentTool();
+  const invoke = () => supabase.functions.invoke("ai-generate", { body: schema ? { prompt, schema, tool } : { prompt, tool } });
   let { data, error } = await invoke();
   if (error?.name === "FunctionsFetchError") {
     await new Promise((r) => setTimeout(r, 1500));

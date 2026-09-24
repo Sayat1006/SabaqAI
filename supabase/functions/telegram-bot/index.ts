@@ -106,11 +106,21 @@ function parseRequest(raw: string, prof: { subject?: string; grades?: string[] }
   };
 }
 
-async function gemini<T>(prompt: string, schema: object): Promise<T> {
+/** ai_usage кестесіне жазу (12-жаңарту; кесте жоқ болса үнсіз өтеді). */
+type UsageLog = (e: { ok: boolean; status: number; model: string; retries: number; tokens_in: number; tokens_out: number; ms: number }) => Promise<void>;
+
+async function gemini<T>(prompt: string, schema: object, log?: UsageLog): Promise<T> {
   const key = env("GEMINI_API_KEY");
   if (!key) throw new Error("GEMINI_API_KEY орнатылмаған");
   let last = "";
+  let lastStatus = 502;
+  let retries = 0;
+  let used = "";
+  const started = Date.now();
+  const done = (ok: boolean, status: number, usage?: { promptTokenCount?: number; candidatesTokenCount?: number }) =>
+    log?.({ ok, status, model: used, retries, tokens_in: usage?.promptTokenCount ?? 0, tokens_out: usage?.candidatesTokenCount ?? 0, ms: Date.now() - started }).catch(() => {});
   for (const model of ["gemini-3.6-flash", "gemini-flash-latest", "gemini-2.5-flash"]) {
+    used = model;
     for (let attempt = 1; attempt <= 2; attempt++) {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
         method: "POST",
@@ -123,15 +133,19 @@ async function gemini<T>(prompt: string, schema: object): Promise<T> {
       if (res.ok) {
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        await done(!!text, text ? 200 : 502, data?.usageMetadata);
         if (text) return JSON.parse(text) as T;
         last = "бос жауап";
         break;
       }
       last = `${res.status}`;
+      lastStatus = res.status;
+      retries++;
       if (res.status !== 503 && res.status !== 429) break;
       await new Promise((r) => setTimeout(r, 600 * attempt));
     }
   }
+  await done(false, lastStatus);
   throw new Error(`AI уақытша қолжетімсіз (${last}). Сәл кейін қайталаңыз.`);
 }
 
@@ -202,7 +216,7 @@ function today() {
 // deno-lint-ignore no-explicit-any
 type Json = any;
 
-async function generatePlan(subject: string, grade: string, topic: string, teacherName: string): Promise<Json> {
+async function generatePlan(subject: string, grade: string, topic: string, teacherName: string, log?: UsageLog): Promise<Json> {
   const value = MONTH_VALUE[new Date().getMonth() + 1];
   const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, 45 минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр. Сабақ түрі: аралас сабақ.
 Оқу мақсатын ҮОБ-қа сай код (мыс. "5.1.2.3") және мазмұнымен бер.
@@ -214,7 +228,7 @@ async function generatePlan(subject: string, grade: string, topic: string, teach
 "resources" — 5 цифрлық ресурс: URL ЖАЗБА, тек "platform" (тізімнен) мен "query" (іздеу сөзі) және "note" (қай кезеңде).
 "planning" — саралау, бағалау, денсаулық және қауіпсіздік; "reflection" — 3 сұрақ; "homework" — саралап берілген үй тапсырмасы.
 Барлығы қазақ тілінде, фактілері дұрыс.`;
-  const ai = await gemini<Json>(prompt, planSchema);
+  const ai = await gemini<Json>(prompt, planSchema, log);
   return {
     subject, grade, topic, duration: 45,
     teacherName: teacherName || "Мұғалімнің аты-жөні",
@@ -245,12 +259,12 @@ const testSchema = {
   required: ["questions"],
 };
 
-async function generateTest(subject: string, grade: string, topic: string): Promise<Json> {
+async function generateTest(subject: string, grade: string, topic: string, log?: UsageLog): Promise<Json> {
   const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің. Пән: ${subject}. Сынып: ${grade}. Тақырып: ${topic}.
 Дәл 10 тест сұрағын құрастыр: әр сұрақта 4 нұсқа, біреуі дұрыс; "correctIndex" 0-ден; дұрыс жауаптың орны әртүрлі.
 "level": A — білу/түсіну, B — қолдану, C — жоғары деңгей дағдылары; шамамен 4 A, 4 B, 2 C, A → C ретімен.
 Нұсқаларда әріп белгілерін жазба. "explanation" — бір сөйлем. Қазақ тілінде, фактілері дұрыс.`;
-  const ai = await gemini<Json>(prompt, testSchema);
+  const ai = await gemini<Json>(prompt, testSchema, log);
   const questions = (ai.questions ?? [])
     .filter((q: Json) => q.question && Array.isArray(q.options) && q.options.length >= 2)
     .slice(0, 10)
@@ -361,15 +375,18 @@ const safeName = (s: string) => s.replace(/[\\/:*?"<>|]+/g, " ").trim().slice(0,
 // deno-lint-ignore no-explicit-any
 async function runGeneration(admin: any, token: string, chatId: number, kind: "qmzh" | "test", prof: Json, args: string, site: string) {
   const { subject, grade, topic } = parseRequest(args, prof);
+  const log: UsageLog = async (e) => {
+    await admin.from("ai_usage").insert({ ...e, user_id: prof.id, source: "telegram", tool: kind });
+  };
   try {
     if (kind === "qmzh") {
-      const plan = await generatePlan(subject, grade, topic, prof.name);
+      const plan = await generatePlan(subject, grade, topic, prof.name, log);
       const { data: row, error } = await admin.from("projects").insert({ user_id: prof.id, kind: "qmzh", title: topic.slice(0, 300), detail: `${subject} · ${grade}`, data: plan }).select("id").single();
       if (error) throw new Error(`Сақталмады: ${error.message}`);
       const link = site ? `\n<a href="${site}/qmzh?id=${row.id}">Сайтта ашу және өңдеу</a>` : "";
       await sendDoc(token, chatId, await planDocx(plan), `KMZH - ${safeName(topic)}.docx`, `📘 <b>ҚМЖ дайын:</b> ${esc(topic)}\n${esc(subject)} · ${esc(grade)}${link}`);
     } else {
-      const test = await generateTest(subject, grade, topic);
+      const test = await generateTest(subject, grade, topic, log);
       const { data: row, error } = await admin.from("projects").insert({ user_id: prof.id, kind: "test", title: topic.slice(0, 300), detail: `${subject} · ${grade} · ${test.questions.length} сұрақ`, data: test }).select("id").single();
       if (error) throw new Error(`Сақталмады: ${error.message}`);
       const link = site ? `\n<a href="${site}/tests?id=${row.id}">Сайтта ашу — оқушыларға сілтеме, QR-код</a>` : "";

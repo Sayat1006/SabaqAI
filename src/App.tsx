@@ -25,6 +25,7 @@ const LiveHostPage = lazy(() => import("./pages/LiveHost"));
 const LivePlayPage = lazy(() => import("./pages/LivePlay"));
 const SchedulePage = lazy(() => import("./pages/Schedule"));
 const AdminNewsPage = lazy(() => import("./pages/AdminNews"));
+const AdminUsagePage = lazy(() => import("./pages/AdminUsage"));
 
 export default function App() {
   return (
@@ -59,6 +60,7 @@ export default function App() {
               <Route element={<AdminLayout />}>
                 <Route path="admin" element={<AdminPage />} />
                 <Route path="admin/news" element={<AdminNewsPage />} />
+                <Route path="admin/usage" element={<AdminUsagePage />} />
               </Route>
             </Route>
           </Route>
