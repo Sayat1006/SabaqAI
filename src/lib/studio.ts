@@ -163,12 +163,13 @@ export async function illustrateSlides(
   slides: SlideData[],
   deckStyle: string,
   onSlide: (index: number, svg: string) => void,
+  max = 4,
 ): Promise<void> {
   const style = DECK_IMAGE_STYLE[deckStyle] ?? "iso";
   const queue = slides
     .map((s, i) => ({ s, i }))
     .filter(({ s }) => (s.layout === "title" || s.layout === "image") && s.image_prompt && !s.image_svg)
-    .slice(0, 4);
+    .slice(0, max);
   const worker = async () => {
     for (let job = queue.shift(); job; job = queue.shift()) {
       try {
@@ -179,7 +180,8 @@ export async function illustrateSlides(
       }
     }
   };
-  await Promise.all([worker(), worker()]);
+  // Бірінен соң бірі: тегін тарифтің минуттық лимитіне (бір модельге 5) сыю үшін.
+  await worker();
 }
 
 /* ------------------------------------------------------------------- Сурет */

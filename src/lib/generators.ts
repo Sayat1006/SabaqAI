@@ -1,7 +1,7 @@
 // ҚМЖ генераторы: Gemini арқылы (ai-generate Edge Function), AI қолжетімсіз болса —
 // үлгі негізіндегі нұсқа. Сондай-ақ ҚМЖ-дан слайдтар құрастыру.
 
-import { aiGenerateJson } from "./ai";
+import { aiGenerateJson, isLimitError } from "./ai";
 import { subjectIn, type Lang } from "./lang";
 import { curriculum } from "./curriculum";
 import { buildResource, PLATFORM_KEYS, type QmzhResource } from "./resources";
@@ -633,7 +633,8 @@ ${
     };
   } catch (e) {
     // Үлгі нұсқасы тек қазақша — басқа тілдегі жоспарда қатені көрсетеміз.
-    if (ru || en) throw e;
+    // AI лимиті біткенде де үлгіге ауыспаймыз: мұғалім себебін білуі керек.
+    if (ru || en || isLimitError(e)) throw e;
     console.warn("ЖИ арқылы ҚМЖ жасау мүмкін болмады, үлгі нұсқасына көшірілді:", e);
     return generateLessonPlanTemplate(subject, grade, topic, duration, teacherName, date, objectivesInput);
   }

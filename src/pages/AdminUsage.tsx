@@ -1,10 +1,10 @@
-import { AlertTriangle, Database, Gauge, RefreshCw, Sparkles, Zap } from "lucide-react";
+import { AlertTriangle, Database, Gauge, RefreshCw, Save, SlidersHorizontal, Sparkles, Zap } from "lucide-react";
 import { useState } from "react";
 import { Loading } from "../components/Loading";
 import { Card } from "../components/ui";
 import { tr, uiLocale } from "../i18n";
 import { KIND_LABEL, timeAgo, type ProjectKind } from "../lib/projects";
-import { DB_FREE_BYTES, getUsageStats, limits, toolLabel } from "../lib/usage";
+import { DB_FREE_BYTES, DEFAULT_LIMITS, getLimits, getUsageStats, saveLimits, toolLabel, type AiLimits } from "../lib/usage";
 import { useLoad } from "../lib/useLoad";
 
 const pct = (a: number, b: number) => (b > 0 ? Math.min(100, Math.round((a / b) * 100)) : 0);
@@ -20,18 +20,19 @@ function Meter({ value, max }: { value: number; max: number }) {
   );
 }
 
-function LimitInput({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
+function LimitInput({ label, hint, value, min = 1, onChange }: { label: string; hint: string; value: number; min?: number; onChange: (v: number) => void }) {
   return (
-    <label className="flex items-center gap-2 text-[12.5px] text-slate-500">
-      {label}
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-semibold text-slate-600">{label}</span>
       <input
         type="number"
-        min={1}
+        min={min}
         max={100000}
         value={value}
-        onChange={(e) => onChange(Math.max(1, Number(e.target.value) || 1))}
-        className="w-20 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 text-[13px] text-slate-800 outline-none focus:border-violet-500"
+        onChange={(e) => onChange(Math.max(min, Math.floor(Number(e.target.value) || 0)))}
+        className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-violet-500"
       />
+      <span className="mt-1 block text-[12px] text-slate-500">{hint}</span>
     </label>
   );
 }
@@ -39,16 +40,28 @@ function LimitInput({ label, value, onChange }: { label: string; value: number; 
 /** Әкімші: AI қолдану статистикасы және тегін лимиттерге жақындығы. */
 export default function AdminUsagePage() {
   const { data, error, loading, reload } = useLoad(() => getUsageStats(30));
-  const [dayLimit, setDayLimit] = useState(limits.daily);
-  const [minLimit, setMinLimit] = useState(limits.perMinute);
+  const saved = useLoad(getLimits);
+  const lim: AiLimits = saved.data?.limits ?? DEFAULT_LIMITS;
+  const [draft, setDraft] = useState<AiLimits | null>(null);
+  const form = draft ?? lim;
+  const [limitMsg, setLimitMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [savingLimits, setSavingLimits] = useState(false);
+  const dayLimit = lim.day;
+  const minLimit = lim.minute;
 
-  function changeDay(v: number) {
-    setDayLimit(v);
-    limits.setDaily(v);
-  }
-  function changeMin(v: number) {
-    setMinLimit(v);
-    limits.setPerMinute(v);
+  async function submitLimits() {
+    setSavingLimits(true);
+    setLimitMsg(null);
+    try {
+      await saveLimits(form);
+      await saved.reload();
+      setDraft(null);
+      setLimitMsg({ ok: true, text: tr("Лимиттер сақталды.") });
+    } catch (e) {
+      setLimitMsg({ ok: false, text: e instanceof Error ? e.message : tr("Сақтау мүмкін болмады.") });
+    } finally {
+      setSavingLimits(false);
+    }
   }
 
   const month = data?.daily.reduce((s, d) => s + d.total, 0) ?? 0;
@@ -116,9 +129,6 @@ export default function AdminUsagePage() {
                   {data.today.total} <span className="text-base font-semibold text-slate-400">/ {dayLimit}</span>
                 </div>
                 <Meter value={data.today.total} max={dayLimit} />
-                <div className="mt-3">
-                  <LimitInput label={tr("Тәуліктік лимит")} value={dayLimit} onChange={changeDay} />
-                </div>
               </Card>
               <Card>
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
@@ -128,9 +138,6 @@ export default function AdminUsagePage() {
                   {data.peak_minute_today} <span className="text-base font-semibold text-slate-400">/ {minLimit}</span>
                 </div>
                 <Meter value={data.peak_minute_today} max={minLimit} />
-                <div className="mt-3">
-                  <LimitInput label={tr("Минуттық лимит")} value={minLimit} onChange={changeMin} />
-                </div>
               </Card>
               <Card>
                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-500">
@@ -156,6 +163,34 @@ export default function AdminUsagePage() {
                 <div className="mt-3 text-[12.5px] text-slate-500">{tr("Supabase тегін жоспары")}</div>
               </Card>
             </div>
+
+            <Card className="mt-6">
+              <h2 className="mb-1 flex items-center gap-2 text-lg font-bold">
+                <SlidersHorizontal size={18} className="text-violet-600" /> {tr("Лимиттер")}
+              </h2>
+              <p className="mb-4 text-[13px] text-slate-500">
+                {tr("Тегін тарифте: 3 модель × тәулігіне 20 = 60 генерация, минутына 15. Ортақ лимитті бір мұғалім тауысып қоймауы үшін әр мұғалімге тәуліктік шек қойыңыз (мыс., 60 ÷ 10 мұғалім = 6).")}
+              </p>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <LimitInput label={tr("Тәуліктік лимит (кілт)")} hint={tr("AI Studio → Rate limits: RPD қосындысы")} value={form.day} onChange={(v) => setDraft({ ...form, day: v })} />
+                <LimitInput label={tr("Минуттық лимит (кілт)")} hint={tr("AI Studio → Rate limits: RPM қосындысы")} value={form.minute} onChange={(v) => setDraft({ ...form, minute: v })} />
+                <LimitInput label={tr("Бір мұғалімге тәулігіне")} hint={tr("0 — шектеусіз. Әкімшіге қолданылмайды.")} min={0} value={form.perUser} onChange={(v) => setDraft({ ...form, perUser: v })} />
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void submitLimits()}
+                  disabled={savingLimits || !draft}
+                  className="inline-flex items-center gap-2 rounded-[11px] bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                >
+                  <Save size={15} /> {savingLimits ? tr("Сақталуда...") : tr("Сақтау")}
+                </button>
+                {limitMsg && <span className={`text-sm ${limitMsg.ok ? "text-emerald-700" : "text-rose-600"}`}>{limitMsg.text}</span>}
+                {saved.data && !saved.data.stored && !limitMsg && (
+                  <span className="text-sm text-amber-700">{tr("Лимиттерді сақтау үшін Supabase-те supabase/update-14-ai-limits.sql файлын орындаңыз.")}</span>
+                )}
+              </div>
+            </Card>
 
             <Card className="mt-6">
               <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -204,7 +239,10 @@ export default function AdminUsagePage() {
                             <div className="font-semibold">{u.name}</div>
                             <div className="text-[12px] text-slate-500">{u.email}</div>
                           </td>
-                          <td className="px-2 text-right tabular-nums">{u.today || "—"}</td>
+                          <td className={`px-2 text-right tabular-nums ${lim.perUser && u.today >= lim.perUser ? "font-bold text-rose-600" : ""}`}>
+                            {u.today || "—"}
+                            {lim.perUser > 0 && u.today > 0 && <span className="text-[11px] font-normal text-slate-400"> / {lim.perUser}</span>}
+                          </td>
                           <td className="px-2 text-right tabular-nums">{u.week || "—"}</td>
                           <td className="px-2 text-right font-semibold tabular-nums">{u.month || "—"}</td>
                           <td className="pl-3 text-right text-[12.5px] whitespace-nowrap text-slate-500">{u.last_at ? timeAgo(new Date(u.last_at).getTime()) : tr("қолданбаған")}</td>

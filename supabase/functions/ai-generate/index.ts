@@ -21,6 +21,23 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Лимиті біткен модельдер (осы функция данасының жадында): тәуліктік лимиті біткенге
+// бір сағат бойы қайта жүгінбейміз — мұғалім бос күтпейді.
+const exhaustedUntil = new Map<string, number>();
+
+/** Gemini 429 жауабын талдау: тәуліктік лимит пе, минуттық па, қанша күту керек. */
+function parseQuota(text: string): { daily: boolean; retryMs: number } {
+  const daily = /PerDay/i.test(text);
+  const m = text.match(/"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/) ?? text.match(/retry in (\d+(?:\.\d+)?)s/i);
+  return { daily, retryMs: m ? Math.ceil(Number(m[1]) * 1000) : 30000 };
+}
+
+/** Қазақстан уақыты бойынша бүгіннің басы (UTC+5). */
+function kzDayStart(): string {
+  const now = new Date(Date.now() + 5 * 3600e3);
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - 5 * 3600e3).toISOString();
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -52,7 +69,7 @@ Deno.serve(async (req: Request) => {
   } = await callerClient.auth.getUser();
   if (!user) return json({ error: "Unauthorized" }, 401);
 
-  const { data: callerProfile } = await callerClient.from("profiles").select("status").eq("id", user.id).single();
+  const { data: callerProfile } = await callerClient.from("profiles").select("status, role").eq("id", user.id).single();
   if (!callerProfile || callerProfile.status !== "active") {
     return json({ error: "Forbidden: аккаунт белсенді емес" }, 403);
   }
@@ -89,49 +106,101 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Әкімші қойған жеке тәуліктік лимит (14-жаңарту, app_settings.ai_limits.perUser; 0 — шектеусіз).
+  if (serviceKey && callerProfile.role !== "admin") {
+    try {
+      const service = createClient(supabaseUrl, serviceKey);
+      const { data: setting } = await service.from("app_settings").select("value").eq("key", "ai_limits").maybeSingle();
+      const perUser = Number(setting?.value?.perUser) || 0;
+      if (perUser > 0) {
+        const { count } = await service
+          .from("ai_usage")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("ok", true)
+          .gte("created_at", kzDayStart());
+        if ((count ?? 0) >= perUser) {
+          return json({ error: `Бүгінгі жеке лимитіңіз (${perUser} генерация) таусылды. Ертең қайта жаңарады.`, code: "user_limit" }, 429);
+        }
+      }
+    } catch {
+      // баптау кестесі жоқ болса — шектеусіз
+    }
+  }
+
   const generationConfig: Record<string, unknown> = { temperature: 0.8 };
   if (schema) {
     generationConfig.responseMimeType = "application/json";
     generationConfig.responseSchema = schema;
   }
 
-  // Бірінші модель шамадан тыс жүктелсе (503), келесі кандидатқа өтеді.
-  const modelCandidates = ["gemini-3.6-flash", "gemini-flash-latest", "gemini-2.5-flash"];
-  const attemptsPerModel = 2;
+  // Модельдер кезегі: GEMINI_MODELS секретімен өзгертуге болады (үтір арқылы), әйтпесе әдепкі тізім.
+  // Әр модельдің тегін лимиті бөлек: біреуі біткенде келесісіне өтеміз.
+  // @ts-expect-error Deno жаһандық объектісі тек Supabase Edge орталарында бар
+  const envModels = (Deno.env.get("GEMINI_MODELS") ?? "").split(",").map((m: string) => m.trim()).filter(Boolean);
+  const modelCandidates: string[] = envModels.length ? envModels : ["gemini-3.6-flash", "gemini-flash-latest", "gemini-2.5-flash"];
   let geminiRes: Response | null = null;
   let lastErrText = "";
   let lastStatus = 502;
+  let dailyHits = 0;
+  let minuteHits = 0;
 
-  outer: for (const model of modelCandidates) {
-    for (let attempt = 1; attempt <= attemptsPerModel; attempt++) {
-      usedModel = model;
-      geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ role: "user", parts: [{ text: prompt }] }],
-            generationConfig,
-          }),
-        },
-      );
+  const call = (model: string) =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig }),
+    });
 
-      if (geminiRes.ok) break outer;
-
-      lastErrText = await geminiRes.text();
-      lastStatus = geminiRes.status;
-      retries++;
-      // 503 (UNAVAILABLE) / 429 (тым жиі сұраныс) — уақытша, қайта байқауға тұрарлық.
-      const retryable = geminiRes.status === 503 || geminiRes.status === 429;
-      if (!retryable) break; // осы модельмен қайталанбайтын қате — келесі модельге өтеді
-      if (attempt < attemptsPerModel) await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+  // 1-айналым: барлық модельді байқаймыз. Тек минуттық лимит кедергі болса — күтіп, 2-айналым.
+  outer: for (let round = 0; round < 2; round++) {
+    let waitMs = Infinity;
+    minuteHits = 0;
+    for (const model of modelCandidates) {
+      if ((exhaustedUntil.get(model) ?? 0) > Date.now()) {
+        dailyHits++;
+        lastStatus = 429;
+        continue;
+      }
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        usedModel = model;
+        geminiRes = await call(model);
+        if (geminiRes.ok) break outer;
+        lastErrText = await geminiRes.text();
+        lastStatus = geminiRes.status;
+        retries++;
+        if (geminiRes.status === 429) {
+          const q = parseQuota(lastErrText);
+          if (q.daily) {
+            exhaustedUntil.set(model, Date.now() + 3600e3);
+            dailyHits++;
+          } else {
+            minuteHits++;
+            waitMs = Math.min(waitMs, q.retryMs);
+          }
+          break; // келесі модельге
+        }
+        if (geminiRes.status !== 503 || attempt === 2) break; // 503 — бір рет қайталаймыз
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
     }
+    // Минуттық лимит 20 секундқа дейін күтуді қажет етсе — күтіп, қайта байқаймыз.
+    if (round === 0 && minuteHits > 0 && waitMs <= 20000) {
+      await new Promise((resolve) => setTimeout(resolve, waitMs + 500));
+      continue;
+    }
+    break;
   }
 
   if (!geminiRes || !geminiRes.ok) {
     await logUsage(false, lastStatus);
-    return json({ error: `Gemini API қатесі (${lastStatus}): ${lastErrText.slice(0, 300)}` }, 502);
+    if (minuteHits > 0) {
+      return json({ error: "AI-ға қазір тым көп сұраныс түсті. Бір минуттан кейін қайталаңыз.", code: "quota_minute" }, 429);
+    }
+    if (dailyHits > 0 && dailyHits >= modelCandidates.length) {
+      return json({ error: "AI-дың бүгінгі тегін лимиті таусылды. Лимит түскі сағат 12–13-те жаңарады немесе әкімшіге хабарласыңыз.", code: "quota_day" }, 429);
+    }
+    return json({ error: `Gemini API қатесі (${lastStatus}): ${lastErrText.slice(0, 300)}`, code: "ai_error" }, 502);
   }
 
   const geminiData = await geminiRes!.json();

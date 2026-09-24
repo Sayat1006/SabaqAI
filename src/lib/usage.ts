@@ -44,29 +44,41 @@ export function toolLabel(tool: string): string {
   return tr(map[tool] ?? "Басқа");
 }
 
-const num = (key: string, fallback: number) => {
-  try {
-    const v = Number(localStorage.getItem(key));
-    return v > 0 ? v : fallback;
-  } catch {
-    return fallback;
-  }
-};
-const save = (key: string, v: number) => {
-  try {
-    localStorage.setItem(key, String(v));
-  } catch {
-    // жеке режим
-  }
-};
+export interface AiLimits {
+  /** Gemini кілтінің тәуліктік лимиті (барлық модель бойынша). */
+  day: number;
+  /** Минуттық лимит. */
+  minute: number;
+  /** Бір мұғалімге тәулігіне (0 — шектеусіз). ai-generate функциясы тексереді. */
+  perUser: number;
+}
 
-/** Gemini лимиттері Google AI Studio-да көрінеді; әкімші өз кілтінің санын жазады. */
-export const limits = {
-  daily: () => num("ainur-ai-limit-day", 250),
-  perMinute: () => num("ainur-ai-limit-min", 10),
-  setDaily: (v: number) => save("ainur-ai-limit-day", v),
-  setPerMinute: (v: number) => save("ainur-ai-limit-min", v),
-};
+/** Тегін тариф: 3 модель × 20 сұраныс/тәулік, 3 × 5/минут. */
+export const DEFAULT_LIMITS: AiLimits = { day: 60, minute: 15, perUser: 0 };
+
+const clean = (v: Partial<AiLimits> | null | undefined): AiLimits => ({
+  day: Math.max(1, Number(v?.day) || DEFAULT_LIMITS.day),
+  minute: Math.max(1, Number(v?.minute) || DEFAULT_LIMITS.minute),
+  perUser: Math.max(0, Math.floor(Number(v?.perUser) || 0)),
+});
+
+export async function getLimits(): Promise<{ limits: AiLimits; stored: boolean }> {
+  const { data, error } = await supabase.from("app_settings").select("value").eq("key", "ai_limits").maybeSingle();
+  if (error) return { limits: DEFAULT_LIMITS, stored: false }; // 14-жаңарту әлі орындалмаған
+  return { limits: clean(data?.value as Partial<AiLimits>), stored: true };
+}
+
+export async function saveLimits(limits: AiLimits): Promise<void> {
+  const { error } = await supabase
+    .from("app_settings")
+    .upsert({ key: "ai_limits", value: clean(limits), updated_at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) {
+    if (/app_settings/.test(error.message) && /(does not exist|Could not find|schema cache)/i.test(error.message)) {
+      throw new Error(tr("Лимиттерді сақтау үшін Supabase-те supabase/update-14-ai-limits.sql файлын орындаңыз."));
+    }
+    throw new Error(error.message);
+  }
+}
 
 /** Supabase тегін жоспарындағы дерекқор көлемі. */
 export const DB_FREE_BYTES = 500 * 1024 * 1024;

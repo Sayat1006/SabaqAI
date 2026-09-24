@@ -4,7 +4,16 @@
 import { supabase } from "./supabaseClient";
 import { tr } from "../i18n";
 
-export class AiGenerationError extends Error {}
+export class AiGenerationError extends Error {
+  /** «quota_day», «quota_minute», «user_limit» — лимит қатесі (үлгі жоспарға ауыспау керек). */
+  code: string;
+  constructor(message: string, code = "") {
+    super(message);
+    this.code = code;
+  }
+}
+
+export const isLimitError = (e: unknown) => e instanceof AiGenerationError && /^(quota_|user_limit)/.test(e.code);
 
 /** Статистика үшін: сұраныс қай құралдан жіберілді (URL-дің бірінші бөлігі, мыс. «qmzh»). */
 const currentTool = () => window.location.pathname.split("/")[1] || "home";
@@ -24,18 +33,32 @@ export async function aiGenerate(prompt: string, schema?: object): Promise<strin
   }
   if (error) {
     let message = error.message;
+    let code = "";
     const context = (error as { context?: Response }).context;
     if (context && typeof context.json === "function") {
       try {
-        const body = (await context.json()) as { error?: string };
+        const body = (await context.json()) as { error?: string; code?: string };
         if (body?.error) message = body.error;
+        code = body?.code ?? "";
       } catch {
         // денесі JSON емес болса — үнсіз өтеміз
       }
     }
-    throw new AiGenerationError(message);
+    const friendly = friendlyAiError(message, code);
+    throw new AiGenerationError(friendly.message, friendly.code);
   }
   return (data as { text: string }).text;
+}
+
+/** Лимит қателерін мұғалімге түсінікті етіп жазу (функцияның ескі нұсқасы ағылшынша мәтін қайтарса да). */
+export function friendlyAiError(message: string, code = ""): { message: string; code: string } {
+  if (code === "user_limit") return { code, message: tr("Бүгінгі жеке лимитіңіз ({n} генерация) таусылды. Ертең қайта жаңарады.", { n: message.match(/\d+/)?.[0] ?? "" }) };
+  const quota = code === "quota_day" || code === "quota_minute" || /\(429\)|RESOURCE_EXHAUSTED|exceeded your current quota/i.test(message);
+  if (!quota) return { message, code };
+  if (code === "quota_minute" || (!code && !/PerDay/i.test(message))) {
+    return { code: "quota_minute", message: tr("AI-ға қазір тым көп сұраныс түсті. Бір минуттан кейін қайталаңыз.") };
+  }
+  return { code: "quota_day", message: tr("AI-дың бүгінгі тегін лимиті таусылды. Лимит түскі сағат 12–13-те жаңарады немесе әкімшіге хабарласыңыз.") };
 }
 
 export async function aiGenerateJson<T>(prompt: string, schema: object): Promise<T> {
