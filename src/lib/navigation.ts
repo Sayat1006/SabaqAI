@@ -1,4 +1,4 @@
-import { CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
+import { CalendarClock, CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
 import { tr } from "../i18n";
 
 export type ToolGroup = "plan" | "create" | "class";
@@ -14,6 +14,14 @@ export interface Tool {
 
 /** AI Nur құралдары: бүйір мәзір, жоғарғы мәзір және басты беттегі карталар осыдан құрылады. */
 export const tools: Tool[] = [
+  {
+    to: "/schedule",
+    group: "plan",
+    label: tr("Сабақ кестесі"),
+    short: tr("Кесте"),
+    icon: CalendarClock,
+    description: tr("Апталық кесте: әр сабақтың КТЖ-дағы тақырыбы және бір батырмамен ҚМЖ."),
+  },
   {
     to: "/qmzh",
     group: "plan",
