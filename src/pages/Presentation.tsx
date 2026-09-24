@@ -85,7 +85,8 @@ export default function PresentationPage() {
   const [topic, setTopic] = useState(plan ? `${plan.subject}, ${plan.grade}: ${plan.topic}` : "");
   const [style, setStyle] = useState<string>("minimal");
   const [count, setCount] = useState<number>(10);
-  const [withImages, setWithImages] = useState(true);
+  // Иллюстрация саны: әрқайсысы бір AI сұранысы (тегін лимит тәулігіне небәрі ~60).
+  const [imageCount, setImageCount] = useState(2);
   const [lang, setLang] = useState<Lang>(plan?.lang ?? defaultMaterialLang);
   const [generating, setGenerating] = useState(false);
   const [phase, setPhase] = useState(0);
@@ -149,8 +150,8 @@ export default function PresentationPage() {
       setActive(0);
 
       // Иллюстрациялар бірінен соң бірі пайда болады; бәрі біткен соң презентация сақталады.
-      if (withImages) {
-        const targets = slides.map((s, i) => ((s.layout === "title" || s.layout === "image") && s.image_prompt ? i : -1)).filter((i) => i >= 0).slice(0, 4);
+      if (imageCount > 0) {
+        const targets = slides.map((s, i) => ((s.layout === "title" || s.layout === "image") && s.image_prompt ? i : -1)).filter((i) => i >= 0).slice(0, imageCount);
         setPending(new Set(targets));
         await illustrateSlides(slides, style, (index, svg) => {
           slides[index] = { ...slides[index], image_svg: svg };
@@ -160,7 +161,7 @@ export default function PresentationPage() {
             next.delete(index);
             return next;
           });
-        });
+        }, imageCount);
         setPending(new Set());
       }
 
@@ -174,7 +175,7 @@ export default function PresentationPage() {
         setError(err instanceof Error ? tr("Презентация дайын, бірақ сақталмады: {msg}", { msg: err.message }) : tr("Презентация сақталмады."));
       }
     },
-    [style, count, withImages, lang],
+    [style, count, imageCount, lang],
   );
 
   // ҚМЖ бетінен «Презентация жасау» басылса — жоспар негізінде бірден генерациялаймыз.
@@ -366,13 +367,17 @@ export default function PresentationPage() {
               ))}
             </div>
           </div>
-          <label className="flex cursor-pointer items-start gap-2.5 text-sm">
-            <input type="checkbox" checked={withImages} onChange={(e) => setWithImages(e.target.checked)} className="mt-0.5 h-4 w-4 accent-fuchsia-500" />
-            <span>
-              {tr("AI иллюстрациялар салу")}
-              <span className="block text-xs text-slate-500">{tr("Титул мен суретті слайдтарға (ең көбі 4). Ұзағырақ уақыт алады.")}</span>
-            </span>
-          </label>
+          <div>
+            <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("AI иллюстрациялар")}</span>
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 2, 4].map((n) => (
+                <button key={n} type="button" aria-pressed={imageCount === n} onClick={() => setImageCount(n)} className={chipClass(imageCount === n)}>
+                  {n === 0 ? tr("Жоқ") : n}
+                </button>
+              ))}
+            </div>
+            <span className="mt-1.5 block text-xs text-slate-500">{tr("Әр сурет — бір AI сұранысы және ұзағырақ уақыт. Лимитті үнемдеу үшін аз таңдаңыз.")}</span>
+          </div>
           {error && <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">{error}</p>}
           <button
             type="submit"
