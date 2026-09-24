@@ -13,6 +13,8 @@ import { gradeIn, subjectIn, type Lang } from "../lib/lang";
 import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, updateQmzh, type SavedQmzh } from "../lib/projects";
 import type { QmzhResource } from "../lib/resources";
 import { scrollToResult } from "../lib/scrollToResult";
+import { tr } from "../i18n";
+import { defaultMaterialLang } from "../lib/lang";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 
@@ -61,10 +63,10 @@ export default function QmzhPage() {
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [lessonType, setLessonType] = useState<string>(LESSON_TYPES[0]);
-  const [taskKinds, setTaskKinds] = useState<string[]>(["Жұптық жұмыс", "Топтық жұмыс", "Функционалдық сауаттылық"]);
+  const [taskKinds, setTaskKinds] = useState<string[]>([tr("Жұптық жұмыс"), tr("Топтық жұмыс"), tr("Функционалдық сауаттылық")]);
   const [taskCount, setTaskCount] = useState(3);
   const [notes, setNotes] = useState("");
-  const [lang, setLang] = useState<Lang>("kk");
+  const [lang, setLang] = useState<Lang>(defaultMaterialLang);
   const [savingResources, setSavingResources] = useState(false);
   const [editing, setEditing] = useState(false);
   const [savingPlan, setSavingPlan] = useState(false);
@@ -86,7 +88,7 @@ export default function QmzhPage() {
       setEditing(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Өзгерістер сақталмады.");
+      setError(err instanceof Error ? err.message : tr("Өзгерістер сақталмады."));
     } finally {
       setSavingPlan(false);
     }
@@ -114,7 +116,7 @@ export default function QmzhPage() {
   useEffect(() => {
     getQmzhList()
       .then(setHistory)
-      .catch((e) => setError(e instanceof Error ? e.message : "Жоспарлар тізімін жүктеу мүмкін болмады."));
+      .catch((e) => setError(e instanceof Error ? e.message : tr("Жоспарлар тізімін жүктеу мүмкін болмады.")));
   }, []);
 
   // Басты беттегі «Соңғы жобалар» тізімінен ашылғанда сақталған жоспарды жүктейміз.
@@ -124,14 +126,14 @@ export default function QmzhPage() {
     if (!openedId) return;
     getQmzh(openedId)
       .then((entry) => entry && fillForm(entry.plan, entry.id))
-      .catch((e) => setError(e instanceof Error ? e.message : "Жоспарды ашу мүмкін болмады."));
+      .catch((e) => setError(e instanceof Error ? e.message : tr("Жоспарды ашу мүмкін болмады.")));
   }, [openedId]);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
     if (generating) return;
     if (topic.trim().length < 3) {
-      setError("Сабақтың тақырыбын жазыңыз.");
+      setError(tr("Сабақтың тақырыбын жазыңыз."));
       return;
     }
     setGenerating(true);
@@ -153,10 +155,10 @@ export default function QmzhPage() {
         setPlanId(saved.id);
         setHistory((h) => [saved, ...h].slice(0, 8));
       } catch (err) {
-        setError(err instanceof Error ? `Жоспар дайын, бірақ сақталмады: ${err.message}` : "Жоспар сақталмады.");
+        setError(err instanceof Error ? tr("Жоспар дайын, бірақ сақталмады: {msg}", { msg: err.message }) : tr("Жоспар сақталмады."));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "ҚМЖ жасау мүмкін болмады.");
+      setError(err instanceof Error ? err.message : tr("ҚМЖ жасау мүмкін болмады."));
     } finally {
       setGenerating(false);
     }
@@ -172,7 +174,7 @@ export default function QmzhPage() {
       await updateQmzh(planId, updated);
       setHistory((h) => h.map((x) => (x.id === planId ? { ...x, plan: updated } : x)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Сілтемелер сақталмады.");
+      setError(err instanceof Error ? err.message : tr("Сілтемелер сақталмады."));
     } finally {
       setSavingResources(false);
     }
@@ -187,7 +189,7 @@ export default function QmzhPage() {
       await deleteProject(id);
       setHistory((h) => h.filter((x) => x.id !== id));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Жою мүмкін болмады.");
+      setError(err instanceof Error ? err.message : tr("Жою мүмкін болмады."));
     }
   }
 
@@ -203,15 +205,15 @@ export default function QmzhPage() {
   }
 
   const ghost =
-    "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
+    "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
   const L = qmzhLabels(plan?.lang);
 
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10 print:p-0">
       <PageHeader
-        crumb="ҚМЖ жоспарлау"
-        title="Қысқа мерзімді жоспар (ҚМЖ)"
-        subtitle="Формасын толтырыңыз — ресми үлгі бойынша кестелермен толық рәсімделген ҚМЖ дайын болады. Нәтижені Word немесе PDF түрінде жүктей аласыз."
+        crumb={tr("ҚМЖ жоспарлау")}
+        title={tr("Қысқа мерзімді жоспар (ҚМЖ)")}
+        subtitle={tr("Формасын толтырыңыз — ресми үлгі бойынша кестелермен толық рәсімделген ҚМЖ дайын болады. Нәтижені Word немесе PDF түрінде жүктей аласыз.")}
       />
 
       <div className="mt-8 flex flex-wrap items-start gap-7">
@@ -219,46 +221,46 @@ export default function QmzhPage() {
           <form
             onSubmit={handleGenerate}
             noValidate
-            className="flex flex-col gap-5 rounded-3xl border border-white/70 bg-white/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl"
+            className="flex flex-col gap-5 rounded-3xl border border-surface/70 bg-surface/75 p-6 shadow-[0_24px_48px_-30px_rgba(27,26,46,.2)] backdrop-blur-xl"
           >
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Пән">
+              <FormField label={tr("Пән")}>
                 <select value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldClass}>
                   {SUBJECTS.map((s) => (
-                    <option key={s}>{s}</option>
+                    <option key={s} value={s}>{tr(s)}</option>
                   ))}
                 </select>
               </FormField>
-              <FormField label="Сынып">
+              <FormField label={tr("Сынып")}>
                 <select value={grade} onChange={(e) => setGrade(e.target.value)} className={fieldClass}>
                   {GRADES.map((g) => (
-                    <option key={g}>{g}</option>
+                    <option key={g} value={g}>{tr(g)}</option>
                   ))}
                 </select>
               </FormField>
             </div>
             <LangPicker value={lang} onChange={setLang} />
-            <FormField label="Сабақтың тақырыбы">
-              <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={300} placeholder="мыс.: Физика – табиғат туралы ғылым" className={fieldClass} />
+            <FormField label={tr("Сабақтың тақырыбы")}>
+              <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={300} placeholder={tr("мыс.: Физика – табиғат туралы ғылым")} className={fieldClass} />
             </FormField>
-            <FormField label="Оқу мақсаттары" hint="Бос қалдырсаңыз, AI бағдарламаға сай мақсатты өзі ұсынады.">
+            <FormField label={tr("Оқу мақсаттары")} hint={tr("Бос қалдырсаңыз, AI бағдарламаға сай мақсатты өзі ұсынады.")}>
               <textarea
                 rows={3}
                 value={objectivesInput}
                 onChange={(e) => setObjectivesInput(e.target.value)}
-                placeholder="мыс.: 7.1.1.1 — физикалық құбылыстарға мысалдар келтіру"
+                placeholder={tr("мыс.: 7.1.1.1 — физикалық құбылыстарға мысалдар келтіру")}
                 className={`${fieldClass} resize-y`}
               />
             </FormField>
-            <FormField label="Сабақ түрі">
+            <FormField label={tr("Сабақ түрі")}>
               <select value={lessonType} onChange={(e) => setLessonType(e.target.value)} className={fieldClass}>
                 {LESSON_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
+                  <option key={t} value={t}>{tr(t)}</option>
                 ))}
               </select>
             </FormField>
             <fieldset>
-              <legend className="mb-2 block text-[13px] font-semibold text-slate-500">Тапсырма түрлері</legend>
+              <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тапсырма түрлері")}</legend>
               <div className="flex flex-wrap gap-1.5">
                 {TASK_KINDS.map((k) => {
                   const on = taskKinds.includes(k);
@@ -268,16 +270,16 @@ export default function QmzhPage() {
                       type="button"
                       aria-pressed={on}
                       onClick={() => toggleKind(k)}
-                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-600 hover:border-violet-500"}`}
+                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-600 hover:border-violet-500"}`}
                     >
-                      {k}
+                      {tr(k)}
                     </button>
                   );
                 })}
               </div>
-              <span className="mt-1.5 block text-xs text-slate-500">Таңдамасаңыз, AI өзі әртүрлі жұмыс түрлерін ұсынады.</span>
+              <span className="mt-1.5 block text-xs text-slate-500">{tr("Таңдамасаңыз, AI өзі әртүрлі жұмыс түрлерін ұсынады.")}</span>
             </fieldset>
-            <FormField label="Тапсырма саны">
+            <FormField label={tr("Тапсырма саны")}>
               <div className="grid grid-cols-4 gap-2">
                 {[2, 3, 4, 5].map((n) => (
                   <button
@@ -285,24 +287,24 @@ export default function QmzhPage() {
                     type="button"
                     aria-pressed={taskCount === n}
                     onClick={() => setTaskCount(n)}
-                    className={`min-h-10 rounded-xl border text-[13.5px] ${taskCount === n ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-violet-500"}`}
+                    className={`min-h-10 rounded-xl border text-[13.5px] ${taskCount === n ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"}`}
                   >
                     {n}
                   </button>
                 ))}
               </div>
             </FormField>
-            <FormField label="Қосымша тілек" hint="Міндетті емес: мыс. «STEM элементі болсын», «ерекше білім беру қажеттілігі бар оқушы бар».">
+            <FormField label={tr("Қосымша тілек")} hint={tr("Міндетті емес: мыс. «STEM элементі болсын», «ерекше білім беру қажеттілігі бар оқушы бар».")}>
               <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={`${fieldClass} resize-y`} />
             </FormField>
-            <FormField label="Педагогтің аты-жөні">
-              <input value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder="мыс.: Айтбаев Саят" className={fieldClass} />
+            <FormField label={tr("Педагогтің аты-жөні")}>
+              <input value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder={tr("мыс.: Айтбаев Саят")} className={fieldClass} />
             </FormField>
             <div className="grid grid-cols-2 gap-3">
-              <FormField label="Күні">
-                <input value={date} onChange={(e) => setDate(e.target.value)} placeholder="кк.аа.жжжж" className={fieldClass} />
+              <FormField label={tr("Күні")}>
+                <input value={date} onChange={(e) => setDate(e.target.value)} placeholder={tr("кк.аа.жжжж")} className={fieldClass} />
               </FormField>
-              <FormField label="Ұзақтығы (мин)">
+              <FormField label={tr("Ұзақтығы (мин)")}>
                 <input type="number" min={20} max={90} value={duration} onChange={(e) => setDuration(Number(e.target.value))} className={fieldClass} />
               </FormField>
             </div>
@@ -317,13 +319,13 @@ export default function QmzhPage() {
               className="flex w-full items-center justify-center gap-2.5 rounded-[14px] bg-violet-600 px-5 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
             >
               <Sparkles size={17} className={generating ? "animate-spin" : ""} />
-              {generating ? "Дайындалуда..." : plan ? "Қайта генерациялау" : "ҚМЖ жасау"}
+              {generating ? tr("Дайындалуда...") : plan ? tr("Қайта генерациялау") : tr("ҚМЖ жасау")}
             </button>
           </form>
 
           {history.length > 0 && (
-            <div className="rounded-[18px] border border-slate-200 bg-white p-5">
-              <div className="mb-3 text-sm font-bold">Соңғы жоспарлар</div>
+            <div className="rounded-[18px] border border-slate-200 bg-surface p-5">
+              <div className="mb-3 text-sm font-bold">{tr("Соңғы жоспарлар")}</div>
               <ul className="flex flex-col gap-1">
                 {history.map((entry) => (
                   <li key={entry.id} className="flex items-center gap-2">
@@ -340,7 +342,7 @@ export default function QmzhPage() {
                     <button
                       type="button"
                       onClick={() => handleDeleteHistory(entry.id)}
-                      aria-label={`Жою: ${entry.plan.topic}`}
+                      aria-label={tr("Жою: {title}", { title: entry.plan.topic })}
                       className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-700"
                     >
                       <X size={15} />
@@ -354,10 +356,10 @@ export default function QmzhPage() {
 
         <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
           {generating ? (
-            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white">
+            <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface">
               <Sparkles size={34} className="animate-spin text-violet-500" />
-              <div className="text-base">ҚМЖ дайындалуда...</div>
-              <div className="text-[12.5px] text-slate-500">Әдетте 20–60 секунд алады</div>
+              <div className="text-base">{tr("ҚМЖ дайындалуда...")}</div>
+              <div className="text-[12.5px] text-slate-500">{tr("Әдетте 20–60 секунд алады")}</div>
             </div>
           ) : plan && editing ? (
             <>
@@ -373,11 +375,11 @@ export default function QmzhPage() {
               <span className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-violet-100 text-violet-500">
                 <ClipboardList size={32} />
               </span>
-              <div className="text-base text-slate-900">Форманы толтырып, «ҚМЖ жасау» батырмасын басыңыз</div>
-              <div className="text-[13.5px]">Дайын жоспар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.</div>
+              <div className="text-base text-slate-900">{tr("Форманы толтырып, «ҚМЖ жасау» батырмасын басыңыз")}</div>
+              <div className="text-[13.5px]">{tr("Дайын жоспар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.")}</div>
             </div>
           ) : (
-            <article className="print-card animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-white p-6 text-left sm:p-8 print:border-0 print:p-0">
+            <article className="print-card animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] rounded-[22px] border border-slate-200 bg-surface p-6 text-left sm:p-8 print:border-0 print:p-0">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4 border-b-2 border-slate-900 pb-4">
                 <div>
                   <h2 className="text-[22px] font-bold">{L.docTitle}</h2>
@@ -386,9 +388,9 @@ export default function QmzhPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 print:hidden">
-                  <span className="rounded-full bg-fuchsia-100 px-3 py-1.5 text-xs font-semibold text-fuchsia-700">Ресми үлгі бойынша</span>
+                  <span className="rounded-full bg-fuchsia-100 px-3 py-1.5 text-xs font-semibold text-fuchsia-700">{tr("Ресми үлгі бойынша")}</span>
                   <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-1.5 rounded-full border border-violet-300 px-3 py-1.5 text-xs font-semibold text-violet-700 hover:bg-violet-100">
-                    <Pencil size={13} /> Өңдеу
+                    <Pencil size={13} /> {tr("Өңдеу")}
                   </button>
                 </div>
               </div>
@@ -493,19 +495,19 @@ export default function QmzhPage() {
 
               <div className="mt-8 flex flex-wrap gap-2.5 border-t border-slate-200 pt-5 print:hidden">
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-[11px] bg-violet-600 px-3.5 py-2.5 text-sm font-semibold text-white">
-                  <Pencil size={15} /> Өңдеу
+                  <Pencil size={15} /> {tr("Өңдеу")}
                 </button>
                 <button type="button" onClick={handleExportDocx} disabled={exportingDocx} className={ghost}>
-                  <Download size={15} /> {exportingDocx ? "Дайындалуда..." : "Word түрінде жүктеу"}
+                  <Download size={15} /> {exportingDocx ? tr("Дайындалуда...") : tr("Word түрінде жүктеу")}
                 </button>
                 <button type="button" onClick={() => window.print()} className={ghost}>
-                  <Printer size={15} /> PDF / басып шығару
+                  <Printer size={15} /> {tr("PDF / басып шығару")}
                 </button>
                 <button type="button" onClick={() => navigate("/presentation", { state: { plan } })} className={ghost}>
-                  <Presentation size={15} /> Презентация жасау
+                  <Presentation size={15} /> {tr("Презентация жасау")}
                 </button>
                 <button type="button" onClick={() => navigate("/tests", { state: { plan } })} className={ghost}>
-                  <ListChecks size={15} /> Тапсырма жасау
+                  <ListChecks size={15} /> {tr("Тапсырма жасау")}
                 </button>
                 <button
                   type="button"
@@ -518,7 +520,7 @@ export default function QmzhPage() {
                   }}
                   className={ghost}
                 >
-                  <RotateCcw size={15} /> Жаңа ҚМЖ
+                  <RotateCcw size={15} /> {tr("Жаңа ҚМЖ")}
                 </button>
               </div>
             </article>

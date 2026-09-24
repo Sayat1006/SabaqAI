@@ -2,6 +2,7 @@
 // API кілт тек `ai-generate` Edge Function ішінде сақталады (браузерде емес).
 
 import { supabase } from "./supabaseClient";
+import { tr } from "../i18n";
 
 export class AiGenerationError extends Error {}
 
@@ -14,7 +15,7 @@ export async function aiGenerate(prompt: string, schema?: object): Promise<strin
   }
   if (error?.name === "FunctionsFetchError") {
     throw new AiGenerationError(
-      "AI серверіне (ai-generate) қосылу мүмкін болмады. Интернетті тексеріңіз; қайталанса, Supabase → Edge Functions бөлімінде «ai-generate» функциясы жарияланғанын тексеріңіз.",
+      tr("AI серверіне (ai-generate) қосылу мүмкін болмады. Интернетті тексеріңіз; қайталанса, Supabase → Edge Functions бөлімінде «ai-generate» функциясы жарияланғанын тексеріңіз."),
     );
   }
   if (error) {

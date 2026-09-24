@@ -1,6 +1,7 @@
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { SlideData } from "../lib/slides";
+import { tr } from "../i18n";
 
 // Слайд өңдегіші. Тізім өрістері мәтін күйінде жергілікті сақталады (жол = бір элемент),
 // сонда жазып отырғанда курсор секірмейді; әр өзгеріс слайдқа бірден қолданылады.
@@ -81,21 +82,21 @@ export function SlideEditor({
 
   return (
     <div className="flex flex-col gap-3.5">
-      <TextInput title="Тақырып" value={s.heading} onChange={(heading) => onChange({ heading })} />
+      <TextInput title={tr("Тақырып")} value={s.heading} onChange={(heading) => onChange({ heading })} />
       {["title", "closing", "bullets", "image", "diagram", "chart", "table", "highlight", "timeline"].includes(s.layout) && (
-        <TextInput title="Қосымша жол" hint="міндетті емес" value={s.subheading} onChange={(subheading) => onChange({ subheading })} max={300} />
+        <TextInput title={tr("Қосымша жол")} hint={tr("міндетті емес")} value={s.subheading} onChange={(subheading) => onChange({ subheading })} max={300} />
       )}
 
       {s.layout === "highlight" && (
-        <Label title="Басты ой / анықтама">
+        <Label title={tr("Басты ой / анықтама")}>
           <textarea value={s.highlight} rows={3} maxLength={600} onChange={(e) => onChange({ highlight: e.target.value })} className={`${field} resize-y`} />
         </Label>
       )}
 
       {["bullets", "image", "closing", "highlight", "task"].includes(s.layout) && (
         <LinesInput
-          title={s.layout === "task" ? "Орындау қадамдары" : "Негізгі ойлар"}
-          hint="әр жол — бір пункт"
+          title={s.layout === "task" ? tr("Орындау қадамдары") : tr("Негізгі ойлар")}
+          hint={tr("әр жол — бір пункт")}
           initial={s.bullets.join("\n")}
           parse={nonEmpty}
           onChange={(bullets) => onChange({ bullets })}
@@ -104,40 +105,40 @@ export function SlideEditor({
 
       {s.layout === "task" && (
         <>
-          <Label title="Тапсырма шарты">
+          <Label title={tr("Тапсырма шарты")}>
             <textarea value={s.task_text ?? ""} rows={3} maxLength={800} onChange={(e) => onChange({ task_text: e.target.value })} className={`${field} resize-y`} />
           </Label>
-          <TextInput title="Жауабы" value={s.answer ?? ""} onChange={(answer) => onChange({ answer })} max={500} />
+          <TextInput title={tr("Жауабы")} value={s.answer ?? ""} onChange={(answer) => onChange({ answer })} max={500} />
         </>
       )}
 
       {s.layout === "diagram" && (
         <>
-          <Label title="Сызба түрі">
+          <Label title={tr("Сызба түрі")}>
             <select value={s.diagram_type} onChange={(e) => onChange({ diagram_type: e.target.value as SlideData["diagram_type"] })} className={field}>
-              <option value="process">Процесс (қадамдар)</option>
-              <option value="cycle">Цикл (айналым)</option>
-              <option value="hierarchy">Иерархия (бірінші жол — негіз)</option>
+              <option value="process">{tr("Процесс (қадамдар)")}</option>
+              <option value="cycle">{tr("Цикл (айналым)")}</option>
+              <option value="hierarchy">{tr("Иерархия (бірінші жол — негіз)")}</option>
             </select>
           </Label>
-          <LinesInput title="Элементтер" hint="әр жол — бір блок, 2–6" initial={(s.diagram_nodes ?? []).join("\n")} parse={nonEmpty} onChange={(diagram_nodes) => onChange({ diagram_nodes: diagram_nodes.slice(0, 6) })} />
+          <LinesInput title={tr("Элементтер")} hint={tr("әр жол — бір блок, 2–6")} initial={(s.diagram_nodes ?? []).join("\n")} parse={nonEmpty} onChange={(diagram_nodes) => onChange({ diagram_nodes: diagram_nodes.slice(0, 6) })} />
         </>
       )}
 
       {s.layout === "chart" && (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <Label title="Диаграмма түрі">
+            <Label title={tr("Диаграмма түрі")}>
               <select value={s.chart_type} onChange={(e) => onChange({ chart_type: e.target.value as SlideData["chart_type"] })} className={field}>
-                <option value="bar">Бағаналы</option>
-                <option value="pie">Дөңгелек</option>
+                <option value="bar">{tr("Бағаналы")}</option>
+                <option value="pie">{tr("Дөңгелек")}</option>
               </select>
             </Label>
-            <TextInput title="Өлшем бірлігі" value={s.chart_unit ?? ""} onChange={(chart_unit) => onChange({ chart_unit })} max={20} />
+            <TextInput title={tr("Өлшем бірлігі")} value={s.chart_unit ?? ""} onChange={(chart_unit) => onChange({ chart_unit })} max={20} />
           </div>
           <LinesInput
-            title="Деректер"
-            hint="әр жол: Атауы: сан"
+            title={tr("Деректер")}
+            hint={tr("әр жол: Атауы: сан")}
             initial={(s.chart_labels ?? []).map((l, i) => `${l}: ${s.chart_values?.[i] ?? 0}`).join("\n")}
             parse={(text) => {
               const rows = nonEmpty(text)
@@ -157,16 +158,16 @@ export function SlideEditor({
       {s.layout === "table" && (
         <>
           <LinesInput
-            title="Баған атаулары"
-            hint="| белгісімен бөліңіз"
+            title={tr("Баған атаулары")}
+            hint={tr("| белгісімен бөліңіз")}
             rows={1}
             initial={(s.table_headers ?? []).join(" | ")}
             parse={(text) => cells(text.replace(/\n/g, " ")).filter(Boolean).slice(0, 5)}
             onChange={(table_headers) => onChange({ table_headers })}
           />
           <LinesInput
-            title="Жолдар"
-            hint="әр жол — кестенің бір жолы, ұяшықтар | арқылы"
+            title={tr("Жолдар")}
+            hint={tr("әр жол — кестенің бір жолы, ұяшықтар | арқылы")}
             rows={5}
             initial={(s.table_rows ?? []).map((r) => r.cells.join(" | ")).join("\n")}
             parse={(text) => nonEmpty(text).map((l) => ({ cells: cells(l).slice(0, 5) })).slice(0, 6)}
@@ -178,20 +179,20 @@ export function SlideEditor({
       {s.layout === "two_column" && (
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="flex flex-col gap-3">
-            <TextInput title="Сол баған атауы" value={s.left_title} onChange={(left_title) => onChange({ left_title })} />
-            <LinesInput title="Сол баған" hint="әр жол — пункт" initial={s.left.join("\n")} parse={nonEmpty} onChange={(left) => onChange({ left })} />
+            <TextInput title={tr("Сол баған атауы")} value={s.left_title} onChange={(left_title) => onChange({ left_title })} />
+            <LinesInput title={tr("Сол баған")} hint={tr("әр жол — пункт")} initial={s.left.join("\n")} parse={nonEmpty} onChange={(left) => onChange({ left })} />
           </div>
           <div className="flex flex-col gap-3">
-            <TextInput title="Оң баған атауы" value={s.right_title} onChange={(right_title) => onChange({ right_title })} />
-            <LinesInput title="Оң баған" hint="әр жол — пункт" initial={s.right.join("\n")} parse={nonEmpty} onChange={(right) => onChange({ right })} />
+            <TextInput title={tr("Оң баған атауы")} value={s.right_title} onChange={(right_title) => onChange({ right_title })} />
+            <LinesInput title={tr("Оң баған")} hint={tr("әр жол — пункт")} initial={s.right.join("\n")} parse={nonEmpty} onChange={(right) => onChange({ right })} />
           </div>
         </div>
       )}
 
       {s.layout === "timeline" && (
         <LinesInput
-          title="Оқиғалар"
-          hint="әр жол: Күні | сипаттамасы"
+          title={tr("Оқиғалар")}
+          hint={tr("әр жол: Күні | сипаттамасы")}
           initial={(s.timeline ?? []).map((t) => `${t.label} | ${t.text}`).join("\n")}
           parse={(text) =>
             nonEmpty(text)
@@ -207,17 +208,17 @@ export function SlideEditor({
 
       {s.layout === "quiz" && (
         <>
-          <Label title="Сұрақ">
+          <Label title={tr("Сұрақ")}>
             <textarea value={s.question ?? ""} rows={2} maxLength={500} onChange={(e) => onChange({ question: e.target.value })} className={`${field} resize-y`} />
           </Label>
           <fieldset className="flex flex-col gap-2">
-            <legend className="mb-1.5 text-[12.5px] font-semibold text-slate-500">Жауап нұсқалары — дұрысын белгілеңіз</legend>
+            <legend className="mb-1.5 text-[12.5px] font-semibold text-slate-500">{tr("Жауап нұсқалары — дұрысын белгілеңіз")}</legend>
             {[0, 1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-2">
                 <input
                   type="radio"
                   name="quiz-correct"
-                  aria-label={`${String.fromCharCode(65 + i)} нұсқасы дұрыс`}
+                  aria-label={tr("{letter} нұсқасы дұрыс", { letter: String.fromCharCode(65 + i) })}
                   checked={(s.correct_index ?? 0) === i}
                   onChange={() => onChange({ correct_index: i })}
                   className="h-4 w-4 accent-fuchsia-500"
@@ -236,13 +237,13 @@ export function SlideEditor({
               </div>
             ))}
           </fieldset>
-          <TextInput title="Түсіндірме" value={s.explanation ?? ""} onChange={(explanation) => onChange({ explanation })} max={400} />
+          <TextInput title={tr("Түсіндірме")} value={s.explanation ?? ""} onChange={(explanation) => onChange({ explanation })} max={400} />
         </>
       )}
 
       {hasImage && (
         <div className="flex flex-col gap-2 rounded-xl border border-slate-200 p-3">
-          <Label title="Сурет сипаттамасы" hint="ағылшынша жазған дұрыс">
+          <Label title={tr("Сурет сипаттамасы")} hint={tr("ағылшынша жазған дұрыс")}>
             <textarea value={s.image_prompt ?? ""} rows={2} maxLength={400} onChange={(e) => onChange({ image_prompt: e.target.value })} className={`${field} resize-y`} />
           </Label>
           <div className="flex flex-wrap gap-2">
@@ -252,18 +253,18 @@ export function SlideEditor({
               disabled={imageBusy || !(s.image_prompt ?? "").trim()}
               className="inline-flex items-center gap-1.5 rounded-[10px] bg-fuchsia-500 px-3 py-2 text-[13px] font-semibold text-white disabled:opacity-60"
             >
-              <ImagePlus size={15} className={imageBusy ? "animate-pulse" : ""} /> {imageBusy ? "Салынуда..." : s.image_svg ? "Суретті қайта салу" : "Сурет салу"}
+              <ImagePlus size={15} className={imageBusy ? "animate-pulse" : ""} /> {imageBusy ? tr("Салынуда...") : s.image_svg ? tr("Суретті қайта салу") : tr("Сурет салу")}
             </button>
             {s.image_svg && (
               <button type="button" onClick={() => onChange({ image_svg: undefined })} className="inline-flex items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-rose-400 hover:text-rose-700">
-                <Trash2 size={14} /> Суретті алып тастау
+                <Trash2 size={14} /> {tr("Суретті алып тастау")}
               </button>
             )}
           </div>
         </div>
       )}
 
-      <Label title="Мұғалімге жазба" hint="слайдта көрінбейді">
+      <Label title={tr("Мұғалімге жазба")} hint={tr("слайдта көрінбейді")}>
         <textarea value={s.notes} rows={2} maxLength={1000} onChange={(e) => onChange({ notes: e.target.value })} className={`${field} resize-y`} />
       </Label>
     </div>

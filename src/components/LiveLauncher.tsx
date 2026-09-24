@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createLiveGame } from "../lib/live";
 import type { SavedTest } from "../lib/projects";
+import { tr } from "../i18n";
 
 const TIMES = [10, 20, 30, 45, 60];
 
@@ -21,7 +22,7 @@ export function LiveLauncher({ test }: { test: SavedTest }) {
       const g = await createLiveGame(test.topic, questions, time, test.lang ?? "kk");
       navigate(`/live/${g.id}`);
     } catch (e) {
-      setError(e instanceof Error && e.message !== "unknown" ? e.message : "Викторинаны бастау мүмкін болмады.");
+      setError(e instanceof Error && e.message !== "unknown" ? e.message : tr("Викторинаны бастау мүмкін болмады."));
       setBusy(false);
     }
   }
@@ -33,27 +34,27 @@ export function LiveLauncher({ test }: { test: SavedTest }) {
           <Gamepad2 size={22} />
         </span>
         <div>
-          <h2 className="text-lg font-bold">Тірі викторина</h2>
+          <h2 className="text-lg font-bold">{tr("Тірі викторина")}</h2>
           <p className="text-sm text-slate-600">
-            Сұрақтарды тақтаға шығарыңыз — оқушылар телефоннан кодпен қосылып, уақытқа жарысып жауап береді. Соңында көшбасшылар кестесі шығады.
+            {tr("Сұрақтарды тақтаға шығарыңыз — оқушылар телефоннан кодпен қосылып, уақытқа жарысып жауап береді. Соңында көшбасшылар кестесі шығады.")}
           </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-slate-500">Әр сұраққа:</span>
+        <span className="text-sm text-slate-500">{tr("Әр сұраққа:")}</span>
         {TIMES.map((t) => (
           <button
             key={t}
             type="button"
             aria-pressed={time === t}
             onClick={() => setTime(t)}
-            className={`rounded-full border px-3 py-1.5 text-sm ${time === t ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-white hover:border-violet-500"}`}
+            className={`rounded-full border px-3 py-1.5 text-sm ${time === t ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface hover:border-violet-500"}`}
           >
-            {t} сек
+            {tr("{n} сек", { n: t })}
           </button>
         ))}
         <button type="button" onClick={start} disabled={busy || !test.questions.length} className="ml-auto inline-flex items-center gap-2 rounded-[12px] bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60">
-          <Gamepad2 size={16} /> {busy ? "Дайындалуда..." : "Викторинаны бастау"}
+          <Gamepad2 size={16} /> {busy ? tr("Дайындалуда...") : tr("Викторинаны бастау")}
         </button>
       </div>
       {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}

@@ -1,6 +1,7 @@
 // AI студия: тақырып бойынша презентация, сабақ иллюстрациялары және тест.
 // Барлығы `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
 
+import { tr } from "../i18n";
 import { aiGenerateJson } from "./ai";
 import { curriculum } from "./curriculum";
 import type { LessonPlan } from "./generators";
@@ -12,10 +13,10 @@ import { normalizeSlide, type SlideData } from "./slides";
 const inLang = (lang?: Lang) => (lang === "ru" ? "ОРЫС тілінде" : "қазақ тілінде");
 
 export const PRESENTATION_STYLES = [
-  { key: "minimal", label: "Минимал" },
-  { key: "colorful", label: "Түрлі-түсті" },
-  { key: "science", label: "Ғылыми" },
-  { key: "kids", label: "Балаларға арналған" },
+  { key: "minimal", label: tr("Минимал") },
+  { key: "colorful", label: tr("Түрлі-түсті") },
+  { key: "science", label: tr("Ғылыми") },
+  { key: "kids", label: tr("Балаларға арналған") },
 ] as const;
 
 export const SLIDE_COUNTS = [5, 8, 10, 12] as const;
@@ -31,19 +32,19 @@ export const SLIDE_THEMES: Record<string, { bg: string; ink: string; accent: str
 export const IMAGE_STYLES = [
   {
     key: "watercolor",
-    label: "Акварель",
+    label: tr("Акварель"),
     hint: "soft watercolor look: translucent layered fills with low opacity, organic blob shapes, gentle color bleeding, no hard outlines",
   },
-  { key: "flat", label: "Жалпақ дизайн", hint: "flat design: solid fills, no gradients, simple geometric shapes, bold limited palette" },
+  { key: "flat", label: tr("Жалпақ дизайн"), hint: "flat design: solid fills, no gradients, simple geometric shapes, bold limited palette" },
   {
     key: "realistic",
-    label: "Реалистік",
+    label: tr("Реалистік"),
     hint: "semi-realistic: linear/radial gradients for volume, soft shadows, detailed proportions",
   },
-  { key: "line", label: "Сызықтық", hint: "line art: consistent stroke outlines only, no or very light fills, minimalist" },
+  { key: "line", label: tr("Сызықтық"), hint: "line art: consistent stroke outlines only, no or very light fills, minimalist" },
   {
     key: "iso",
-    label: "Изометрия",
+    label: tr("Изометрия"),
     hint: "isometric 3D: 30-degree isometric projection, three shaded faces per object, clean geometric forms",
   },
 ] as const;
@@ -127,7 +128,7 @@ export async function generatePresentation(topic: string, style: string, count: 
 ${planContext ? `Презентация мына қысқа мерзімді жоспарға (ҚМЖ) сай болсын — оның мақсаттарын, кезеңдерін, тапсырмаларын және құндылығын көрсет:\n"""\n${planContext}\n"""\n` : ""}${DECK_RULES(count, styleLabel, lang)}`;
   const result = await aiGenerateJson<{ title: string; slides: Partial<SlideData>[] }>(prompt, presentationSchema);
   const slides = (result.slides ?? []).map((s) => normalizeSlide(s as Partial<SlideData> & Record<string, unknown>));
-  if (slides.length === 0) throw new Error("AI слайд қайтармады. Қайталап көріңіз.");
+  if (slides.length === 0) throw new Error(tr("AI слайд қайтармады. Қайталап көріңіз."));
   return { title: result.title || topic, slides };
 }
 
@@ -207,7 +208,7 @@ Rules for the "svg" field:
 "title" is a short Kazakh name for the picture (2–4 words).`;
   const result = await aiGenerateJson<{ title: string; svg: string }>(prompt, imageSchema);
   const svg = sanitizeSvg(result.svg);
-  if (!svg) throw new Error("Сурет дұрыс генерацияланбады. Қайталап көріңіз.");
+  if (!svg) throw new Error(tr("Сурет дұрыс генерацияланбады. Қайталап көріңіз."));
   return { title: result.title || description.slice(0, 40), svg, styleLabel: styleDef.label };
 }
 
@@ -260,9 +261,9 @@ export const QUESTION_COUNTS = [5, 10, 15, 20] as const;
 
 /** Қазақстандағы критериалды бағалаудағы ойлау дағдыларының деңгейлері. */
 export const TEST_LEVELS: { key: TestLevel; label: string; short: string }[] = [
-  { key: "A", label: "Білу және түсіну", short: "A · Білу/түсіну" },
-  { key: "B", label: "Қолдану", short: "B · Қолдану" },
-  { key: "C", label: "Жоғары деңгей дағдылары", short: "C · Талдау/бағалау" },
+  { key: "A", label: tr("Білу және түсіну"), short: tr("A · Білу/түсіну") },
+  { key: "B", label: tr("Қолдану"), short: tr("B · Қолдану") },
+  { key: "C", label: tr("Жоғары деңгей дағдылары"), short: tr("C · Талдау/бағалау") },
 ];
 export const levelBadge = (l?: string) =>
   l === "C" ? "bg-navy-800 text-white" : l === "B" ? "bg-violet-100 text-violet-700" : "bg-fuchsia-100 text-fuchsia-800";
@@ -297,11 +298,11 @@ const testSchema = {
 
 /** «Тапсырмалар» бөліміндегі тапсырма түрлері. */
 export const TASK_TYPES: { key: TaskType; label: string; description: string; counts: readonly number[]; unit: string }[] = [
-  { key: "levels", label: "Деңгейлік тест", description: "A / B / C деңгейлері, 4 нұсқа, автоматты тексеріледі", counts: [5, 10, 15, 20], unit: "сұрақ" },
-  { key: "pisa", label: "Функционалдық сауаттылық (PISA)", description: "Өмірлік жағдаят, мәтін мен деректер негізіндегі сұрақтар", counts: [5, 8, 10, 12], unit: "сұрақ" },
-  { key: "ubt", label: "ҰБТ форматы", description: "5 нұсқалы, ҰБТ спецификациясына жақын сұрақтар", counts: [10, 15, 20, 25], unit: "сұрақ" },
-  { key: "bzb", label: "БЖБ / ТЖБ", description: "Жиынтық бағалау: критерий, дескриптор, балл қоюы", counts: [3, 4, 5, 6], unit: "тапсырма" },
-  { key: "open", label: "Ашық және шығармашылық", description: "Жазбаша жауап, эссе, жоба, зерттеу тапсырмалары", counts: [3, 4, 5, 6], unit: "тапсырма" },
+  { key: "levels", label: tr("Деңгейлік тест"), description: tr("A / B / C деңгейлері, 4 нұсқа, автоматты тексеріледі"), counts: [5, 10, 15, 20], unit: "сұрақ" },
+  { key: "pisa", label: tr("Функционалдық сауаттылық (PISA)"), description: tr("Өмірлік жағдаят, мәтін мен деректер негізіндегі сұрақтар"), counts: [5, 8, 10, 12], unit: "сұрақ" },
+  { key: "ubt", label: tr("ҰБТ форматы"), description: tr("5 нұсқалы, ҰБТ спецификациясына жақын сұрақтар"), counts: [10, 15, 20, 25], unit: "сұрақ" },
+  { key: "bzb", label: tr("БЖБ / ТЖБ"), description: tr("Жиынтық бағалау: критерий, дескриптор, балл қоюы"), counts: [3, 4, 5, 6], unit: "тапсырма" },
+  { key: "open", label: tr("Ашық және шығармашылық"), description: tr("Жазбаша жауап, эссе, жоба, зерттеу тапсырмалары"), counts: [3, 4, 5, 6], unit: "тапсырма" },
 ];
 export const taskTypeOf = (key?: TaskType) => TASK_TYPES.find((t) => t.key === (key ?? "levels")) ?? TASK_TYPES[0];
 /** Оқушыға сілтемемен жіберуге және автоматты тексеруге болатын түрлер. */
@@ -403,7 +404,7 @@ ${
         ...(type === "pisa" && q.context?.trim() ? { context: q.context.trim() } : {}),
       };
     });
-  if (questions.length === 0) throw new Error("AI сұрақ қайтармады. Қайталап көріңіз.");
+  if (questions.length === 0) throw new Error(tr("AI сұрақ қайтармады. Қайталап көріңіз."));
   if (type === "levels" && input.differentiate !== false) {
     const order = { A: 0, B: 1, C: 2 };
     questions.sort((x, y) => order[x.level] - order[y.level]);
@@ -466,7 +467,7 @@ export async function generateWrittenTasks(input: TaskInput): Promise<WrittenTas
       points: Math.min(Math.max(Math.round(Number(t.points) || 1), 1), 20),
       answer: t.answer?.trim() ?? "",
     }));
-  if (!tasks.length) throw new Error("AI тапсырма қайтармады. Қайталап көріңіз.");
+  if (!tasks.length) throw new Error(tr("AI тапсырма қайтармады. Қайталап көріңіз."));
   return tasks;
 }
 
@@ -533,7 +534,7 @@ ${wrong.length ? wrong.map(({ q, i }) => questionLine(q, i, answers[i])).join("\
     text: t.text,
     answer: t.answer ?? "",
   }));
-  if (!tasks.length) throw new Error("AI тапсырма қайтармады. Қайталап көріңіз.");
+  if (!tasks.length) throw new Error(tr("AI тапсырма қайтармады. Қайталап көріңіз."));
   return { feedback: result.feedback ?? "", tasks };
 }
 

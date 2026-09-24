@@ -16,9 +16,10 @@ import {
 import { sendTestSummary, telegramShareUrl } from "../lib/telegram";
 import { QrDialog } from "./QrDialog";
 import { ClassInsights, StudentDetail } from "./ResultsInsights";
+import { tr } from "../i18n";
 
 const btn =
-  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
+  "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600 disabled:opacity-60";
 
 const pct = (score: number, total: number) => (total ? Math.round((score / total) * 100) : 0);
 
@@ -41,7 +42,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
       const { exportResultsToXlsx } = await import("../lib/exportXlsx");
       await exportResultsToXlsx(test, subs);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Excel файлын жасау мүмкін болмады.");
+      setError(e instanceof Error ? e.message : tr("Excel файлын жасау мүмкін болмады."));
     } finally {
       setExporting(false);
     }
@@ -56,7 +57,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
         setShare(s);
         setSubs(list);
       })
-      .catch((e) => alive && setError(e instanceof Error ? e.message : "Нәтижелерді жүктеу мүмкін болмады."))
+      .catch((e) => alive && setError(e instanceof Error ? e.message : tr("Нәтижелерді жүктеу мүмкін болмады.")))
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -70,7 +71,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
     try {
       await action();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Әрекет орындалмады.");
+      setError(e instanceof Error ? e.message : tr("Әрекет орындалмады."));
     } finally {
       setBusy(false);
     }
@@ -94,7 +95,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   const refresh = () => run(async () => setSubs(await getSubmissions(test.id)));
   const remove = (id: string) =>
     run(async () => {
-      if (!window.confirm("Бұл оқушының нәтижесін өшіру керек пе?")) return;
+      if (!window.confirm(tr("Бұл оқушының нәтижесін өшіру керек пе?"))) return;
       await deleteSubmission(id);
       setSubs((list) => list.filter((s) => s.id !== id));
     });
@@ -106,7 +107,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 2000);
     } catch {
-      setError("Көшіру мүмкін болмады — сілтемені белгілеп, қолмен көшіріңіз.");
+      setError(tr("Көшіру мүмкін болмады — сілтемені белгілеп, қолмен көшіріңіз."));
     }
   }
 
@@ -117,19 +118,19 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
   );
 
   return (
-    <section className="mt-6 flex flex-col gap-5 rounded-[22px] border border-slate-200 bg-white p-6 sm:p-8 print:hidden" aria-labelledby="share-title">
+    <section className="mt-6 flex flex-col gap-5 rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-8 print:hidden" aria-labelledby="share-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 id="share-title" className="flex items-center gap-2 text-lg font-bold">
-            <Send size={18} className="text-violet-600" /> Оқушыларға жіберу
+            <Send size={18} className="text-violet-600" /> {tr("Оқушыларға жіберу")}
           </h3>
           <p className="mt-1 text-[13.5px] text-slate-500">
-            Оқушылар сілтеме арқылы телефоннан тіркелмей тапсырады. Оқушының аты басылса, оның жауаптары мен AI жеке тапсырмасы ашылады. Нәтижелері осы жерде жиналады, дұрыс жауаптар оқушыларға көрсетілмейді.
+            {tr("Оқушылар сілтеме арқылы телефоннан тіркелмей тапсырады. Оқушының аты басылса, оның жауаптары мен AI жеке тапсырмасы ашылады. Нәтижелері осы жерде жиналады, дұрыс жауаптар оқушыларға көрсетілмейді.")}
           </p>
         </div>
         {share && (
           <span className={`rounded-full px-3 py-1.5 text-xs font-semibold ${share.isOpen ? "bg-fuchsia-100 text-fuchsia-700" : "bg-slate-100 text-slate-500"}`}>
-            {share.isOpen ? "Жауап қабылдануда" : "Жабық"}
+            {share.isOpen ? tr("Жауап қабылдануда") : tr("Жабық")}
           </span>
         )}
       </div>
@@ -146,11 +147,11 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
       )}
 
       {loading ? (
-        <div className="text-sm text-slate-500">Жүктелуде...</div>
+        <div className="text-sm text-slate-500">{tr("Жүктелуде...")}</div>
       ) : !share ? (
         <div>
           <button type="button" onClick={create} disabled={busy} className="inline-flex items-center gap-2 rounded-[14px] bg-violet-600 px-5 py-3 font-semibold text-white disabled:opacity-70">
-            <Link2 size={16} /> {busy ? "Жасалуда..." : "Сілтеме жасау"}
+            <Link2 size={16} /> {busy ? tr("Жасалуда...") : tr("Сілтеме жасау")}
           </button>
         </div>
       ) : (
@@ -160,44 +161,44 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
               readOnly
               value={shareLink(share.code)}
               onFocus={(e) => e.currentTarget.select()}
-              aria-label="Тест сілтемесі"
+              aria-label={tr("Тест сілтемесі")}
               className="min-w-0 flex-[1_1_260px] rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm"
             />
             <button type="button" onClick={copy} className={btn}>
-              {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "Көшірілді" : "Көшіру"}
+              {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? tr("Көшірілді") : tr("Көшіру")}
             </button>
             <button type="button" onClick={() => setQrOpen(true)} className={btn}>
-              <QrCode size={15} /> QR-код
+              <QrCode size={15} /> {tr("QR-код")}
             </button>
             <a
-              href={telegramShareUrl(shareLink(share.code), `📝 Тест: ${test.topic}. Аты-жөніңізді жазып, тапсырыңыз:`)}
+              href={telegramShareUrl(shareLink(share.code), tr("📝 Тест: {topic}. Аты-жөніңізді жазып, тапсырыңыз:", { topic: test.topic }))}
               target="_blank"
               rel="noopener noreferrer"
               className={btn}
             >
-              <Send size={15} /> Telegram-ға жіберу
+              <Send size={15} /> {tr("Telegram-ға жіберу")}
             </a>
             <button type="button" onClick={toggle} disabled={busy} className={btn}>
-              {share.isOpen ? <Lock size={15} /> : <Unlock size={15} />} {share.isOpen ? "Қабылдауды тоқтату" : "Қайта ашу"}
+              {share.isOpen ? <Lock size={15} /> : <Unlock size={15} />} {share.isOpen ? tr("Қабылдауды тоқтату") : tr("Қайта ашу")}
             </button>
           </div>
 
           <label className="flex cursor-pointer items-start gap-2.5 text-sm">
             <input type="checkbox" checked={share.showReview} onChange={toggleReview} disabled={busy} className="mt-0.5 h-4 w-4 accent-violet-600" />
             <span>
-              Оқушыға тапсырған соң қателерін түсіндірмесімен көрсету
-              <span className="block text-xs text-slate-500">Оқушы қай жерде қателескенін көріп, «Қатемен жұмыс» режимінде қайта орындайды. Бақылау жұмысы болса, өшіріп қойыңыз.</span>
+              {tr("Оқушыға тапсырған соң қателерін түсіндірмесімен көрсету")}
+              <span className="block text-xs text-slate-500">{tr("Оқушы қай жерде қателескенін көріп, «Қатемен жұмыс» режимінде қайта орындайды. Бақылау жұмысы болса, өшіріп қойыңыз.")}</span>
             </span>
           </label>
 
           <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-5">
             <div className="flex flex-wrap gap-5 text-sm">
               <span className="inline-flex items-center gap-1.5">
-                <Users size={16} className="text-slate-500" /> Тапсырғандар: <b>{subs.length}</b>
+                <Users size={16} className="text-slate-500" /> {tr("Тапсырғандар:")} <b>{subs.length}</b>
               </span>
               {subs.length > 0 && (
                 <span>
-                  Орташа нәтиже: <b>{avg}%</b>
+                  {tr("Орташа нәтиже:")} <b>{avg}%</b>
                 </span>
               )}
             </div>
@@ -208,29 +209,29 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                   onClick={() =>
                     run(async () => {
                       await sendTestSummary(test.id);
-                      setNotice("Қорытынды Telegram-ға жіберілді.");
+                      setNotice(tr("Қорытынды Telegram-ға жіберілді."));
                     })
                   }
                   disabled={busy}
                   className={btn}
                 >
-                  <Send size={15} /> Қорытынды → Telegram
+                  <Send size={15} /> {tr("Қорытынды → Telegram")}
                 </button>
               )}
               {subs.length > 0 && (
                 <button type="button" onClick={exportExcel} disabled={exporting} className={btn}>
-                  <FileSpreadsheet size={15} /> {exporting ? "Дайындалуда..." : "Excel-ге жүктеу"}
+                  <FileSpreadsheet size={15} /> {exporting ? tr("Дайындалуда...") : tr("Excel-ге жүктеу")}
                 </button>
               )}
               <button type="button" onClick={refresh} disabled={busy} className={btn}>
-                <RefreshCw size={15} className={busy ? "animate-spin" : ""} /> Жаңарту
+                <RefreshCw size={15} className={busy ? "animate-spin" : ""} /> {tr("Жаңарту")}
               </button>
             </div>
           </div>
 
           {subs.length === 0 ? (
             <div className="rounded-xl border-2 border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
-              Әзірге ешкім тапсырған жоқ. Сілтемені оқушыларға WhatsApp не Telegram арқылы жіберіңіз.
+              {tr("Әзірге ешкім тапсырған жоқ. Сілтемені оқушыларға WhatsApp не Telegram арқылы жіберіңіз.")}
             </div>
           ) : (
             <>
@@ -239,10 +240,10 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                   <thead>
                     <tr className="border-b border-slate-200 text-[12.5px] text-slate-500">
                       <th className="py-2 pr-3 font-semibold">№</th>
-                      <th className="py-2 pr-3 font-semibold">Аты-жөні</th>
-                      <th className="py-2 pr-3 font-semibold">Сынып</th>
-                      <th className="py-2 pr-3 font-semibold">Нәтиже</th>
-                      <th className="py-2 pr-3 font-semibold">Уақыты</th>
+                      <th className="py-2 pr-3 font-semibold">{tr("Аты-жөні")}</th>
+                      <th className="py-2 pr-3 font-semibold">{tr("Сынып")}</th>
+                      <th className="py-2 pr-3 font-semibold">{tr("Нәтиже")}</th>
+                      <th className="py-2 pr-3 font-semibold">{tr("Уақыты")}</th>
                       <th className="py-2" />
                     </tr>
                   </thead>
@@ -272,7 +273,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                           </td>
                           <td className="py-2.5 pr-3 text-slate-500">{timeAgo(s.createdAt)}</td>
                           <td className="py-2.5 text-right">
-                            <button type="button" onClick={() => remove(s.id)} aria-label={`${s.studentName} нәтижесін өшіру`} className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-700">
+                            <button type="button" onClick={() => remove(s.id)} aria-label={tr("{name} нәтижесін өшіру", { name: s.studentName })} className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-700">
                               <Trash2 size={15} />
                             </button>
                           </td>
@@ -292,7 +293,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
               </div>
 
               <div>
-                <div className="mb-2 text-[13px] font-semibold text-slate-500">Сұрақтар бойынша дұрыс жауап бергендер</div>
+                <div className="mb-2 text-[13px] font-semibold text-slate-500">{tr("Сұрақтар бойынша дұрыс жауап бергендер")}</div>
                 <div className="flex flex-wrap gap-2">
                   {perQuestion.map((p, i) => (
                     <span
@@ -300,7 +301,7 @@ export function TestSharePanel({ test }: { test: SavedTest }) {
                       title={test.questions[i].question}
                       className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${p >= 70 ? "bg-fuchsia-100 text-fuchsia-800" : p >= 40 ? "bg-violet-100 text-violet-700" : "bg-rose-50 text-rose-700"}`}
                     >
-                      {i + 1}-сұрақ{test.questions[i].level ? ` (${test.questions[i].level})` : ""}: {p}%
+                      {tr("{n}-сұрақ", { n: i + 1 })}{test.questions[i].level ? ` (${test.questions[i].level})` : ""}: {p}%
                     </span>
                   ))}
                 </div>

@@ -41,6 +41,9 @@
   --color-slate-900: #1c1b2e;
   --color-slate-950: #121120;
 
+  /* Карта/форма беттерінің фоны: түнгі режимде қою түске ауысады (bg-white орнына). */
+  --color-surface: #ffffff;
+
   --color-navy-700: #37415c;
   --color-navy-800: #28324c;
   --color-navy-900: #1b2438;
@@ -49,12 +52,92 @@
   --font-display: "Times New Roman", Times, serif;
 }
 
-/* AI Nur дизайны тек ашық түсті: dark: класстары тек .dark класы қосылғанда ғана
-   іске қосылады, ал ол ешқашан қосылмайды. */
-@custom-variant dark (&:where(.dark, .dark *));
+/* Түнгі режим: <html data-theme="dark">. Компоненттер бірдей Tailwind кластарын қолданады —
+   тек түс шкалаларының өзі ауысады. Басып шығару/PDF әрқашан ашық түсті. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
   color-scheme: light;
+}
+
+@media screen {
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --color-surface: #1d1c2c;
+
+    --color-slate-50: #121119;
+    --color-slate-100: #232233;
+    --color-slate-200: #312f46;
+    --color-slate-300: #45425d;
+    --color-slate-400: #7d7993;
+    --color-slate-500: #a7a3ba;
+    --color-slate-600: #c1bdd0;
+    --color-slate-700: #d7d4e3;
+    --color-slate-800: #e8e6f1;
+    --color-slate-900: #f4f2f9;
+    --color-slate-950: #fcfbff;
+
+    --color-violet-50: #2b1e18;
+    --color-violet-100: #3b271c;
+    --color-violet-200: #5b3a27;
+    --color-violet-300: #8c5634;
+    --color-violet-400: #e98d60;
+    --color-violet-500: #ea8150;
+    --color-violet-600: #cf6831;
+    --color-violet-700: #f3a577;
+    --color-violet-800: #f7bf9b;
+    --color-violet-900: #fad7c0;
+    --color-violet-950: #fdece0;
+
+    --color-fuchsia-50: #11201e;
+    --color-fuchsia-100: #172f2a;
+    --color-fuchsia-200: #21463f;
+    --color-fuchsia-300: #2f6a60;
+    --color-fuchsia-400: #56a99d;
+    --color-fuchsia-500: #62b7aa;
+    --color-fuchsia-600: #3c998d;
+    --color-fuchsia-700: #80cdc1;
+    --color-fuchsia-800: #a2dcd3;
+    --color-fuchsia-900: #c6ece6;
+
+    --color-navy-700: #3d4868;
+    --color-navy-800: #262f48;
+    --color-navy-900: #181f33;
+
+    --color-rose-50: #2c1519;
+    --color-rose-100: #3c1a21;
+    --color-rose-200: #5a2531;
+    --color-rose-300: #8a3646;
+    --color-rose-700: #f7a1b0;
+    --color-rose-800: #f9bcc6;
+
+    --color-emerald-50: #0f2219;
+    --color-emerald-100: #133024;
+    --color-emerald-200: #1b4734;
+    --color-emerald-700: #75d9a8;
+    --color-emerald-800: #9be5c0;
+
+    --color-amber-50: #29200f;
+    --color-amber-100: #3a2c12;
+    --color-amber-200: #58431a;
+    --color-amber-800: #f4c774;
+    --color-amber-900: #f8dca3;
+
+    --color-sky-50: #0e1f2e;
+    --color-sky-100: #11283c;
+    --color-sky-800: #92cbf1;
+  }
+  html[data-theme="dark"] ::selection {
+    background: #5b3a27;
+    color: #f4f2f9;
+  }
+  /* Логотип қою сұр — түнгі фонда ашық түске айналдырамыз (ашық плиткадағысынан басқа). */
+  html[data-theme="dark"] .logo-img {
+    filter: invert(1) brightness(1.1);
+  }
+  html[data-theme="dark"] .logo-keep .logo-img {
+    filter: none;
+  }
 }
 
 html {
@@ -68,8 +151,8 @@ body {
   font-family: "Times New Roman", Times, serif;
   font-size: 16px;
   font-weight: 400;
-  background: #fbf7f0;
-  color: #1c1b2e;
+  background: var(--color-slate-50);
+  color: var(--color-slate-900);
 }
 
 h1, h2, h3 {

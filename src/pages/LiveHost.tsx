@@ -5,12 +5,13 @@ import { Link, useParams } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { getHostState, getLiveGame, LIVE_TEXT, liveControl, liveJoinUrl, LiveError, OPTION_STYLES, type HostState, type LiveGame } from "../lib/live";
 import { useFullscreen } from "../lib/useFullscreen";
+import { tr } from "../i18n";
 
 // Мұғалімнің тақтаға (проекторға) шығаратын экраны: кіру коды, сұрақтар, уақыт,
 // жауаптар таралуы және көшбасшылар кестесі.
 
 const primary = "inline-flex items-center justify-center gap-2 rounded-2xl bg-violet-600 px-6 py-3.5 text-lg font-bold text-white shadow-[0_14px_26px_-12px_rgba(184,90,42,.55)] transition hover:-translate-y-0.5 disabled:opacity-60";
-const ghost = "inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold hover:border-violet-500";
+const ghost = "inline-flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-surface px-4 py-3 text-sm font-semibold hover:border-violet-500";
 
 export default function LiveHostPage() {
   const { id = "" } = useParams();
@@ -27,11 +28,11 @@ export default function LiveHostPage() {
   useEffect(() => {
     getLiveGame(id)
       .then((g) => {
-        if (!g) return setError("Ойын табылмады.");
+        if (!g) return setError(tr("Ойын табылмады."));
         setGame(g);
         void QRCode.toDataURL(liveJoinUrl(g.code), { width: 360, margin: 1 }).then(setQr);
       })
-      .catch((e) => setError(e instanceof Error ? e.message : "Ойынды ашу мүмкін болмады."));
+      .catch((e) => setError(e instanceof Error ? e.message : tr("Ойынды ашу мүмкін болмады.")));
   }, [id]);
 
   // Күйді секунд сайын сұраймыз.
@@ -44,7 +45,7 @@ export default function LiveHostPage() {
       setError("");
     } catch (e) {
       if (e instanceof LiveError && e.code === "network") return;
-      setError(e instanceof Error ? e.message : "Байланыс үзілді.");
+      setError(e instanceof Error ? e.message : tr("Байланыс үзілді."));
     }
   }, [id]);
 
@@ -70,7 +71,7 @@ export default function LiveHostPage() {
         await liveControl(id, action);
         await refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Әрекет орындалмады.");
+        setError(e instanceof Error ? e.message : tr("Әрекет орындалмады."));
       } finally {
         setBusy(false);
       }
@@ -110,19 +111,19 @@ export default function LiveHostPage() {
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="rounded-2xl bg-rose-50 px-5 py-4 text-rose-700">{error}</p>
         <Link to="/tests" className={ghost}>
-          <ArrowLeft size={16} /> Тапсырмаларға оралу
+          <ArrowLeft size={16} /> {tr("Тапсырмаларға оралу")}
         </Link>
       </div>
     );
   }
-  if (!game || !hs) return <div className="flex min-h-screen items-center justify-center text-slate-500">Жүктелуде...</div>;
+  if (!game || !hs) return <div className="flex min-h-screen items-center justify-center text-slate-500">{tr("Жүктелуде...")}</div>;
 
   const dist = q ? q.options.map((_, i) => hs.answers.filter((a) => a.choice === i).length) : [];
   const maxDist = Math.max(1, ...dist);
 
   return (
     <div ref={ref} className="flex min-h-screen flex-col bg-slate-50">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-8">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 bg-surface px-4 py-3 sm:px-8">
         <div className="flex min-w-0 items-center gap-3">
           <Logo className="h-9 w-9" />
           <div className="min-w-0">
@@ -139,11 +140,11 @@ export default function LiveHostPage() {
           <span className="inline-flex items-center gap-1.5 rounded-xl bg-slate-100 px-3 py-2 text-sm font-semibold">
             <Users size={15} /> {players}
           </span>
-          <button type="button" onClick={toggle} className={ghost} aria-label={full ? "Толық экраннан шығу" : "Толық экран"}>
+          <button type="button" onClick={toggle} className={ghost} aria-label={full ? tr("Толық экраннан шығу") : tr("Толық экран")}>
             {full ? <Minimize size={16} /> : <Maximize size={16} />}
           </button>
           {hs.state !== "finished" && (
-            <button type="button" onClick={() => window.confirm("Ойынды аяқтау керек пе?") && void act("finish")} className={ghost}>
+            <button type="button" onClick={() => window.confirm(tr("Ойынды аяқтау керек пе?")) && void act("finish")} className={ghost}>
               <Flag size={15} /> <span className="hidden sm:inline">{T.endGame}</span>
             </button>
           )}
@@ -155,7 +156,7 @@ export default function LiveHostPage() {
       <main className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-6 px-4 py-6 sm:px-8">
         {hs.state === "lobby" && (
           <div className="grid flex-1 items-center gap-8 lg:grid-cols-[1.1fr_1fr]">
-            <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-white p-8 text-center">
+            <div className="flex flex-col items-center gap-4 rounded-[28px] border border-slate-200 bg-surface p-8 text-center">
               <div className="text-lg text-slate-500">{T.goTo}</div>
               <div className="text-2xl font-bold break-all text-violet-700 sm:text-3xl">{liveJoinUrl().replace(/^https?:\/\//, "")}</div>
               <div className="text-sm tracking-wide text-slate-500 uppercase">{T.code}</div>
@@ -169,7 +170,7 @@ export default function LiveHostPage() {
                   {T.players}: {players}
                 </h2>
               </div>
-              <div className="flex min-h-[160px] flex-wrap content-start gap-2 rounded-[22px] border border-dashed border-slate-300 bg-white/60 p-4">
+              <div className="flex min-h-[160px] flex-wrap content-start gap-2 rounded-[22px] border border-dashed border-slate-300 bg-surface/60 p-4">
                 {players === 0 ? (
                   <span className="m-auto animate-pulse text-slate-500">{T.waitingPlayers}</span>
                 ) : (
@@ -191,25 +192,25 @@ export default function LiveHostPage() {
         {(hs.state === "question" || hs.state === "reveal") && q && (
           <div className="flex flex-1 flex-col gap-5">
             <div className="flex items-center justify-between gap-3">
-              <span className="rounded-full bg-white px-4 py-2 text-sm font-bold shadow-sm">
+              <span className="rounded-full bg-surface px-4 py-2 text-sm font-bold shadow-sm">
                 {T.question} {hs.current + 1} / {hs.total}
               </span>
               {hs.state === "question" ? (
                 <span
                   className={`flex h-16 w-16 items-center justify-center rounded-full text-2xl font-bold text-white tabular-nums ${left !== null && left <= 5 ? "animate-pulse bg-rose-500" : "bg-violet-600"}`}
-                  aria-label="Қалған уақыт"
+                  aria-label={tr("Қалған уақыт")}
                 >
                   {left ?? hs.timeLimit}
                 </span>
               ) : (
                 <span className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-bold text-emerald-800">✓ {T.correctWas}</span>
               )}
-              <span className="rounded-full bg-white px-4 py-2 text-sm font-bold shadow-sm">
+              <span className="rounded-full bg-surface px-4 py-2 text-sm font-bold shadow-sm">
                 {answeredCount} / {players} {T.answered}
               </span>
             </div>
 
-            <h1 className="rounded-[26px] border border-slate-200 bg-white px-6 py-8 text-center text-2xl leading-snug font-bold sm:text-4xl">{q.question}</h1>
+            <h1 className="rounded-[26px] border border-slate-200 bg-surface px-6 py-8 text-center text-2xl leading-snug font-bold sm:text-4xl">{q.question}</h1>
 
             <div className="grid gap-3 sm:grid-cols-2">
               {q.options.map((o, i) => {
@@ -234,7 +235,7 @@ export default function LiveHostPage() {
 
             {hs.state === "reveal" && (
               <div className="grid gap-5 lg:grid-cols-2">
-                <div className="flex h-44 items-end justify-around gap-3 rounded-[22px] border border-slate-200 bg-white p-5" aria-label="Жауаптар таралуы">
+                <div className="flex h-44 items-end justify-around gap-3 rounded-[22px] border border-slate-200 bg-surface p-5" aria-label={tr("Жауаптар таралуы")}>
                   {dist.map((n, i) => (
                     <div key={i} className="flex h-full flex-1 flex-col items-center justify-end gap-1">
                       <span className="text-sm font-bold">{n}</span>
@@ -277,7 +278,7 @@ export default function LiveHostPage() {
               <Leaderboard hs={hs} title={T.results} points={T.points} />
             </div>
             <Link to="/tests" className={ghost}>
-              <ArrowLeft size={16} /> Тапсырмаларға оралу
+              <ArrowLeft size={16} /> {tr("Тапсырмаларға оралу")}
             </Link>
           </div>
         )}
@@ -289,7 +290,7 @@ export default function LiveHostPage() {
 function Leaderboard({ hs, title, points, limit }: { hs: HostState; title: string; points: string; limit?: number }) {
   const rows = limit ? hs.players.slice(0, limit) : hs.players;
   return (
-    <div className="rounded-[22px] border border-slate-200 bg-white p-5">
+    <div className="rounded-[22px] border border-slate-200 bg-surface p-5">
       <h2 className="mb-3 text-lg font-bold">{title}</h2>
       {rows.length === 0 ? (
         <p className="text-sm text-slate-500">—</p>

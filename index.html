@@ -15,6 +15,15 @@
       name="description"
       content="AI Nur — мұғалімге арналған AI көмекші: ҚМЖ, презентация, сабақ суреттері, саралау деңгейлері бар тест және оқушыларға кері байланыс."
     />
+    <script>
+      // Түнгі режимді бет салынбай тұрып қолданамыз (ақ түстің жыпылықтауы болмас үшін).
+      try {
+        var t = localStorage.getItem("ainur-theme");
+        if (t === "dark" || (t !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+          document.documentElement.dataset.theme = "dark";
+        }
+      } catch (e) {}
+    </script>
     <title>AI Nur — мұғалімге арналған AI студия</title>
   </head>
   <body>

@@ -9,6 +9,7 @@ import { supabase } from "./supabaseClient";
 
 export type { SlideData } from "./slides";
 import type { SlideData } from "./slides";
+import { tr, uiLocale } from "../i18n";
 
 /** Саралау деңгейі: A — білу және түсіну, B — қолдану, C — жоғары деңгей дағдылары. */
 export type TestLevel = "A" | "B" | "C";
@@ -82,11 +83,11 @@ export type SavedQmzh = Saved & { plan: LessonPlan };
 export type ProjectKind = "qmzh" | "presentation" | "image" | "test" | "document";
 
 export const KIND_LABEL: Record<ProjectKind, string> = {
-  qmzh: "ҚМЖ",
-  presentation: "Презентация",
-  image: "Сурет",
-  test: "Тапсырма",
-  document: "Құжат",
+  qmzh: tr("ҚМЖ"),
+  presentation: tr("Презентация"),
+  image: tr("Сурет"),
+  test: tr("Тапсырма"),
+  document: tr("Құжат"),
 };
 
 interface ProjectRow {
@@ -104,10 +105,10 @@ function wrapError(error: { message: string; code?: string }): ProjectsError {
   // 42P01 — кесте жоқ: Supabase-те 2-жаңарту SQL-ы әлі орындалмаған.
   if (error.code === "42P01" || /relation .*projects.* does not exist|Could not find the table/i.test(error.message)) {
     return new ProjectsError(
-      "Жобалар кестесі табылмады. Әкімші Supabase-те supabase/update-2-projects-profile.sql файлын орындауы керек.",
+      tr("Жобалар кестесі табылмады. Әкімші Supabase-те supabase/update-2-projects-profile.sql файлын орындауы керек."),
     );
   }
-  return new ProjectsError(`Жобаларды сақтау/оқу мүмкін болмады: ${error.message}`);
+  return new ProjectsError(tr("Жобаларды сақтау/оқу мүмкін болмады: {msg}", { msg: error.message }));
 }
 
 const savedAt = (row: ProjectRow) => new Date(row.created_at).getTime();
@@ -220,7 +221,7 @@ export async function updatePresentation(id: string, p: PresentationData): Promi
     .select("id");
   if (error) throw wrapError(error);
   if (!data?.length) {
-    throw new ProjectsError("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек.");
+    throw new ProjectsError(tr("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек."));
   }
 }
 export async function getPresentation(id: string): Promise<SavedPresentation | null> {
@@ -256,7 +257,7 @@ export async function updateQmzh(id: string, plan: LessonPlan): Promise<void> {
     .select("id");
   if (error) throw wrapError(error);
   if (!data?.length) {
-    throw new ProjectsError("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек.");
+    throw new ProjectsError(tr("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек."));
   }
 }
 export async function getQmzhList(limit = 8): Promise<SavedQmzh[]> {
@@ -273,12 +274,12 @@ const toDocument = (r: ProjectRow): SavedDocument => ({ id: r.id, savedAt: saved
 function kindError(error: { message: string; code?: string }): ProjectsError {
   // 23514 — check constraint: «document» түрі әлі рұқсат етілмеген (7-жаңарту орындалмаған).
   if (error.code === "23514" || /projects_kind_check/.test(error.message)) {
-    return new ProjectsError("Құжаттарды сақтау үшін әкімші Supabase-те supabase/update-7-docs-live.sql файлын орындауы керек.");
+    return new ProjectsError(tr("Құжаттарды сақтау үшін әкімші Supabase-те supabase/update-7-docs-live.sql файлын орындауы керек."));
   }
   return wrapError(error);
 }
 
-const docDetail = (d: DocData) => [d.input.grade, d.input.lang === "ru" ? "орысша" : ""].filter(Boolean).join(" · ");
+const docDetail = (d: DocData) => [d.input.grade, d.input.lang === "ru" ? tr("орысша") : ""].filter(Boolean).join(" · ");
 
 export async function saveDocument(d: DocData): Promise<SavedDocument> {
   const { data: row, error } = await supabase
@@ -296,7 +297,7 @@ export async function updateDocument(id: string, d: DocData): Promise<void> {
     .eq("id", id)
     .select("id");
   if (error) throw wrapError(error);
-  if (!data?.length) throw new ProjectsError("Өзгерістер сақталмады. Қайталап көріңіз.");
+  if (!data?.length) throw new ProjectsError(tr("Өзгерістер сақталмады. Қайталап көріңіз."));
 }
 export async function getDocument(id: string): Promise<SavedDocument | null> {
   const row = await getRow(id, "document");
@@ -365,13 +366,13 @@ export function svgDataUrl(svg: string): string {
 
 export function timeAgo(ts: number): string {
   const s = Math.max(0, (Date.now() - ts) / 1000);
-  if (s < 60) return "жаңа ғана";
-  if (s < 3600) return `${Math.floor(s / 60)} минут бұрын`;
-  if (s < 86400) return `${Math.floor(s / 3600)} сағат бұрын`;
+  if (s < 60) return tr("жаңа ғана");
+  if (s < 3600) return tr("{n} минут бұрын", { n: Math.floor(s / 60) });
+  if (s < 86400) return tr("{n} сағат бұрын", { n: Math.floor(s / 3600) });
   const days = Math.floor(s / 86400);
-  if (days === 1) return "Кеше";
-  if (days < 7) return `${days} күн бұрын`;
-  return new Date(ts).toLocaleDateString("ru-RU");
+  if (days === 1) return tr("Кеше");
+  if (days < 7) return tr("{n} күн бұрын", { n: days });
+  return new Date(ts).toLocaleDateString(uiLocale);
 }
 
 /* ------------------------------------------------- тестті оқушыларға жіберу */
@@ -413,7 +414,7 @@ export interface SubmitResult {
 
 function sharingError(error: { message: string; code?: string }): ProjectsError {
   if (error.code === "42P01" || error.code === "PGRST202" || /does not exist|Could not find the (table|function)/i.test(error.message)) {
-    return new ProjectsError("Тест жіберу әлі қосылмаған. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек.");
+    return new ProjectsError(tr("Тест жіберу әлі қосылмаған. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек."));
   }
   return new ProjectsError(error.message);
 }
@@ -443,7 +444,7 @@ export async function setTestShareReview(projectId: string, show: boolean): Prom
   const { error } = await supabase.rpc("set_test_share_review", { p_project_id: projectId, p_show: show });
   if (error) {
     if (error.code === "PGRST202" || /Could not find the function/i.test(error.message)) {
-      throw new ProjectsError("Бұл баптау үшін әкімші Supabase-те supabase/update-4-feedback.sql файлын орындауы керек.");
+      throw new ProjectsError(tr("Бұл баптау үшін әкімші Supabase-те supabase/update-4-feedback.sql файлын орындауы керек."));
     }
     throw sharingError(error);
   }
@@ -489,4 +490,16 @@ export async function submitSharedTest(code: string, name: string, className: st
   const { data, error } = await supabase.rpc("submit_test", { p_code: code, p_name: name, p_class: className, p_answers: answers });
   if (error) throw sharingError(error);
   return data as SubmitResult;
+}
+
+/** Жоба сипаттамасы («Математика · 5-сынып · 10 сұрақ») дерекқорда қазақша сақталады — экранда аударамыз. */
+export function trDetail(detail: string): string {
+  return detail
+    .split(" · ")
+    .map((part) => {
+      const m = part.match(/^(\d+)(-сынып| сұрақ| тапсырма| слайд)$/);
+      if (m) return tr(`{n}${m[2]}`, { n: m[1] });
+      return tr(part);
+    })
+    .join(" · ");
 }

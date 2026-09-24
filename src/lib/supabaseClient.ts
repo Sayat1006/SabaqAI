@@ -1,11 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
+import { tr } from "../i18n";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    "Supabase баптаулары табылмады: .env файлында VITE_SUPABASE_URL мен VITE_SUPABASE_ANON_KEY орнатыңыз (supabase/README.md қараңыз).",
+    tr("Supabase баптаулары табылмады: .env файлында VITE_SUPABASE_URL мен VITE_SUPABASE_ANON_KEY орнатыңыз (supabase/README.md қараңыз)."),
   );
 }
 

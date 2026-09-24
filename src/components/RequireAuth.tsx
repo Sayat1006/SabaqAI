@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/useAuth";
+import { tr } from "../i18n";
 
 export default function RequireAuth() {
   const { user, loading } = useAuth();
@@ -7,8 +8,8 @@ export default function RequireAuth() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-slate-400 dark:text-slate-500">
-        Жүктелуде...
+      <div className="flex min-h-screen items-center justify-center text-slate-400">
+        {tr("Жүктелуде...")}
       </div>
     );
   }

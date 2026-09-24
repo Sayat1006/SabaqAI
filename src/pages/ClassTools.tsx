@@ -2,13 +2,14 @@ import { Maximize, Minimize, Pause, Play, Plus, RotateCcw, Shuffle, Sparkles, Tr
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { useFullscreen } from "../lib/useFullscreen";
+import { tr } from "../i18n";
 
 // Сабақ кезінде тақтаға (проекторға) шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу,
 // бағдаршам, шу өлшегіш, рефлексия.
 // Сынып тізімдері тек осы құрылғының браузерінде сақталады.
 
-const card = "rounded-3xl border border-slate-200 bg-white p-5 sm:p-6";
-const btn = "inline-flex items-center justify-center gap-2 rounded-[12px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 disabled:opacity-50";
+const card = "rounded-3xl border border-slate-200 bg-surface p-5 sm:p-6";
+const btn = "inline-flex items-center justify-center gap-2 rounded-[12px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 disabled:opacity-50";
 const primary = "inline-flex items-center justify-center gap-2 rounded-[12px] bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60";
 const field = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:border-violet-500";
 
@@ -16,9 +17,9 @@ const field = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5
 
 function FullButton({ full, onClick }: { full: boolean; onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={btn} aria-label={full ? "Толық экраннан шығу" : "Толық экран"}>
+    <button type="button" onClick={onClick} className={btn} aria-label={full ? tr("Толық экраннан шығу") : tr("Толық экран")}>
       {full ? <Minimize size={15} /> : <Maximize size={15} />}
-      <span className="hidden sm:inline">{full ? "Шығу" : "Толық экран"}</span>
+      <span className="hidden sm:inline">{full ? tr("Шығу") : tr("Толық экран")}</span>
     </button>
   );
 }
@@ -106,7 +107,7 @@ function Timer() {
   return (
     <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "items-center justify-center !rounded-none !border-0" : ""}`}>
       <div className="flex w-full items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">⏱ Таймер</h2>
+        <h2 className="text-lg font-bold">{tr("⏱ Таймер")}</h2>
         <FullButton full={full} onClick={toggle} />
       </div>
 
@@ -127,23 +128,23 @@ function Timer() {
         </svg>
         <div className={`font-bold tabular-nums ${done ? "animate-pulse text-rose-600" : ""} ${full ? "text-[18vh]" : "text-6xl"}`}>{done ? "00:00" : fmt(left)}</div>
       </div>
-      {done && <div className={`text-center font-bold text-rose-600 ${full ? "text-4xl" : "text-lg"}`}>Уақыт бітті!</div>}
+      {done && <div className={`text-center font-bold text-rose-600 ${full ? "text-4xl" : "text-lg"}`}>{tr("Уақыт бітті!")}</div>}
 
       <div className="flex flex-wrap justify-center gap-2">
         {running ? (
           <button type="button" onClick={pause} className={primary}>
-            <Pause size={16} /> Кідірту
+            <Pause size={16} /> {tr("Кідірту")}
           </button>
         ) : (
           <button type="button" onClick={start} disabled={left <= 0} className={primary}>
-            <Play size={16} /> {left < total && left > 0 ? "Жалғастыру" : "Бастау"}
+            <Play size={16} /> {left < total && left > 0 ? tr("Жалғастыру") : tr("Бастау")}
           </button>
         )}
         <button type="button" onClick={() => set(total)} className={btn}>
-          <RotateCcw size={15} /> Қайта
+          <RotateCcw size={15} /> {tr("Қайта")}
         </button>
         <button type="button" onClick={addMinute} className={btn}>
-          <Plus size={15} /> 1 мин
+          <Plus size={15} /> {tr("1 мин")}
         </button>
       </div>
 
@@ -157,14 +158,14 @@ function Timer() {
                 onClick={() => set(m * 60000)}
                 className={`rounded-full border px-3 py-1.5 text-sm ${total === m * 60000 ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 hover:border-violet-500"}`}
               >
-                {m} мин
+                {tr("{n} мин", { n: m })}
               </button>
             ))}
           </div>
           <form onSubmit={applyCustom} className="flex gap-2">
-            <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Өз уақытыңыз: мыс. 4:30" aria-label="Өз уақытыңыз" className={field} />
+            <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder={tr("Өз уақытыңыз: мыс. 4:30")} aria-label={tr("Өз уақытыңыз")} className={field} />
             <button type="submit" className={btn}>
-              Қою
+              {tr("Қою")}
             </button>
           </form>
         </>
@@ -224,7 +225,7 @@ function ClassListEditor({ lists, activeId, onSelect, onChange }: { lists: Class
   function save() {
     const students = parseNames(text);
     if (!students.length) return;
-    const title = name.trim() || "Менің сыныбым";
+    const title = name.trim() || tr("Менің сыныбым");
     if (active) onChange(lists.map((l) => (l.id === active.id ? { ...l, name: title, students } : l)));
     else {
       const id = Date.now().toString(36);
@@ -237,10 +238,10 @@ function ClassListEditor({ lists, activeId, onSelect, onChange }: { lists: Class
     <div className={`${card} flex flex-col gap-3`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-lg font-bold">
-          <Users size={18} className="text-violet-600" /> Сынып тізімі
+          <Users size={18} className="text-violet-600" /> {tr("Сынып тізімі")}
         </h2>
-        <select value={activeId} onChange={(e) => onSelect(e.target.value)} aria-label="Сыныпты таңдау" className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm">
-          <option value="">+ Жаңа тізім</option>
+        <select value={activeId} onChange={(e) => onSelect(e.target.value)} aria-label={tr("Сыныпты таңдау")} className="rounded-xl border border-slate-200 bg-surface px-3 py-2 text-sm">
+          <option value="">{tr("+ Жаңа тізім")}</option>
           {lists.map((l) => (
             <option key={l.id} value={l.id}>
               {l.name} ({l.students.length})
@@ -248,34 +249,34 @@ function ClassListEditor({ lists, activeId, onSelect, onChange }: { lists: Class
           ))}
         </select>
       </div>
-      <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Сынып атауы, мыс.: 7А" aria-label="Сынып атауы" className={field} />
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={tr("Сынып атауы, мыс.: 7А")} aria-label={tr("Сынып атауы")} className={field} />
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
         rows={7}
-        placeholder={"Оқушылардың аты-жөні — әр жолға біреуден\nАйгерім Сейітова\nБолат Ахметов\n..."}
-        aria-label="Оқушылар тізімі"
+        placeholder={tr("Оқушылардың аты-жөні — әр жолға біреуден\nАйгерім Сейітова\nБолат Ахметов\n...")}
+        aria-label={tr("Оқушылар тізімі")}
         className={`${field} resize-y`}
       />
       <div className="flex flex-wrap gap-2">
         <button type="button" onClick={save} disabled={!parseNames(text).length} className={primary}>
-          Сақтау
+          {tr("Сақтау")}
         </button>
         {active && (
           <button
             type="button"
             onClick={() => {
-              if (!window.confirm(`«${active.name}» тізімін өшіру керек пе?`)) return;
+              if (!window.confirm(tr("«{name}» тізімін өшіру керек пе?", { name: active.name }))) return;
               onChange(lists.filter((l) => l.id !== active.id));
               onSelect("");
             }}
             className={btn}
           >
-            <Trash2 size={15} /> Өшіру
+            <Trash2 size={15} /> {tr("Өшіру")}
           </button>
         )}
       </div>
-      <p className="text-xs text-slate-500">Тізім тек осы құрылғыда сақталады. Excel-ден бағанды көшіріп қоюға болады.</p>
+      <p className="text-xs text-slate-500">{tr("Тізім тек осы құрылғыда сақталады. Excel-ден бағанды көшіріп қоюға болады.")}</p>
     </div>
   );
 }
@@ -319,18 +320,18 @@ function RandomPicker({ students }: { students: string[] }) {
   return (
     <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "items-center justify-center !rounded-none !border-0" : ""}`}>
       <div className="flex w-full items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">🎯 Кездейсоқ оқушы</h2>
+        <h2 className="text-lg font-bold">{tr("🎯 Кездейсоқ оқушы")}</h2>
         <FullButton full={full} onClick={toggle} />
       </div>
       <div
         aria-live="polite"
         className={`flex w-full items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 px-4 text-center font-bold ${full ? "min-h-[45vh] text-[9vh]" : "min-h-[140px] text-3xl"} ${spinning ? "text-slate-500" : "text-slate-900"}`}
       >
-        {shown || (students.length ? "?" : "Алдымен сынып тізімін енгізіңіз")}
+        {shown || (students.length ? "?" : tr("Алдымен сынып тізімін енгізіңіз"))}
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         <button type="button" onClick={pick} disabled={!pool.length || spinning} className={primary}>
-          <Sparkles size={16} /> {pool.length ? "Таңдау" : "Барлығы таңдалды"}
+          <Sparkles size={16} /> {pool.length ? tr("Таңдау") : tr("Барлығы таңдалды")}
         </button>
         <button
           type="button"
@@ -340,18 +341,18 @@ function RandomPicker({ students }: { students: string[] }) {
           }}
           className={btn}
         >
-          <RotateCcw size={15} /> Басынан
+          <RotateCcw size={15} /> {tr("Басынан")}
         </button>
       </div>
       {!full && (
         <>
           <label className="flex items-center justify-center gap-2 text-sm">
             <input type="checkbox" checked={noRepeat} onChange={(e) => setNoRepeat(e.target.checked)} className="h-4 w-4 accent-violet-600" />
-            Қайталамау (таңдалған оқушы қайта шықпайды)
+            {tr("Қайталамау (таңдалған оқушы қайта шықпайды)")}
           </label>
           {picked.length > 0 && (
             <div className="text-center text-sm text-slate-500">
-              Таңдалғандар ({picked.length}/{students.length}): {picked.join(", ")}
+              {tr("Таңдалғандар ({a}/{b}):", { a: picked.length, b: students.length })} {picked.join(", ")}
             </div>
           )}
         </>
@@ -379,11 +380,11 @@ function GroupMaker({ students }: { students: string[] }) {
   return (
     <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "!rounded-none !border-0 p-10" : ""}`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">👥 Топқа бөлу</h2>
+        <h2 className="text-lg font-bold">{tr("👥 Топқа бөлу")}</h2>
         <FullButton full={full} onClick={toggle} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-slate-500">Топ саны:</span>
+        <span className="text-sm text-slate-500">{tr("Топ саны:")}</span>
         {[2, 3, 4, 5, 6].map((n) => (
           <button
             key={n}
@@ -396,7 +397,7 @@ function GroupMaker({ students }: { students: string[] }) {
           </button>
         ))}
         <button type="button" onClick={make} disabled={students.length < 2} className={`${primary} ml-auto`}>
-          <Shuffle size={16} /> Бөлу
+          <Shuffle size={16} /> {tr("Бөлу")}
         </button>
       </div>
       {groups.length > 0 ? (
@@ -404,7 +405,7 @@ function GroupMaker({ students }: { students: string[] }) {
           {groups.map((g, i) => (
             <div key={i} className={`rounded-2xl p-4 ${colors[i % colors.length]}`}>
               <div className={`mb-2 font-bold ${full ? "text-3xl" : ""}`}>
-                {i + 1}-топ <span className="text-sm font-normal text-slate-500">({g.length})</span>
+                {tr("{n}-топ", { n: i + 1 })} <span className="text-sm font-normal text-slate-500">({g.length})</span>
               </div>
               <ul className={`flex flex-col gap-0.5 ${full ? "text-2xl" : "text-sm"}`}>
                 {g.map((s) => (
@@ -415,7 +416,7 @@ function GroupMaker({ students }: { students: string[] }) {
           ))}
         </div>
       ) : (
-        <p className="text-sm text-slate-500">{students.length < 2 ? "Алдымен сынып тізімін енгізіңіз." : "«Бөлу» батырмасын басыңыз — оқушылар кездейсоқ топтарға бөлінеді."}</p>
+        <p className="text-sm text-slate-500">{students.length < 2 ? tr("Алдымен сынып тізімін енгізіңіз.") : tr("«Бөлу» батырмасын басыңыз — оқушылар кездейсоқ топтарға бөлінеді.")}</p>
       )}
     </div>
   );
@@ -424,9 +425,9 @@ function GroupMaker({ students }: { students: string[] }) {
 /* -------------------------------------------------------------- бағдаршам */
 
 const LIGHTS = [
-  { key: "green", emoji: "🟢", label: "Түсіндім", bar: "bg-emerald-500", tile: "bg-emerald-50 border-emerald-200 hover:border-emerald-400" },
-  { key: "yellow", emoji: "🟡", label: "Сұрағым бар", bar: "bg-amber-400", tile: "bg-amber-50 border-amber-200 hover:border-amber-400" },
-  { key: "red", emoji: "🔴", label: "Көмек керек", bar: "bg-rose-500", tile: "bg-rose-50 border-rose-200 hover:border-rose-400" },
+  { key: "green", emoji: "🟢", label: tr("Түсіндім"), bar: "bg-emerald-500", tile: "bg-emerald-50 border-emerald-200 hover:border-emerald-400" },
+  { key: "yellow", emoji: "🟡", label: tr("Сұрағым бар"), bar: "bg-amber-400", tile: "bg-amber-50 border-amber-200 hover:border-amber-400" },
+  { key: "red", emoji: "🔴", label: tr("Көмек керек"), bar: "bg-rose-500", tile: "bg-rose-50 border-rose-200 hover:border-rose-400" },
 ] as const;
 
 type LightKey = (typeof LIGHTS)[number]["key"];
@@ -442,13 +443,13 @@ function TrafficLight() {
   return (
     <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "justify-center !rounded-none !border-0 p-10" : ""}`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">🚦 Бағдаршам</h2>
+        <h2 className="text-lg font-bold">{tr("🚦 Бағдаршам")}</h2>
         <FullButton full={full} onClick={toggle} />
       </div>
       {full ? (
         question && <div className="text-center text-4xl font-bold">{question}</div>
       ) : (
-        <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Сұрақ немесе тақырып (міндетті емес)" aria-label="Бағдаршам сұрағы" className={field} />
+        <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={tr("Сұрақ немесе тақырып (міндетті емес)")} aria-label={tr("Бағдаршам сұрағы")} className={field} />
       )}
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {LIGHTS.map((l) => (
@@ -469,7 +470,7 @@ function TrafficLight() {
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-2" aria-label="Нәтиже пайызы">
+      <div className="flex flex-col gap-2" aria-label={tr("Нәтиже пайызы")}>
         {LIGHTS.map((l) => (
           <div key={l.key} className={`flex items-center gap-3 ${full ? "text-2xl" : "text-sm"}`}>
             <span className="w-6 text-center">{l.emoji}</span>
@@ -481,13 +482,13 @@ function TrafficLight() {
         ))}
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="text-sm text-slate-500">Барлығы: {total} оқушы</span>
+        <span className="text-sm text-slate-500">{tr("Барлығы:")} {total} {tr("оқушы")}</span>
         <button type="button" onClick={() => setCounts({ green: 0, yellow: 0, red: 0 })} disabled={!total} className={btn}>
-          <RotateCcw size={15} /> Тазалау
+          <RotateCcw size={15} /> {tr("Тазалау")}
         </button>
       </div>
       {!full && total > 0 && counts.red + counts.yellow > counts.green && (
-        <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Оқушылардың көбі әлі толық түсінбеді — тақырыпты басқа мысалмен қайта түсіндірген дұрыс.</p>
+        <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{tr("Оқушылардың көбі әлі толық түсінбеді — тақырыпты басқа мысалмен қайта түсіндірген дұрыс.")}</p>
       )}
     </div>
   );
@@ -514,7 +515,7 @@ function NoiseMeter() {
   async function start() {
     setError("");
     if (!navigator.mediaDevices?.getUserMedia) {
-      setError("Бұл браузер микрофонды қолдамайды. Chrome немесе Safari-дің жаңа нұсқасын қолданыңыз.");
+      setError(tr("Бұл браузер микрофонды қолдамайды. Chrome немесе Safari-дің жаңа нұсқасын қолданыңыз."));
       return;
     }
     let stream: MediaStream;
@@ -524,10 +525,10 @@ function NoiseMeter() {
       const name = e instanceof DOMException ? e.name : "";
       setError(
         name === "NotAllowedError" || name === "SecurityError"
-          ? "Микрофонға рұқсат берілмеді. Браузердің мекенжай жолағындағы 🔒 белгісін басып, микрофонға рұқсат беріңіз."
+          ? tr("Микрофонға рұқсат берілмеді. Браузердің мекенжай жолағындағы 🔒 белгісін басып, микрофонға рұқсат беріңіз.")
           : name === "NotFoundError"
-            ? "Микрофон табылмады. Құрылғыға микрофон жалғаңыз."
-            : "Микрофонды қосу мүмкін болмады.",
+            ? tr("Микрофон табылмады. Құрылғыға микрофон жалғаңыз.")
+            : tr("Микрофонды қосу мүмкін болмады."),
       );
       return;
     }
@@ -578,40 +579,40 @@ function NoiseMeter() {
       className={`${card} flex flex-col gap-4 transition-colors ${loud ? "!border-rose-300 !bg-rose-50" : ""} ${full ? "items-center justify-center !rounded-none !border-0" : ""}`}
     >
       <div className="flex w-full items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">🔊 Шу өлшегіш</h2>
+        <h2 className="text-lg font-bold">{tr("🔊 Шу өлшегіш")}</h2>
         <FullButton full={full} onClick={toggle} />
       </div>
       <div className={`text-center ${full ? "text-[22vh]" : "text-7xl"}`} aria-hidden>
         {face}
       </div>
       <div className={`text-center font-bold ${loud ? "animate-pulse text-rose-600" : "text-slate-700"} ${full ? "text-6xl" : "text-xl"}`} aria-live="polite">
-        {!on ? "Микрофон өшірулі" : loud ? "Тынышырақ, өтінем!" : level > limit * 0.75 ? "Сәл тынышырақ" : "Жақсы, тыныш"}
+        {!on ? tr("Микрофон өшірулі") : loud ? tr("Тынышырақ, өтінем!") : level > limit * 0.75 ? tr("Сәл тынышырақ") : tr("Жақсы, тыныш")}
       </div>
-      <div className={`relative w-full overflow-hidden rounded-full bg-slate-100 ${full ? "h-12 max-w-[80vw]" : "h-6"}`} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={level} aria-label="Шу деңгейі">
+      <div className={`relative w-full overflow-hidden rounded-full bg-slate-100 ${full ? "h-12 max-w-[80vw]" : "h-6"}`} role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={level} aria-label={tr("Шу деңгейі")}>
         <div className={`h-full rounded-full transition-[width] duration-100 ${barColor}`} style={{ width: `${level}%` }} />
-        <div className="absolute top-0 h-full w-1 bg-slate-800" style={{ left: `${limit}%` }} title="Шек" />
+        <div className="absolute top-0 h-full w-1 bg-slate-800" style={{ left: `${limit}%` }} title={tr("Шек")} />
       </div>
       <div className="flex flex-wrap justify-center gap-2">
         {on ? (
           <button type="button" onClick={turnOff} className={primary}>
-            <Pause size={16} /> Тоқтату
+            <Pause size={16} /> {tr("Тоқтату")}
           </button>
         ) : (
           <button type="button" onClick={start} className={primary}>
-            <Play size={16} /> Бастау
+            <Play size={16} /> {tr("Бастау")}
           </button>
         )}
       </div>
       {!full && (
         <>
           <label className="flex items-center gap-3 text-sm">
-            <span className="shrink-0 text-slate-500">Шек: {limit}</span>
-            <input type="range" min={20} max={95} value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="w-full accent-violet-600" aria-label="Шу шегі" />
+            <span className="shrink-0 text-slate-500">{tr("Шек:")} {limit}</span>
+            <input type="range" min={20} max={95} value={limit} onChange={(e) => setLimit(Number(e.target.value))} className="w-full accent-violet-600" aria-label={tr("Шу шегі")} />
           </label>
           {error ? (
             <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>
           ) : (
-            <p className="text-xs text-slate-500">Сынып шуы қара сызықтан асса, экран қызарып ескертеді. Дыбыс жазылмайды және ешқайда жіберілмейді.</p>
+            <p className="text-xs text-slate-500">{tr("Сынып шуы қара сызықтан асса, экран қызарып ескертеді. Дыбыс жазылмайды және ешқайда жіберілмейді.")}</p>
           )}
         </>
       )}
@@ -622,30 +623,30 @@ function NoiseMeter() {
 /* -------------------------------------------------------------- рефлексия */
 
 const REFLECTIONS = [
-  { name: "Екі жұлдыз, бір тілек", prompts: ["⭐ Сабақта маған ұнағаны…", "⭐ Бүгін мен жақсы орындадым…", "🙏 Келесі сабақта қалайтыным…"] },
-  { name: "Аяқталмаған сөйлем", prompts: ["Бүгін мен білдім…", "Маған қиын болды…", "Енді мен … аламын", "Мені таң қалдырғаны…"] },
-  { name: "3-2-1", prompts: ["3️⃣ Бүгін білген үш жаңа нәрсе", "2️⃣ Маған қызық болған екі дерек", "1️⃣ Әлі де қойғым келетін бір сұрақ"] },
+  { name: tr("Екі жұлдыз, бір тілек"), prompts: [tr("⭐ Сабақта маған ұнағаны…"), tr("⭐ Бүгін мен жақсы орындадым…"), tr("🙏 Келесі сабақта қалайтыным…")] },
+  { name: tr("Аяқталмаған сөйлем"), prompts: [tr("Бүгін мен білдім…"), tr("Маған қиын болды…"), tr("Енді мен … аламын"), tr("Мені таң қалдырғаны…")] },
+  { name: "3-2-1", prompts: [tr("3️⃣ Бүгін білген үш жаңа нәрсе"), tr("2️⃣ Маған қызық болған екі дерек"), tr("1️⃣ Әлі де қойғым келетін бір сұрақ")] },
   {
-    name: "Бес саусақ",
-    prompts: ["👍 Бас бармақ — маған не ұнады?", "☝️ Сұқ саусақ — не үйрендім?", "✋ Ортаңғы саусақ — көңіл-күйім қандай болды?", "💍 Атсыз саусақ — кімге көмектестім, маған кім көмектесті?", "🤙 Шынашақ — әлі не білгім келеді?"],
+    name: tr("Бес саусақ"),
+    prompts: [tr("👍 Бас бармақ — маған не ұнады?"), tr("☝️ Сұқ саусақ — не үйрендім?"), tr("✋ Ортаңғы саусақ — көңіл-күйім қандай болды?"), tr("💍 Атсыз саусақ — кімге көмектестім, маған кім көмектесті?"), tr("🤙 Шынашақ — әлі не білгім келеді?")],
   },
-  { name: "Бағдаршам", prompts: ["🟢 Бәрін түсіндім, өзгелерге түсіндіре аламын", "🟡 Түсіндім, бірақ сұрақтарым бар", "🔴 Түсінбедім, көмек керек"] },
-  { name: "Бір сөзбен", prompts: ["Бүгінгі сабақты бір сөзбен сипаттаңыз", "Бүгінгі көңіл-күйіңізді бір сөзбен айтыңыз"] },
+  { name: tr("Бағдаршам"), prompts: [tr("🟢 Бәрін түсіндім, өзгелерге түсіндіре аламын"), tr("🟡 Түсіндім, бірақ сұрақтарым бар"), tr("🔴 Түсінбедім, көмек керек")] },
+  { name: tr("Бір сөзбен"), prompts: [tr("Бүгінгі сабақты бір сөзбен сипаттаңыз"), tr("Бүгінгі көңіл-күйіңізді бір сөзбен айтыңыз")] },
 ];
 
 const QUESTIONS = [
-  "Бүгінгі сабақтың ең маңызды ойы не болды?",
-  "Бүгінгі білімді өмірде қай жерде қолданасыз?",
-  "Қай тапсырма ең қиын болды? Неліктен?",
-  "Бүгін сыныптасыңыздан не үйрендіңіз?",
-  "Тақырыпты інішегіңізге қалай түсіндірер едіңіз?",
-  "Сабақта өзіңізді қалай бағалайсыз: 1-ден 5-ке дейін? Неге?",
-  "Келесі сабақта нені қайталағыңыз келеді?",
-  "Бүгінгі сабақта не сізді таң қалдырды?",
-  "Қателескен жеріңіз болды ма? Одан не түйдіңіз?",
-  "Бүгінгі тақырып бойынша өзіңізге бір сұрақ қойыңыз.",
-  "Бүгін қандай дағдыңыз дамыды?",
-  "Сабақты жақсарту үшін мұғалімге не ұсынар едіңіз?",
+  tr("Бүгінгі сабақтың ең маңызды ойы не болды?"),
+  tr("Бүгінгі білімді өмірде қай жерде қолданасыз?"),
+  tr("Қай тапсырма ең қиын болды? Неліктен?"),
+  tr("Бүгін сыныптасыңыздан не үйрендіңіз?"),
+  tr("Тақырыпты інішегіңізге қалай түсіндірер едіңіз?"),
+  tr("Сабақта өзіңізді қалай бағалайсыз: 1-ден 5-ке дейін? Неге?"),
+  tr("Келесі сабақта нені қайталағыңыз келеді?"),
+  tr("Бүгінгі сабақта не сізді таң қалдырды?"),
+  tr("Қателескен жеріңіз болды ма? Одан не түйдіңіз?"),
+  tr("Бүгінгі тақырып бойынша өзіңізге бір сұрақ қойыңыз."),
+  tr("Бүгін қандай дағдыңыз дамыды?"),
+  tr("Сабақты жақсарту үшін мұғалімге не ұсынар едіңіз?"),
 ];
 
 function Reflection() {
@@ -662,11 +663,11 @@ function Reflection() {
   return (
     <div ref={ref} className={`${card} flex flex-col gap-4 lg:col-span-2 ${full ? "justify-center !rounded-none !border-0 p-12" : ""}`}>
       <div className="flex items-center justify-between gap-2">
-        <h2 className="text-lg font-bold">💬 Рефлексия</h2>
+        <h2 className="text-lg font-bold">{tr("💬 Рефлексия")}</h2>
         <FullButton full={full} onClick={toggle} />
       </div>
       {!full && (
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Рефлексия әдісі">
+        <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Рефлексия әдісі")}>
           {REFLECTIONS.map((r, i) => (
             <button
               key={r.name}
@@ -701,11 +702,11 @@ function Reflection() {
       )}
       <div className="flex flex-wrap justify-center gap-2">
         <button type="button" onClick={randomQuestion} className={primary}>
-          <Shuffle size={16} /> Кездейсоқ сұрақ
+          <Shuffle size={16} /> {tr("Кездейсоқ сұрақ")}
         </button>
         {question && (
           <button type="button" onClick={() => setQuestion("")} className={btn}>
-            «{tech.name}» әдісіне оралу
+            {tr("«{name}» әдісіне оралу", { name: tech.name })}
           </button>
         )}
       </div>
@@ -728,9 +729,9 @@ export default function ClassToolsPage() {
   return (
     <div className="mx-auto max-w-[1360px] px-4 py-9 sm:px-10">
       <PageHeader
-        crumb="Сабақ құралдары"
-        title="Сабақ құралдары"
-        subtitle="Сабақ кезінде тақтаға шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, шу өлшегіш және рефлексия. «Толық экран» батырмасымен проекторға үлкейтіп көрсетіңіз."
+        crumb={tr("Сабақ құралдары")}
+        title={tr("Сабақ құралдары")}
+        subtitle={tr("Сабақ кезінде тақтаға шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, шу өлшегіш және рефлексия. «Толық экран» батырмасымен проекторға үлкейтіп көрсетіңіз.")}
       />
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <Timer />
