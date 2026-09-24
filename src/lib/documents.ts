@@ -208,7 +208,7 @@ ${input.notes.trim() ? `Факты и пожелания учителя (обя�
 ${structureHint(input, false)}
 ${input.notes.trim() ? `Мұғалімнің деректері мен тілектері (міндетті түрде ескер):\n${input.notes.trim()}\n` : ""}Көлемі: шамамен ${len.words} сөз.
 JSON форматы: "title" — құжат атауы; "subtitle" — атаудың астындағы жол (сынып, күні «___» немесе оқу жылы); "sections" — бөлімдер, әрқайсысында "heading", "paragraphs" (байланысқан мәтін азат жолдары), "bullets" (тізім тармақтары, бос болуы мүмкін), қажет болса кесте "tableHeaders" + "tableRows"; "signature" — қолтаңба жолы (немесе бос жол).
-Бүкіл мәтін тек қазақ тілінде, сауатты, markdown белгілерінсіз және эмодзисіз.`;
+${input.lang === "en" ? "Бүкіл мәтін тек АҒЫЛШЫН тілінде (бөлім атаулары, қолтаңба да), сауатты, markdown белгілерінсіз және эмодзисіз." : "Бүкіл мәтін тек қазақ тілінде, сауатты, markdown белгілерінсіз және эмодзисіз."}`;
 
   const raw = await aiGenerateJson<RawDoc>(prompt, schema);
   const sections: DocSection[] = (raw.sections ?? [])

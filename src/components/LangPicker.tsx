@@ -1,12 +1,12 @@
 import { LANGS, type Lang } from "../lib/lang";
 import { tr } from "../i18n";
 
-/** Материал тілін таңдау: қазақша немесе орысша (оқыту тілі орыс сыныптары үшін). */
+/** Материал тілін таңдау: қазақша, орысша немесе ағылшынша. */
 export function LangPicker({ value, onChange }: { value: Lang; onChange: (l: Lang) => void }) {
   return (
     <fieldset>
       <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Материал тілі")}</legend>
-      <div className="grid grid-cols-2 gap-2" role="group">
+      <div className="grid grid-cols-3 gap-2" role="group">
         {LANGS.map((l) => (
           <button
             key={l.id}

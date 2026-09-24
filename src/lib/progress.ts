@@ -169,7 +169,7 @@ export async function summarizeStudent(s: StudentProgress, tests: ProgressTest[]
 ${lines.join("\n")}
 
 "summary" — 3–4 сөйлемдік жалпы қорытынды (оқу мақсаттарына жетуі, динамикасы); "strengths" — 2–3 күшті жағы; "weaknesses" — 2–3 қиындық тудырған тақырып/дағды (нақты тақырыптарды ата); "recommendations" — оқушыға және ата-анаға 3 нақты ұсыныс.
-Тек берілген деректерге сүйен, жылы әрі әдепті жаз. ${lang === "ru" ? "Бүкіл мәтін ОРЫС тілінде." : "Бүкіл мәтін қазақ тілінде."}`;
+Тек берілген деректерге сүйен, жылы әрі әдепті жаз. ${lang === "ru" ? "Бүкіл мәтін ОРЫС тілінде." : lang === "en" ? "Бүкіл мәтін АҒЫЛШЫН тілінде." : "Бүкіл мәтін қазақ тілінде."}`;
   const r = await aiGenerateJson<StudentSummary>(prompt, summarySchema);
   return {
     summary: r.summary ?? "",

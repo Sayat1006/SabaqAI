@@ -345,7 +345,7 @@ export default function KtzhPage() {
                     </span>
                     <span className="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">{tr("БЖБ: {n}", { n: sorCount })}</span>
                     <span className="rounded-full bg-violet-100 px-2.5 py-1 text-violet-700">{tr("ТЖБ: {n}", { n: sochCount })}</span>
-                    {plan.lang === "ru" && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">{tr("орысша")}</span>}
+                    {plan.lang !== "kk" && <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-700">{tr(plan.lang === "en" ? "ағылшынша" : "орысша")}</span>}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 print:hidden">

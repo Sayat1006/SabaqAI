@@ -1,14 +1,16 @@
 import { uiLang } from "../i18n";
+import en from "../i18n/en";
 
 /** Материал тілі: қазақша немесе орысша. */
-export type Lang = "kk" | "ru";
+export type Lang = "kk" | "ru" | "en";
 
-/** Интерфейс орысша болса, материал да әдепкіде орысша. */
-export const defaultMaterialLang: Lang = uiLang === "ru" ? "ru" : "kk";
+/** Материал тілі әдепкіде интерфейс тіліне сай. */
+export const defaultMaterialLang: Lang = uiLang;
 
 export const LANGS: { id: Lang; label: string }[] = [
-  { id: "kk", label: "Қазақша" },
-  { id: "ru", label: "Русский" },
+  { id: "kk", label: "Қаз" },
+  { id: "ru", label: "Рус" },
+  { id: "en", label: "Eng" },
 ];
 
 const SUBJECT_RU: Record<string, string> = {
@@ -35,7 +37,12 @@ const SUBJECT_RU: Record<string, string> = {
 };
 
 /** Пән атауы материал тілінде (каталогтағы атаулар қазақша). */
-export const subjectIn = (subject: string, lang: Lang | undefined) => (lang === "ru" ? (SUBJECT_RU[subject] ?? subject) : subject);
+export const subjectIn = (subject: string, lang: Lang | undefined) =>
+  lang === "ru" ? (SUBJECT_RU[subject] ?? subject) : lang === "en" ? (en[subject] ?? subject) : subject;
 
 /** «5-сынып» → «5 класс» (орысша материалда). */
-export const gradeIn = (grade: string, lang: Lang | undefined) => (lang === "ru" ? grade.replace(/^(\d+)-сынып$/, "$1 класс") : grade);
+export const gradeIn = (grade: string, lang: Lang | undefined) =>
+  lang === "ru" ? grade.replace(/^(\d+)-сынып$/, "$1 класс") : lang === "en" ? grade.replace(/^(\d+)-сынып$/, "Grade $1") : grade;
+
+/** Промптқа: мазмұн қай тілде жазылуы керек. */
+export const langName = (lang: Lang | undefined) => (lang === "ru" ? "ОРЫС" : lang === "en" ? "АҒЫЛШЫН" : "ҚАЗАҚ");
