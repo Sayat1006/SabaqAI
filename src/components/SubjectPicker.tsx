@@ -18,8 +18,9 @@ export function SubjectPicker({ value, onChange }: { value: string[]; onChange: 
         </span>
       </div>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label={tr("Пәндер")}>
-        {SUBJECTS.map((s) => {
+        {[...SUBJECTS, ...value.filter((v) => !SUBJECTS.includes(v))].map((s) => {
           const on = value.includes(s);
+          const legacy = !SUBJECTS.includes(s);
           const order = value.indexOf(s);
           return (
             <button
@@ -35,6 +36,7 @@ export function SubjectPicker({ value, onChange }: { value: string[]; onChange: 
               {on && <Check size={13} />}
               {tr(s)}
               {on && order === 0 && value.length > 1 && <span className="text-[10.5px] opacity-80">· {tr("негізгі")}</span>}
+              {legacy && <span className="text-[10.5px] opacity-80">· {tr("тізімде жоқ")}</span>}
             </button>
           );
         })}
