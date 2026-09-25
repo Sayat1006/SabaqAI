@@ -24,6 +24,7 @@ const ProgressPage = lazy(() => import("./pages/Progress"));
 const LiveHostPage = lazy(() => import("./pages/LiveHost"));
 const LivePlayPage = lazy(() => import("./pages/LivePlay"));
 const SchedulePage = lazy(() => import("./pages/Schedule"));
+const GamesPage = lazy(() => import("./pages/Games"));
 const AdminNewsPage = lazy(() => import("./pages/AdminNews"));
 const AdminUsagePage = lazy(() => import("./pages/AdminUsage"));
 
@@ -50,6 +51,8 @@ export default function App() {
               <Route path="images" element={<ImagesPage />} />
               <Route path="tests" element={<TestsPage />} />
               <Route path="tools" element={<ClassToolsPage />} />
+            <Route path="games" element={<GamesPage />} />
+            <Route path="games/:id" element={<GamesPage />} />
               <Route path="docs" element={<DocsPage />} />
               <Route path="ktzh" element={<KtzhPage />} />
               <Route path="progress" element={<ProgressPage />} />

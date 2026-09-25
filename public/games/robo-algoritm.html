@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Робо-Алгоритм — 6-сынып</title>
+<style>
+:root{
+  --bg:#f4f7fb; --card:#fff; --ink:#17324d; --muted:#6d7f91;
+  --blue:#4f8cff; --green:#35b779; --orange:#ffad3d; --red:#ef5b67;
+  --line:#dce5ef; --shadow:0 10px 30px rgba(30,60,90,.10);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:linear-gradient(135deg,#eef5ff,#f8fbff);color:var(--ink)}
+button{font:inherit;border:0;cursor:pointer}
+.app{max-width:1450px;margin:auto;padding:20px}
+header{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px 22px;box-shadow:var(--shadow);display:flex;gap:18px;align-items:center;justify-content:space-between}
+.brand{display:flex;align-items:center;gap:14px}.logo{font-size:38px;background:#eaf2ff;border-radius:16px;padding:8px 12px}
+h1{font-size:25px;margin:0 0 4px}.sub{color:var(--muted);font-size:14px}
+.modebar{display:flex;gap:8px;flex-wrap:wrap}.mode{padding:11px 15px;border-radius:12px;background:#edf2f7;color:var(--ink);font-weight:700}.mode.active{background:var(--blue);color:#fff}
+.topline{display:flex;gap:10px;align-items:center;margin:18px 0}.level{font-weight:800}.pill{padding:8px 12px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px}
+.main{display:grid;grid-template-columns:260px minmax(360px,1fr) 390px;gap:18px;align-items:start}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
+.panel h2{font-size:17px;margin:0 0 13px}.hint{font-size:12px;color:var(--muted);line-height:1.5;margin-bottom:12px}
+.blocks{display:flex;flex-direction:column;gap:9px}
+.block{position:relative;padding:13px 12px;border-radius:12px;color:#fff;font-weight:800;user-select:none;box-shadow:0 4px 10px rgba(30,60,90,.12);transition:.15s}
+.block:hover{transform:translateY(-1px)}.move{background:#4f8cff}.turn{background:#8b6cf6}.loop{background:#35b779}
+.block[draggable=true]{cursor:grab}
+.workspace{min-height:500px;background:#f7faff;border:2px dashed #c9d8e8;border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.workspace .empty{color:#9aabbc;text-align:center;padding:40px 15px;border:2px dashed #dce5ef;border-radius:12px}
+.codeblock{display:flex;align-items:center;gap:8px;padding:9px 10px;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 3px 8px rgba(30,60,90,.06);cursor:grab}
+.codeblock .tag{font-weight:800;flex:1}.delete{width:28px;height:28px;border-radius:8px;background:#ffe8ea;color:#c63846;font-weight:900}
+.loopbox{border:2px solid #35b779;background:#f0fff8;border-radius:12px;padding:8px}.loophead{display:flex;align-items:center;gap:8px;font-weight:800;color:#178657}.repeatInput{width:50px;border:1px solid #b8dfcf;border-radius:7px;padding:5px;text-align:center;font-weight:800}.nest{min-height:52px;margin-top:8px;padding:7px;border:2px dashed #b8dfcf;border-radius:9px;background:#fff}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.primary,.secondary,.danger{padding:11px 14px;border-radius:11px;font-weight:800}.primary{background:var(--green);color:#fff}.secondary{background:#eaf2ff;color:#316dd3}.danger{background:#ffe9eb;color:#c53b48}
+.gridwrap{display:flex;justify-content:center;padding:10px}.grid{display:grid;grid-template-columns:repeat(5,58px);grid-template-rows:repeat(5,58px);gap:5px;background:#cbd8e5;padding:5px;border-radius:14px}
+.cell{background:#fff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:25px;position:relative}
+.wall{background:#34495e}.finish{background:#dcfff0}.start{background:#eaf2ff}.robot{font-size:31px;filter:drop-shadow(0 3px 2px rgba(0,0,0,.12))}
+.legend{font-size:12px;color:var(--muted);display:flex;gap:12px;justify-content:center;margin-top:8px}
+.status{padding:12px;border-radius:12px;margin-top:12px;font-weight:700;background:#f2f6fa;line-height:1.4}
+.success{background:#e8fff4;color:#17764c}.error{background:#fff0f1;color:#b33240}.info{background:#edf5ff;color:#2865b7}
+.task{padding:12px;background:#fff8e8;border:1px solid #ffe1a7;border-radius:12px;font-size:13px;line-height:1.45;margin-bottom:12px}
+.dropzone{outline:2px dashed #4f8cff;outline-offset:2px}
+.bad{animation:shake .3s}@keyframes shake{25%{transform:translateX(-4px)}50%{transform:translateX(4px)}75%{transform:translateX(-3px)}}
+.progress{height:8px;background:#e7edf4;border-radius:99px;overflow:hidden;margin:8px 0}.progress>div{height:100%;background:#4f8cff;width:0}
+@media(max-width:1050px){.main{grid-template-columns:1fr 1fr}.panel:last-child{grid-column:1/-1}}
+@media(max-width:700px){.app{padding:10px}.main{grid-template-columns:1fr}.panel:last-child{grid-column:auto}header{flex-direction:column;align-items:flex-start}.grid{grid-template-columns:repeat(5,50px);grid-template-rows:repeat(5,50px)}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><div class="logo">🤖</div><div><h1>Робо-Алгоритм</h1><div class="sub">6-сынып · Алгоритм және цикл</div></div></div>
+  <div class="modebar">
+    <button class="mode active" id="buildMode">🧩 Алгоритм құру</button>
+    <button class="mode" id="debugMode">🔎 Қатені түзету</button>
+  </div>
+</header>
+
+<div class="topline">
+  <span class="level" id="levelName">1-деңгей</span>
+  <span class="pill" id="taskType">Кедергілерден айналып өт</span>
+  <span class="pill" id="score">Ұпай: 0</span>
+</div>
+
+<div class="main">
+  <section class="panel">
+    <h2>📦 Командалар</h2>
+    <div class="hint">Команданы басып жұмыс алаңына қосыңыз немесе сүйреп апарыңыз.</div>
+    <div class="blocks">
+      <div class="block move" draggable="true" data-type="move">⬆ Алға жылжу <small>(1 қадам)</small></div>
+      <div class="block turn" draggable="true" data-type="right">↻ Оңға бұрылу <small>(90°)</small></div>
+      <div class="block turn" draggable="true" data-type="left">↺ Солға бұрылу <small>(90°)</small></div>
+      <div class="block loop" draggable="true" data-type="loop">🔁 Цикл: [2] рет қайтала</div>
+    </div>
+    <div class="controls">
+      <button class="primary" id="run">▶ Іске қосу</button>
+      <button class="secondary" id="reset">↺ Қайтадан бастау</button>
+      <button class="danger" id="clear">🗑 Тазалау</button>
+    </div>
+    <div class="status info" id="status">Алгоритм құрып, «Іске қосу» батырмасын басыңыз.</div>
+  </section>
+
+  <section class="panel">
+    <h2>🧩 Алгоритм жұмыс алаңы</h2>
+    <div class="hint">Циклдің ішіне командаларды орналастыруға болады. Ретін өзгерту үшін блоктарды сүйреңіз.</div>
+    <div class="workspace" id="workspace"><div class="empty" id="empty">Командаларды осында жинаңыз</div></div>
+    <div class="progress"><div id="progressBar"></div></div>
+    <div class="hint" id="progressText">0 команда</div>
+  </section>
+
+  <section class="panel">
+    <h2>🗺️ Робот алаңы</h2>
+    <div class="task" id="task">Роботты 🏁 мәреге жеткізіңіз. Қабырғаға соқпаңыз!</div>
+    <div class="gridwrap"><div class="grid" id="grid"></div></div>
+    <div class="legend"><span>🤖 Робот</span><span>🧱 Кедергі</span><span>🏁 Мәре</span></div>
+  </section>
+</div>
+</div>
+
+<script>
+/*
+  Деңгей қосу үлгісі:
+  {
+    name:"2-деңгей", start:{r:0,c:0,dir:1}, finish:{r:4,c:4},
+    walls:[[1,1],[2,1]], optimal: 8, task:"..."
+  }
+  dir: 0=жоғары, 1=оң, 2=төмен, 3=сол.
+*/
+const LEVELS = [
+  {name:"1-деңгей", start:{r:4,c:0,dir:1}, finish:{r:0,c:4}, walls:[[3,1],[3,2],[1,2],[1,3]], optimal:9, task:"Роботты қабырғалардан айналып өтіп, 🏁 мәреге жеткізіңіз."},
+  {name:"2-деңгей", start:{r:4,c:0,dir:0}, finish:{r:0,c:4}, walls:[[3,0],[3,1],[1,1],[1,2],[2,3],[3,3]], optimal:10, task:"Бұл деңгейде циклді қолдану ыңғайлы. Роботқа қысқа алгоритм құрыңыз."},
+  {name:"3-деңгей", start:{r:4,c:4,dir:3}, finish:{r:0,c:0}, walls:[[3,3],[3,2],[1,2],[1,1],[2,0]], optimal:10, task:"Кедергілерді айналып өтіп, роботты мәреге апарыңыз. Циклді тиімді пайдаланыңыз."}
+];
+
+let levelIndex=0, mode="build", score=0, running=false, dragged=null;
+const workspace=document.getElementById("workspace"), grid=document.getElementById("grid");
+const statusEl=document.getElementById("status"), levelName=document.getElementById("levelName");
+const task=document.getElementById("task"), progressText=document.getElementById("progressText"), progressBar=document.getElementById("progressBar");
+
+function current(){return LEVELS[levelIndex]}
+function key(p){return p.r+","+p.c}
+function cloneStart(){return {...current().start}}
+function renderGrid(robot=cloneStart()){
+  grid.innerHTML="";
+  const L=current(), walls=new Set(L.walls.map(x=>x.join(",")));
+  for(let r=0;r<5;r++)for(let c=0;c<5;c++){
+    const cell=document.createElement("div"); cell.className="cell";
+    if(walls.has(r+","+c)) {cell.classList.add("wall");cell.textContent="🧱";}
+    else if(r===L.finish.r&&c===L.finish.c){cell.classList.add("finish");cell.textContent="🏁";}
+    else if(r===L.start.r&&c===L.start.c){cell.classList.add("start");}
+    if(robot.r===r&&robot.c===c){cell.innerHTML="🤖";cell.classList.add("robot");}
+    grid.appendChild(cell);
+  }
+}
+function setStatus(msg,type="info"){statusEl.className="status "+type;statusEl.textContent=msg}
+function updateHeader(){
+  levelName.textContent=current().name;
+  task.textContent=current().task;
+}
+function updateProgress(){
+  const n=workspace.querySelectorAll(":scope > .codeblock").length;
+  progressText.textContent=n+" команда"+(n===1?"":"");
+  progressBar.style.width=Math.min(100,n*10)+"%";
+}
+function makeCommand(type){
+  const el=document.createElement("div"); el.className="codeblock"; el.dataset.type=type; el.draggable=true;
+  const labels={move:"⬆ Алға жылжу",right:"↻ Оңға бұрылу",left:"↺ Солға бұрылу"};
+  el.innerHTML=`<span class="tag">${labels[type]}</span><button class="delete">×</button>`;
+  el.querySelector(".delete").onclick=e=>{e.stopPropagation();el.remove();updateProgress();showEmpty()};
+  attachDrag(el); return el;
+}
+function makeLoop(){
+  const el=document.createElement("div"); el.className="loopbox codeblock"; el.dataset.type="loop"; el.draggable=true;
+  el.innerHTML=`<div class="loophead">🔁 <span>[</span><input class="repeatInput" type="number" min="1" max="9" value="2"><span>] рет қайтала</span><button class="delete">×</button></div><div class="nest" data-nest="true"></div>`;
+  el.querySelector(".delete").onclick=e=>{e.stopPropagation();el.remove();updateProgress();showEmpty()};
+  el.querySelector(".nest").addEventListener("dragover",e=>{e.preventDefault();el.classList.add("dropzone")});
+  el.querySelector(".nest").addEventListener("dragleave",()=>el.classList.remove("dropzone"));
+  el.querySelector(".nest").addEventListener("drop",e=>{
+    e.preventDefault();el.classList.remove("dropzone");
+    if(dragged){el.querySelector(".nest").appendChild(dragged); dragged=null;}
+  });
+  attachDrag(el); return el;
+}
+function attachDrag(el){
+  el.addEventListener("dragstart",e=>{dragged=el;e.dataTransfer.setData("text/plain","x")});
+  el.addEventListener("dragend",()=>dragged=null);
+}
+function addByType(type){
+  const el=type==="loop"?makeLoop():makeCommand(type);
+  workspace.appendChild(el); showEmpty(); updateProgress();
+}
+function showEmpty(){
+  const empty=document.getElementById("empty");
+  if(empty) empty.style.display=workspace.querySelectorAll(":scope > .codeblock").length?"none":"block";
+}
+document.querySelectorAll(".blocks .block").forEach(b=>{
+  b.addEventListener("click",()=>addByType(b.dataset.type));
+  b.addEventListener("dragstart",e=>{dragged=b;e.dataTransfer.setData("palette",b.dataset.type)});
+});
+workspace.addEventListener("dragover",e=>{e.preventDefault();workspace.classList.add("dropzone")});
+workspace.addEventListener("dragleave",()=>workspace.classList.remove("dropzone"));
+workspace.addEventListener("drop",e=>{
+  e.preventDefault();workspace.classList.remove("dropzone");
+  const type=e.dataTransfer.getData("palette");
+  if(type)addByType(type);
+  else if(dragged && dragged.parentElement!==workspace)workspace.appendChild(dragged);
+  else if(dragged)workspace.appendChild(dragged);
+  dragged=null;showEmpty();updateProgress();
+});
+
+function collect(container=workspace){
+  const result=[];
+  [...container.children].filter(x=>x.classList.contains("codeblock")).forEach(el=>{
+    if(el.dataset.type==="loop"){
+      const n=Math.max(1,Math.min(9,parseInt(el.querySelector(".repeatInput").value)||1));
+      result.push({type:"loop",n,commands:collect(el.querySelector(".nest"))});
+    } else result.push({type:el.dataset.type});
+  });
+  return result;
+}
+function flatten(commands,out=[]){
+  commands.forEach(c=>{if(c.type==="loop")for(let i=0;i<c.n;i++)flatten(c.commands,out);else out.push(c)});
+  return out;
+}
+function execute(commands){
+  let p=cloneStart(), steps=0;
+  const walls=new Set(current().walls.map(x=>x.join(",")));
+  const expanded=flatten(commands);
+  for(const cmd of expanded){
+    if(cmd.type==="right")p.dir=(p.dir+1)%4;
+    else if(cmd.type==="left")p.dir=(p.dir+3)%4;
+    else if(cmd.type==="move"){
+      const dr=[-1,0,1,0][p.dir], dc=[0,1,0,-1][p.dir];
+      const nr=p.r+dr,nc=p.c+dc;
+      if(nr<0||nr>4||nc<0||nc>4){return {ok:false,reason:"Робот торға шығып кетті.",p,steps};}
+      if(walls.has(nr+","+nc)){return {ok:false,reason:"Робот 🧱 кедергіге соғылды!",p,steps};}
+      p.r=nr;p.c=nc;
+    }
+    steps++;
+  }
+  if(p.r===current().finish.r&&p.c===current().finish.c)return {ok:true,p,steps};
+  return {ok:false,reason:"Робот мәреге жетпеді. Алгоритмді қайта тексеріңіз.",p,steps};
+}
+async function run(){
+  if(running)return;
+  running=true;setStatus("Алгоритм орындалып жатыр…","info");
+  let p=cloneStart();renderGrid(p);
+  const expanded=flatten(collect());
+  if(!expanded.length){setStatus("Алдымен алгоритмге командалар қосыңыз.","error");running=false;return}
+  const walls=new Set(current().walls.map(x=>x.join(",")));
+  for(const cmd of expanded){
+    await new Promise(r=>setTimeout(r,180));
+    if(cmd.type==="right")p.dir=(p.dir+1)%4;
+    else if(cmd.type==="left")p.dir=(p.dir+3)%4;
+    else {
+      const nr=p.r+[-1,0,1,0][p.dir],nc=p.c+[0,1,0,-1][p.dir];
+      if(nr<0||nr>4||nc<0||nc>4){renderGrid(p);setStatus("❌ Робот алаңнан шығып кетті! Қатені тауып, қайта көріңіз.","error");running=false;return}
+      if(walls.has(nr+","+nc)){renderGrid(p);setStatus("❌ Робот кедергіге соғылды! Бұл команданы немесе бағытты тексеріңіз.","error");running=false;return}
+      p.r=nr;p.c=nc;
+    }
+    renderGrid(p);
+  }
+  if(p.r===current().finish.r&&p.c===current().finish.c){
+    score+=10;document.getElementById("score").textContent="Ұпай: "+score;
+    setStatus("🎉 Жарайсың! Робот мәреге жетті. Алгоритм дұрыс орындалды.","success");
+    if(levelIndex<LEVELS.length-1){
+      setTimeout(()=>{levelIndex++;clearWorkspace();updateHeader();renderGrid();setStatus("Келесі деңгей дайын. Жаңа алгоритм құрыңыз.","info")},900);
+    } else setStatus("🏆 Барлық деңгей аяқталды! Сен алгоритм құруды жақсы меңгердің!","success");
+  } else setStatus("⚠️ Робот мәреге жетпеді. Қайта тексеріп көр.","error");
+  running=false;
+}
+function clearWorkspace(){
+  workspace.querySelectorAll(":scope > .codeblock").forEach(x=>x.remove());showEmpty();updateProgress();renderGrid();setStatus("Алгоритмді жаңадан құруға болады.","info");
+}
+function debugLoad(){
+  clearWorkspace();
+  // Әдейі қате алгоритм: оқушы түзетеді.
+  ["move","move","right","move","move"].forEach(x=>workspace.appendChild(makeCommand(x)));
+  updateProgress();showEmpty();
+  setStatus("🔎 Қате алгоритм берілді. Роботтың неге мәреге жетпейтінін тауып, блоктарды өзгертіңіз немесе өшіріңіз.","info");
+}
+document.getElementById("run").onclick=async()=>{
+  if(mode==="debug"){
+    const result=execute(collect());
+    if(result.ok){score+=15;document.getElementById("score").textContent="Ұпай: "+score;setStatus("🎉 Қате түзетілді! Робот мәреге дұрыс жетті.","success");}
+    else setStatus("❌ "+result.reason+" Қатені тауып, алгоритмді түзетіңіз.","error");
+    renderGrid(result.p);return;
+  }
+  await run();
+};
+document.getElementById("reset").onclick=()=>{clearWorkspace();if(mode==="debug")debugLoad()};
+document.getElementById("clear").onclick=()=>clearWorkspace();
+document.getElementById("buildMode").onclick=()=>{mode="build";document.getElementById("buildMode").classList.add("active");document.getElementById("debugMode").classList.remove("active");clearWorkspace();setStatus("Алгоритм құрып, роботты мәреге жеткізіңіз.","info")};
+document.getElementById("debugMode").onclick=()=>{mode="debug";document.getElementById("debugMode").classList.add("active");document.getElementById("buildMode").classList.remove("active");debugLoad()};
+
+updateHeader();renderGrid();updateProgress();
+</script>
+</body>
+</html>

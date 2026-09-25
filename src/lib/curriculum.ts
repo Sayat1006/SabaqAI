@@ -42,7 +42,7 @@ export const curriculum: SubjectEntry[] = [
     ],
   },
   {
-    subject: "Ағылшын тілі",
+    subject: "Шетел тілі",
     objectives: [
       { code: "5.C1.1", grade: "5-сынып", topic: "Present Simple", text: "Қарапайым осы шақты күнделікті сөйлеуде қолдану", taxonomy: "Қолдану" },
       { code: "7.R2.3", grade: "7-сынып", topic: "Reading comprehension", text: "Мәтіннен негізгі ойды тауып, қысқаша мазмұндау", taxonomy: "Түсіну" },
