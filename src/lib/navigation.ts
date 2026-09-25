@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
+import { CalendarClock, Gamepad2, CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
 import { tr } from "../i18n";
 
 export type ToolGroup = "plan" | "create" | "class";
@@ -77,6 +77,14 @@ export const tools: Tool[] = [
     short: tr("Құжаттар"),
     icon: FileText,
     description: tr("Мінездеме, ата-ана жиналысының баяндамасы, тәрбие сағаты мен іс-шара сценарийі, тоқсандық есеп."),
+  },
+  {
+    to: "/games",
+    group: "class",
+    label: tr("Ойындар"),
+    short: tr("Ойындар"),
+    icon: Gamepad2,
+    description: tr("Сабақта тақырыпты бекітетін интерактивті оқу ойындары: тақтада толық экранмен немесе оқушыларға сілтеме/QR арқылы."),
   },
   {
     to: "/tools",
