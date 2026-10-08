@@ -25,6 +25,7 @@ const LiveHostPage = lazy(() => import("./pages/LiveHost"));
 const LivePlayPage = lazy(() => import("./pages/LivePlay"));
 const SchedulePage = lazy(() => import("./pages/Schedule"));
 const GamesPage = lazy(() => import("./pages/Games"));
+const PhysicsLabPage = lazy(() => import("./pages/PhysicsLab"));
 const AdminNewsPage = lazy(() => import("./pages/AdminNews"));
 const AdminUsagePage = lazy(() => import("./pages/AdminUsage"));
 
@@ -53,6 +54,8 @@ export default function App() {
               <Route path="tools" element={<ClassToolsPage />} />
             <Route path="games" element={<GamesPage />} />
             <Route path="games/:id" element={<GamesPage />} />
+              <Route path="lab" element={<PhysicsLabPage />} />
+              <Route path="lab/:id" element={<PhysicsLabPage />} />
               <Route path="docs" element={<DocsPage />} />
               <Route path="ktzh" element={<KtzhPage />} />
               <Route path="progress" element={<ProgressPage />} />
