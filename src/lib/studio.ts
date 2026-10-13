@@ -414,6 +414,46 @@ ${
   return questions;
 }
 
+/** Мұғалімнің файлындағы (не қойған мәтініндегі) тапсырмаларды тест сұрақтарына айналдыру. */
+export async function extractTestFromText(
+  text: string,
+  input: { subject: string; grade: string; topic: string; lang?: Lang },
+): Promise<TestQuestion[]> {
+  const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің. Төменде мұғалімнің өз файлындағы мәтін берілген (тест, тапсырмалар жинағы, жұмыс парағы не оқулық бөлімі).
+Пән: ${input.subject}. Сынып: ${input.grade}.${input.topic ? ` Тақырып: ${input.topic}.` : ""}
+
+МІНДЕТ: мәтіндегі тапсырмаларды көп нұсқалы тест сұрақтарына айналдыр.
+- Мәтінде дайын сұрақтар болса — сол сұрақтарды СӨЗІН ӨЗГЕРТПЕЙ, сол ретпен ал; ойдан жаңа сұрақ қоспа. Тек айқын емле қатесін түзетуге болады.
+- Сұрақтың нұсқалары берілсе — соларды ал ("A)", "1." сияқты белгілерін алып таста). Нұсқалары жоқ сұраққа 4 нұсқа құрастыр: біреуі дұрыс, қалғандары сенімді, бірақ анық қате.
+- Жауап кілті берілсе — "correctIndex"-ті соған сәйкес қой; берілмесе — дұрыс жауапты өзің анықта.
+- Мәтінде сұрақ жоқ болса (тек түсіндірме, оқулық мәтіні) — сол мазмұнға негізделген 10 сұрақ құрастыр.
+- Сұрақ саны 40-тан аспасын.
+- "level": A — білу/түсіну, B — қолдану, C — жоғары деңгей дағдылары.
+- "explanation" — дұрыс жауаптың бір сөйлемдік түсіндірмесі.
+- Түсіндірме мен өзің қосқан нұсқалар ${inLang(input.lang)}; бастапқы сұрақтар өз тілінде қалады.
+
+МӘТІН:
+"""
+${text.slice(0, 30000)}
+"""`;
+  const result = await aiGenerateJson<{ questions: Partial<TestQuestion>[] }>(prompt, testSchema);
+  const questions = (result.questions ?? [])
+    .filter((q) => q.question && Array.isArray(q.options) && q.options.length >= 2)
+    .slice(0, 40)
+    .map((q) => {
+      const options = q.options!.map((o) => o.replace(/^\s*[A-EА-Д1-6][).]\s*/, "")).slice(0, 6);
+      return {
+        question: q.question!.replace(/^\s*\d+[).]\s*/, ""),
+        options,
+        correctIndex: Math.min(Math.max(Number(q.correctIndex) || 0, 0), options.length - 1),
+        explanation: q.explanation ?? "",
+        level: (["A", "B", "C"] as const).find((l) => l === q.level) ?? "A",
+      };
+    });
+  if (questions.length === 0) throw new Error(tr("Файлдан тапсырма табылмады. Басқа файл жүктеп не мәтінін қойып көріңіз."));
+  return questions;
+}
+
 const writtenSchema = {
   type: "OBJECT",
   properties: {

@@ -1,8 +1,10 @@
-import { BookOpenCheck, Check, Download, Eye, EyeOff, FileText, GraduationCap, Globe2, Layers, PenLine, Printer, Sparkles, X, type LucideIcon } from "lucide-react";
+import { BookOpenCheck, Check, Download, Eye, EyeOff, FileText, FileUp, GraduationCap, Globe2, Layers, Pencil, PenLine, Printer, Sparkles, X, type LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { TestSharePanel } from "../components/TestSharePanel";
+import { TestEditor } from "../components/TestEditor";
+import { FILE_ACCEPT, readFileText } from "../lib/fileText";
 import { LiveLauncher } from "../components/LiveLauncher";
 import { LangPicker } from "../components/LangPicker";
 import { useAuth } from "../context/useAuth";
@@ -10,10 +12,11 @@ import { GRADES } from "../lib/catalog";
 import { allowedSubjects, pickSubject } from "../lib/subjects";
 import type { LessonPlan } from "../lib/generators";
 import type { Lang } from "../lib/lang";
-import { getTest, saveTest, type SavedTest, type TaskType } from "../lib/projects";
+import { getTest, saveTest, updateTest, type SavedTest, type TaskType, type TestQuestion } from "../lib/projects";
 import { scrollToResult } from "../lib/scrollToResult";
 import {
   DIFFICULTIES,
+  extractTestFromText,
   generateTest,
   generateWrittenTasks,
   isQuizType,
@@ -44,6 +47,14 @@ function chipClass(active: boolean) {
   }`;
 }
 
+/** Тапсырманы құру тәсілі: AI жасайды, мұғалім өзі жазады не файлдан алынады. */
+type Mode = "ai" | "manual" | "file";
+const MODES: { key: Mode; label: string; icon: LucideIcon }[] = [
+  { key: "ai", label: tr("AI жасайды"), icon: Sparkles },
+  { key: "manual", label: tr("Өзім жазамын"), icon: Pencil },
+  { key: "file", label: tr("Файлдан"), icon: FileUp },
+];
+
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 const ghostBtn =
   "inline-flex items-center gap-2 rounded-[11px] border border-slate-200 bg-surface px-3.5 py-2.5 text-sm font-semibold hover:border-violet-500 hover:text-violet-600";
@@ -73,6 +84,11 @@ export default function TestsPage() {
   const [generating, setGenerating] = useState(false);
   const [showAnswers, setShowAnswers] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [mode, setMode] = useState<Mode>("ai");
+  const [draft, setDraft] = useState<{ questions: TestQuestion[]; source: "manual" | "file" | "edit" } | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
+  const [pasted, setPasted] = useState("");
   const typeDef = taskTypeOf(taskType);
   const quiz = isQuizType(taskType);
 
@@ -145,11 +161,81 @@ export default function TestsPage() {
   function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
     if (generating) return;
+    if (mode === "file") {
+      void runFromFile();
+      return;
+    }
     if (topic.trim().length < 3) {
       setError(tr("Тақырыпты жазыңыз."));
       return;
     }
+    if (mode === "manual") {
+      setError("");
+      setDraft({ questions: [], source: "manual" });
+      scrollToResult();
+      return;
+    }
     void runGenerate();
+  }
+
+  /** Файлдағы (не қойылған мәтіндегі) тапсырмаларды AI тестке айналдырады; мұғалім тексеріп сақтайды. */
+  async function runFromFile() {
+    if (!file && pasted.trim().length < 20) {
+      setError(tr("Файл жүктеңіз немесе тапсырмалар мәтінін қойыңыз."));
+      return;
+    }
+    setGenerating(true);
+    setDraft(null);
+    setError("");
+    scrollToResult();
+    try {
+      const text = file ? await readFileText(file) : pasted.trim();
+      if (!topic.trim() && file) setTopic(file.name.replace(/\.[^.]+$/, "").slice(0, 200));
+      const questions = await extractTestFromText(text, { subject, grade, topic: topic.trim(), lang });
+      setDraft({ questions, source: "file" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tr("Файлдан тапсырма алу мүмкін болмады."));
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  /** Редактордағы сұрақтарды сақтау: жаңа тест не бұрынғы тестті жаңарту. */
+  async function saveDraft(questions: TestQuestion[]) {
+    if (!draft) return;
+    setSavingDraft(true);
+    setError("");
+    try {
+      if (draft.source === "edit" && test) {
+        const { id: _id, savedAt: _at, ...data } = test;
+        void _id;
+        void _at;
+        await updateTest(test.id, { ...data, questions });
+        setTest({ ...test, questions });
+      } else {
+        const name = topic.trim() || (file ? file.name.replace(/\.[^.]+$/, "") : tr("Тест"));
+        setTest(
+          await saveTest({
+            subject,
+            grade,
+            topic: name.slice(0, 300),
+            difficulty,
+            objective: objective.trim() || undefined,
+            taskType: "levels",
+            lang,
+            source: draft.source === "file" ? "file" : "manual",
+            questions,
+          }),
+        );
+      }
+      setDraft(null);
+      setShowAnswers(true);
+      scrollToResult();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : tr("Сақтау мүмкін болмады."));
+    } finally {
+      setSavingDraft(false);
+    }
   }
 
   async function handleDocx() {
@@ -192,6 +278,36 @@ export default function TestsPage() {
           )}
 
           <fieldset>
+            <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Құру тәсілі")}</legend>
+            <div className="grid grid-cols-3 gap-1.5 rounded-[14px] bg-slate-100 p-1">
+              {MODES.map((m) => (
+                <button
+                  key={m.key}
+                  type="button"
+                  aria-pressed={mode === m.key}
+                  onClick={() => {
+                    setMode(m.key);
+                    setError("");
+                  }}
+                  className={`flex flex-col items-center gap-1 rounded-[11px] px-1.5 py-2 text-[12.5px] font-semibold transition ${
+                    mode === m.key ? "bg-surface text-violet-700 shadow-sm" : "text-slate-500 hover:text-slate-800"
+                  }`}
+                >
+                  <m.icon size={17} /> {m.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-[12px] text-slate-500">
+              {mode === "ai"
+                ? tr("AI тақырып бойынша тапсырмаларды жауап кілтімен құрастырады.")
+                : mode === "manual"
+                  ? tr("Сұрақтарды, жауап нұсқаларын және дұрыс жауапты өзіңіз жазасыз. Тест оқушыларға сілтемемен жіберіледі және автоматты тексеріледі.")
+                  : tr("Өз файлыңызды жүктеңіз (Word, PDF, мәтін) — AI ондағы тапсырмаларды тестке айналдырады, сіз тексеріп сақтайсыз.")}
+            </p>
+          </fieldset>
+
+          {mode === "ai" && (
+          <fieldset>
             <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тапсырма түрі")}</legend>
             <div className="flex flex-col gap-2">
               {TASK_TYPES.map((t) => {
@@ -219,6 +335,41 @@ export default function TestsPage() {
               })}
             </div>
           </fieldset>
+          )}
+
+          {mode === "file" && (
+            <div className="flex flex-col gap-2">
+              <label className="flex cursor-pointer flex-col items-center gap-1.5 rounded-[14px] border-2 border-dashed border-violet-300 bg-violet-50/40 px-4 py-5 text-center hover:bg-violet-50">
+                <FileUp size={22} className="text-violet-600" />
+                <span className="text-sm font-semibold">{file ? file.name : tr("Файлды таңдаңыз")}</span>
+                <span className="text-[12px] text-slate-500">{tr("Word (.docx), PDF немесе .txt · 20 MB-қа дейін")}</span>
+                <input
+                  type="file"
+                  accept={FILE_ACCEPT}
+                  className="sr-only"
+                  onChange={(e) => {
+                    setFile(e.target.files?.[0] ?? null);
+                    setError("");
+                  }}
+                />
+              </label>
+              {file && (
+                <button type="button" onClick={() => setFile(null)} className="self-start text-[12.5px] font-semibold text-slate-500 hover:text-rose-600">
+                  × {tr("Файлды алып тастау")}
+                </button>
+              )}
+              {!file && (
+                <textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  rows={4}
+                  maxLength={30000}
+                  placeholder={tr("…немесе тапсырмалар мәтінін осында қойыңыз")}
+                  className={`${fieldClass} resize-y`}
+                />
+              )}
+            </div>
+          )}
 
           <LangPicker value={lang} onChange={setLang} />
 
@@ -262,6 +413,8 @@ export default function TestsPage() {
               ))}
             </datalist>
           </label>
+          {mode === "ai" && (
+          <>
           <div>
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">{typeDef.unit === "сұрақ" ? tr("Сұрақ саны") : tr("Тапсырма саны")}</span>
             <div className="grid grid-cols-4 gap-2">
@@ -304,6 +457,8 @@ export default function TestsPage() {
               className={`${fieldClass} resize-y`}
             />
           </label>
+          </>
+          )}
           {error && (
             <p role="alert" className="rounded-xl bg-rose-50 px-3.5 py-2.5 text-sm text-rose-700">
               {error}
@@ -314,16 +469,32 @@ export default function TestsPage() {
             disabled={generating}
             className="flex w-full items-center justify-center gap-2.5 rounded-[14px] bg-violet-600 px-5 py-3.5 text-[15px] font-semibold text-white transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
           >
-            <Sparkles size={17} className={generating ? "animate-spin" : ""} />
-            {generating ? tr("Құрастырылуда...") : tr("Тапсырма жасау")}
+            {mode === "manual" ? <Pencil size={17} /> : mode === "file" ? <FileUp size={17} className={generating ? "animate-pulse" : ""} /> : <Sparkles size={17} className={generating ? "animate-spin" : ""} />}
+            {generating ? tr("Құрастырылуда...") : mode === "manual" ? tr("Сұрақтарды жазу") : mode === "file" ? tr("Файлдан тапсырма алу") : tr("Тапсырма жасау")}
           </button>
         </form>
 
         <section id="result" className="min-w-0 flex-[1_1_560px] scroll-mt-28" aria-live="polite">
-          {generating ? (
+          {draft && !generating ? (
+            <TestEditor
+              key={draft.source}
+              initial={draft.questions}
+              saving={savingDraft}
+              title={draft.source === "edit" ? tr("Тестті өңдеу") : draft.source === "file" ? tr("Файлдан алынған тапсырмалар") : tr("Өз сұрақтарыңыз")}
+              hint={
+                draft.source === "file"
+                  ? tr("AI файлдағы тапсырмаларды тестке айналдырды. Әр сұрақты, дұрыс жауапты және деңгейін тексеріп, қажет болса түзетіп, сақтаңыз.")
+                  : draft.source === "edit"
+                    ? tr("Сұрақтарды түзетіңіз, жойыңыз не өз сұрағыңызды қосыңыз. Оқушылар тапсырып қойған болса, бұрынғы нәтижелер жаңа сұрақтарға сәйкес келмеуі мүмкін.")
+                    : tr("Сұрақ мәтінін, жауап нұсқаларын жазып, дұрыс жауапты белгілеңіз. A — білу/түсіну, B — қолдану, C — жоғары деңгей.")
+              }
+              onSave={(q) => void saveDraft(q)}
+              onCancel={() => setDraft(null)}
+            />
+          ) : generating ? (
             <div className="flex min-h-[420px] flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-surface">
               <Sparkles size={34} className="animate-spin text-violet-500" />
-              <div className="text-base">{typeDef.label} {tr("құрастырылуда...")}</div>
+              <div className="text-base">{mode === "file" ? tr("Файлдағы тапсырмалар оқылуда...") : `${typeDef.label} ${tr("құрастырылуда...")}`}</div>
               <div className="text-[12.5px] text-slate-500">{tr("Әдетте 10–40 секунд алады")}</div>
             </div>
           ) : !test ? (
@@ -331,14 +502,24 @@ export default function TestsPage() {
               <span className="flex h-[72px] w-[72px] items-center justify-center rounded-[20px] bg-violet-100 text-violet-500">
                 <FileText size={32} />
               </span>
-              <div className="text-base text-slate-900">{tr("Тапсырма түрін таңдап, «Тапсырма жасау» батырмасын басыңыз")}</div>
+              <div className="text-base text-slate-900">
+                {mode === "manual"
+                  ? tr("Тақырыпты жазып, «Сұрақтарды жазу» батырмасын басыңыз")
+                  : mode === "file"
+                    ? tr("Файл жүктеп, «Файлдан тапсырма алу» батырмасын басыңыз")
+                    : tr("Тапсырма түрін таңдап, «Тапсырма жасау» батырмасын басыңыз")}
+              </div>
               <div className="text-[13.5px]">{tr("Дайын тапсырмалар осы жерде пайда болады және «Жобалар» бөлімінде сақталады.")}</div>
             </div>
           ) : (
             <article className="flex animate-[fadeUp_.5s_cubic-bezier(.16,1,.3,1)_both] flex-col gap-6 rounded-[22px] border border-slate-200 bg-surface p-6 sm:p-8 print:border-0 print:p-0">
               <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-slate-900 pb-4">
                 <div>
-                  <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">{shownType.label}</div>
+                  <div className="mb-1 text-[12.5px] font-semibold uppercase tracking-wide text-violet-600">
+                    {shownType.label}
+                    {test.source === "manual" && <span className="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] normal-case text-emerald-700">{tr("Мұғалім жазған")}</span>}
+                    {test.source === "file" && <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-[11px] normal-case text-sky-700">{tr("Файлдан")}</span>}
+                  </div>
                   <h2 className="text-[22px] font-bold">{test.topic}</h2>
                   <div className="mt-1 text-slate-500">
                     {tr(test.subject)} · {tr(test.grade)} · {tr("Қиындығы:")} {tr(test.difficulty)} ·{" "}
@@ -433,6 +614,11 @@ export default function TestsPage() {
                   {showAnswers ? <EyeOff size={15} /> : <Eye size={15} />}
                   {showAnswers ? tr("Жауаптарды жасыру") : written ? tr("Жауаптар мен дескрипторлар") : tr("Жауаптарды көрсету")}
                 </button>
+                {!written && test.questions.length > 0 && (
+                  <button type="button" onClick={() => setDraft({ questions: test.questions, source: "edit" })} className={ghostBtn}>
+                    <Pencil size={15} /> {tr("Өңдеу / сұрақ қосу")}
+                  </button>
+                )}
                 <button type="button" onClick={handleDocx} disabled={exporting} className={ghostBtn}>
                   <Download size={15} /> {exporting ? tr("Дайындалуда...") : tr("Word түрінде жүктеу")}
                 </button>
@@ -445,8 +631,8 @@ export default function TestsPage() {
               </div>
             </article>
           )}
-          {test && !generating && isQuizType(test.taskType) && <LiveLauncher key={`live-${test.id}`} test={test} />}
-          {test && !generating && isQuizType(test.taskType) && <TestSharePanel key={test.id} test={test} />}
+          {test && !generating && !draft && isQuizType(test.taskType) && <LiveLauncher key={`live-${test.id}`} test={test} />}
+          {test && !generating && !draft && isQuizType(test.taskType) && <TestSharePanel key={test.id} test={test} />}
         </section>
       </div>
     </div>
