@@ -69,6 +69,8 @@ interface TestData {
   tasks?: WrittenTask[];
   /** Материал тілі (жоқ болса — қазақша). */
   lang?: Lang;
+  /** Қалай жасалды: AI, мұғалімнің өзі не файлдан (жоқ болса — AI). */
+  source?: "ai" | "manual" | "file";
 }
 
 interface Saved {
@@ -241,6 +243,19 @@ export async function getImages(): Promise<SavedImage[]> {
 export async function saveTest(t: TestData): Promise<SavedTest> {
   const n = t.tasks?.length ? `${t.tasks.length} тапсырма` : `${t.questions.length} сұрақ`;
   return toTest(await create("test", t.topic, `${t.subject} · ${t.grade} · ${n}`, t));
+}
+/** Өңделген тестті (мұғалім қосқан/түзеткен сұрақтар) сол жобаның үстіне сақтайды. */
+export async function updateTest(id: string, t: TestData): Promise<void> {
+  const n = t.tasks?.length ? `${t.tasks.length} тапсырма` : `${t.questions.length} сұрақ`;
+  const { data, error } = await supabase
+    .from("projects")
+    .update({ title: t.topic.slice(0, 300), detail: `${t.subject} · ${t.grade} · ${n}`, data: t })
+    .eq("id", id)
+    .select("id");
+  if (error) throw wrapError(error);
+  if (!data?.length) {
+    throw new ProjectsError(tr("Өзгерістер сақталмады. Әкімші Supabase-те supabase/update-3-editing-sharing.sql файлын орындауы керек."));
+  }
 }
 export async function getTest(id: string): Promise<SavedTest | null> {
   const row = await getRow(id, "test");
