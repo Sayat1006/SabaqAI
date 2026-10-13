@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сиқырлы көңіл-күй дөңгелегі</title>
+<!-- Nunito қарпінде қазақ әріптері (ә, ғ, қ, ң, ө, ұ, ү, һ, і) толық бар. Интернет болмаса — төмендегі жүйелік қаріптер. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&subset=cyrillic,cyrillic-ext&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#202b78;--purple:#7548f5;--pink:#ff56ae;--yellow:#ffd94f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Nunito","Segoe UI","Noto Sans","Roboto","Helvetica Neue",Arial,sans-serif;color:var(--ink);background:radial-gradient(circle at 8% 10%,#fff4b6 0 8%,transparent 8.5%),linear-gradient(135deg,#b5f4f0,#dceeff 48%,#f7e2ff);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body:before{content:"✦   ✧    ★    ✦   ✧    ★    ✦";position:fixed;top:12px;left:10px;right:0;color:#fff;font-size:24px;letter-spacing:16px;opacity:.8;pointer-events:none;white-space:nowrap;overflow:hidden}
+button{font-family:inherit}
+button:focus-visible{outline:4px solid #ffbd26;outline-offset:3px}
+.page{position:relative;z-index:1;width:min(1100px,calc(100vw - 32px));margin:auto;padding:23px 0 30px}
+header{text-align:center}
+.tag{display:inline-block;background:#fff;border-radius:999px;padding:8px 16px;color:#d63384;font-weight:900;box-shadow:0 4px 0 #d3dcff;transform:rotate(-2deg)}
+h1{font-size:clamp(2.1rem,6.2vw,4.4rem);line-height:1.15;margin:18px 0 10px;color:#ff9f1c;font-weight:900;text-shadow:2px 3px 0 #fff,4px 6px 0 #8d58f4;letter-spacing:0;overflow-wrap:anywhere}
+.subtitle{font-weight:800;font-size:clamp(1rem,2.3vw,1.25rem);margin:17px auto 0;line-height:2}
+.subtitle span{background:#fff0a0;border-radius:12px;padding:6px 14px;box-decoration-break:clone;-webkit-box-decoration-break:clone}
+.layout{display:grid;grid-template-columns:minmax(0,1.03fr) minmax(0,.97fr);gap:25px;align-items:center;margin-top:30px}
+.wheel-panel{background:#ffffff9c;border:4px solid #fff;border-radius:32px;padding:clamp(14px,3vw,25px);box-shadow:0 10px 0 #a7d7ed,0 18px 35px #394e8220;text-align:center}
+.wheel-wrap{position:relative;width:min(100%,440px);aspect-ratio:1;margin:0 auto}
+.pointer{position:absolute;z-index:3;top:-9px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:38px solid #ffbd26;filter:drop-shadow(0 3px 0 #a95cce)}
+.wheel{position:absolute;inset:0;border-radius:50%;border:9px solid #7548f5;outline:5px solid #fff;box-shadow:0 0 0 10px #f6bcff,0 12px 0 #5832bc,0 17px 24px #28327b35;overflow:hidden;transition:transform 4.4s cubic-bezier(.12,.72,.1,1);container-type:size}
+.wheel:after{content:"";position:absolute;inset:0;border-radius:50%;border:4px dotted #fff9;pointer-events:none}
+.center{position:absolute;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%);width:20%;aspect-ratio:1;border-radius:50%;background:linear-gradient(145deg,#ffe979,#ffad21);border:5px solid #fff;box-shadow:0 0 0 5px #9b53f5,0 5px 0 #b76b16;display:grid;place-items:center;font-size:clamp(1.6rem,4vw,2.8rem)}
+/* Жазу өз бөлігімен бірге айналады: нұсқағыштың астына келген тапсырма әрқашан тік оқылады.
+   Орны дөңгелек өлшеміне қарай есептеледі (cqw), сондықтан кез келген экранда шетке шықпайды. */
+.wheel-label{position:absolute;width:21%;left:50%;top:50%;transform:translate(-50%,-50%) rotate(var(--angle)) translateY(-31cqw);display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;color:#fff;font-weight:900;font-size:clamp(.62rem,3.4cqw,.95rem);line-height:1.15;text-shadow:0 1px 2px #2a1566,0 0 4px #39207b99;padding:2px;pointer-events:none;hyphens:manual;overflow-wrap:normal}
+.wheel-label .emoji{font-size:clamp(1rem,6.5cqw,1.8rem);margin-bottom:2px;line-height:1}
+.spin-btn{margin-top:29px;border:0;border-radius:18px;background:linear-gradient(135deg,#8855ff,#642ce5);color:#fff;font-size:clamp(1.05rem,2.5vw,1.3rem);font-weight:900;padding:15px 28px;box-shadow:0 7px 0 #4222ad,0 12px 20px #4631a833;cursor:pointer;transition:transform .15s;min-width:220px}
+.spin-btn:hover{transform:translateY(-2px)}.spin-btn:active{transform:translateY(4px);box-shadow:0 3px 0 #4222ad}.spin-btn:disabled{opacity:.7;cursor:wait;transform:none}
+.tip{font-weight:800;margin:20px 0 0;color:#4f5990}
+.result-card{border:5px solid #fff;border-radius:30px;background:linear-gradient(145deg,#fffef9,#fff5fc);padding:clamp(20px,3.5vw,32px);box-shadow:0 10px 0 #8dddf0,0 18px 35px #394e8220;text-align:center;min-height:385px;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.result-badge{font-weight:900;background:#e8f8ff;border-radius:999px;padding:8px 15px;color:#3854bb}
+.result-emoji{font-size:clamp(3.5rem,7vw,5.5rem);margin:10px 0 0;filter:drop-shadow(0 4px 0 #ffe1a5)}
+.result-card h2{font-size:clamp(1.7rem,4vw,2.5rem);line-height:1.2;margin:6px 0 13px;color:#e0408d;font-weight:900}
+.result-text{font-size:clamp(1.05rem,2.2vw,1.2rem);line-height:1.6;font-weight:700;margin:0;max-width:430px}
+.result-small{font-size:.98rem;color:#535c92;margin:15px 0 0;font-weight:800;line-height:1.5}
+.controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px}
+.action{border:0;border-radius:15px;padding:12px 16px;font-size:1rem;font-weight:900;cursor:pointer;background:#e9e3ff;color:#5733c2;box-shadow:0 4px 0 #c3b5ff}
+.action:active{transform:translateY(3px);box-shadow:0 1px 0 #c3b5ff}
+.action:disabled{opacity:.6;cursor:wait}
+.action.blue{background:#dff5ff;color:#1768b5;box-shadow:0 4px 0 #9cd9f3}
+.action.pink{background:#ffe1f2;color:#b42e78;box-shadow:0 4px 0 #ffc0e1}
+.action.speaking{background:#ffd0ea}
+.voice-note{margin:14px auto 0;max-width:460px;font-size:.88rem;font-weight:700;line-height:1.45;color:#535c92;text-align:center}
+.voice-note.warn{background:#fff7d6;border:2px dashed #ffd36b;border-radius:14px;padding:8px 12px;color:#7a5a00}
+.footer{margin:26px auto 0;max-width:750px;text-align:center;background:#ffffff9c;border:2px dashed #fff;border-radius:18px;padding:14px;font-weight:800;line-height:1.5}
+.footer b{color:#d63384}
+.confetti{position:fixed;top:-25px;z-index:9;pointer-events:none;animation:fall 2s linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(600deg);opacity:.15}}
+@media(max-width:760px){.layout{grid-template-columns:1fr;gap:23px}.wheel-wrap{width:min(100%,390px)}.result-card{min-height:300px}.spin-btn{margin-top:26px}}
+@media(max-width:420px){.wheel{border-width:7px}.center{border-width:3px}.spin-btn{min-width:0;width:100%}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+<header>
+  <div class="tag">💗 Бірге көңілді болайық!</div>
+  <h1>Сиқырлы көңіл-күй дөңгелегі</h1>
+  <p class="subtitle"><span>🎡 Дөңгелекті айналдыр да, өзіңе арналған жағымды тапсырманы орында!</span></p>
+</header>
+<section class="layout">
+  <div class="wheel-panel">
+    <div class="wheel-wrap">
+      <div class="pointer" aria-hidden="true"></div>
+      <div class="wheel" id="wheel" role="img" aria-label="Он тапсырмасы бар көңіл-күй дөңгелегі"></div>
+      <div class="center" aria-hidden="true">⭐</div>
+    </div>
+    <button type="button" class="spin-btn" id="spinBtn">🔄 Айналдыру</button>
+    <p class="tip">✨ Саған қай тапсырма түсер екен?</p>
+  </div>
+  <div>
+    <div class="result-card" aria-live="polite">
+      <div class="result-badge" id="badge">🌟 СЕНІҢ ТАПСЫРМАҢ</div>
+      <div class="result-emoji" id="resultEmoji" aria-hidden="true">😊</div>
+      <h2 id="resultTitle">Дайынсың ба?</h2>
+      <p class="result-text" id="resultText">«Айналдыру» батырмасын басып, көңілді тапсырмаңды біл!</p>
+      <p class="result-small" id="resultSmall">Әр кішкентай әрекет — жақсы көңіл-күйге бастайтын қадам 💖</p>
+    </div>
+    <div class="controls">
+      <button type="button" class="action pink" id="speakBtn">🗣️ Дауыстап оқу</button>
+      <button type="button" class="action blue" id="nextBtn">🎲 Келесі тапсырма</button>
+      <button type="button" class="action" id="soundBtn" aria-pressed="true">🔔 Дыбыс: қосулы</button>
+    </div>
+    <p class="voice-note" id="voiceNote" hidden></p>
+  </div>
+</section>
+<div class="footer">🌈 <b>Есіңде болсын:</b> біз жарысу үшін емес, бір-бірімізге қуаныш сыйлау үшін ойнаймыз!</div>
+</div>
+<script>
+const tasks=[
+ {emoji:"😊",short:"Күлімде!",title:"Күлімде!",text:"Жымиып, айналаңдағыларға жақсы көңіл-күй сыйла!",extra:"Күлкі жүрекке жылу береді."},
+ {emoji:"👏",short:"Шапалақ!",title:"Қол шапалақта!",text:"Ырғақпен үш рет қол шапалақта: бір, екі, үш!",extra:"Өзіңді-өзің қолдауды ұмытпа!"},
+ {emoji:"💗",short:"Жылы сөз",title:"Жылы сөз айт!",text:"Жаныңдағы сыныптасыңа бір жақсы сөз немесе тілек айт.",extra:"Жылы сөз адамды қуантады."},
+ {emoji:"🦘",short:"Секір!",title:"Бір рет секір!",text:"Орныңнан тұрып, бір рет жеңіл секір немесе қолыңды жоғары көтер.",extra:"Қозғалыс көңіл-күйді көтереді."},
+ {emoji:"🤗",short:"Құшақта!",title:"Досыңды құшақта!",text:"Досың келіссе, оны құшақта немесе оған достық белгісін көрсет.",extra:"Достық — үлкен қуаныш!"},
+ {emoji:"🌈",short:"Арманың",title:"Арманыңды айт!",text:"Үйренгің келетін бір нәрсені ойлап, оны айтып бер.",extra:"Арман саған жол көрсетеді."},
+ {emoji:"👍",short:"Тамаша күн!",title:"Бүгін тамаша күн!",text:"Бас бармағыңды көтеріп: «Мен бүгін жаңа нәрсе үйренемін!» деп айт.",extra:"Жаңа күн — жаңа мүмкіндік!"},
+ {emoji:"💛",short:"Өзіңе сен!",title:"Өзіңе сен!",text:"Өзіңе: «Менің қолымнан келеді, мен тырысамын!» деп айт.",extra:"Сенің талпынысың маңызды."},
+ {emoji:"🌬️",short:"Дем ал!",title:"Терең дем ал!",text:"Баяу терең дем алып, ақырын шығар. Иығыңды босат.",extra:"Бір сәт тынығып, сабаққа дайындал."},
+ {emoji:"💃",short:"Биле!",title:"Биле!",text:"Қолыңды бұлғап немесе иығыңды қозғап, кішкене билеп ал.",extra:"Өзіңе ұнайтын қимылды таңда."}
+];
+const colors=["#f2701d","#e83e8c","#8a4af0","#0f9fd6","#16a88a","#d9367f","#9150e8","#2a96d4","#e8a215","#3aa865"];
+const $=id=>document.getElementById(id);
+const wheel=$("wheel");
+const anglePer=360/tasks.length;
+wheel.style.background=`conic-gradient(${tasks.map((t,i)=>`${colors[i]} ${i*anglePer}deg ${(i+1)*anglePer}deg`).join(",")})`;
+tasks.forEach((t,i)=>{
+ const label=document.createElement("div");
+ label.className="wheel-label";
+ label.style.setProperty("--angle",`${i*anglePer+anglePer/2}deg`);
+ label.innerHTML=`<span class="emoji">${t.emoji}</span><span>${t.short}</span>`;
+ wheel.appendChild(label);
+});
+
+let rotation=0,spinning=false,current=-1,soundOn=true,audioCtx;
+
+/* ---------- Дыбыс эффектілері ---------- */
+function tone(freq=650,duration=.15){if(!soundOn)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==="suspended")audioCtx.resume();const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type="sine";o.frequency.value=freq;g.gain.setValueAtTime(.06,audioCtx.currentTime);g.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+duration)}catch(e){}}
+
+/* ---------- Қазақша дауыстап оқу ----------
+   1) Құрылғыда қазақ дауысы (kk-KZ) болса — соны қолданамыз.
+   2) Болмаса — орыс дауысына қазақ әріптерін жуық дыбыстарға ауыстырып береміз
+      (әйтпесе ә, ғ, қ, ң, ө, ұ, ү, һ, і әріптері оқылмай қалады не бұзылып шығады).
+   3) Дауыстар браузерде кешігіп жүктеледі — voiceschanged оқиғасын күтеміз. */
+const synth=("speechSynthesis" in window)?window.speechSynthesis:null;
+let voices=[];
+function rankVoice(v){let s=0;if(/natural|online|neural|premium|enhanced/i.test(v.name))s+=3;if(/google|microsoft/i.test(v.name))s+=1;if(v.localService===false)s+=1;return s}
+function bestVoice(test){return voices.filter(test).sort((a,b)=>rankVoice(b)-rankVoice(a))[0]||null}
+function pickVoice(){
+ const kk=bestVoice(v=>/^kk([-_]|$)/i.test(v.lang)||/kazakh|қазақ|kazak/i.test(v.name));
+ if(kk)return{voice:kk,mode:"kk"};
+ const ru=bestVoice(v=>/^ru([-_]|$)/i.test(v.lang));
+ if(ru)return{voice:ru,mode:"ru"};
+ return{voice:null,mode:"none"};
+}
+const CONS=/[бвгғджзйкқлмнңпрстфхһцчшщ]/i;
+function kkToRu(text){
+ return text.replace(/[әғқңөұүһіӘҒҚҢӨҰҮҺІ]/g,(ch,idx,str)=>{
+  const low=ch.toLowerCase();
+  const afterCons=CONS.test(str[idx-1]||"");
+  const map={"ә":afterCons?"я":"э","ө":afterCons?"ё":"о","ү":afterCons?"ю":"у","ұ":"у","ғ":"г","қ":"к","ң":"нг","һ":"х","і":"и"};
+  const r=map[low];
+  return ch===low?r:r.charAt(0).toUpperCase()+r.slice(1);
+ });
+}
+function cleanForSpeech(text){
+ return text
+  .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,"") // эмодзилер
+  .replace(/[«»"“”]/g,"")
+  .replace(/\s+—\s+/g,", ")
+  .replace(/\s+/g," ").trim();
+}
+function updateVoiceNote(){
+ const note=$("voiceNote");
+ if(!synth){note.hidden=false;note.className="voice-note warn";note.textContent="⚠️ Бұл браузер дауыстап оқуды қолдамайды. Chrome немесе Microsoft Edge браузерін қолданыңыз.";return}
+ if(!voices.length)return;
+ const {voice,mode}=pickVoice();
+ note.hidden=false;
+ if(mode==="kk"){note.className="voice-note";note.textContent="🔊 Қазақша дауыс: "+voice.name.replace(/\s*\(.*\)\s*/,"")}
+ else{note.className="voice-note warn";note.textContent="⚠️ Құрылғыда қазақ тіліндегі дауыс табылмады, сондықтан мәтін жуықтап оқылады. Таза қазақша дыбыстау үшін Microsoft Edge браузерінде ашыңыз (Aigul / Daulet дауыстары) немесе Windows параметрлерінде қазақ тілінің сөйлеу пакетін орнатыңыз."}
+}
+function loadVoices(){if(!synth)return;voices=synth.getVoices();updateVoiceNote()}
+if(synth){loadVoices();synth.addEventListener?synth.addEventListener("voiceschanged",loadVoices):(synth.onvoiceschanged=loadVoices)}
+else updateVoiceNote();
+
+let speakTimer;
+function speak(text){
+ if(!synth)return;
+ synth.cancel();clearTimeout(speakTimer);
+ const {voice,mode}=pickVoice();
+ let clean=cleanForSpeech(text);
+ if(mode==="ru")clean=kkToRu(clean);
+ // Chrome ұзын мәтінді ортасынан үзіп тастайды, сондықтан сөйлемдерге бөлеміз
+ const parts=clean.match(/[^.!?]+[.!?]*/g)||[clean];
+ const btn=$("speakBtn");
+ // cancel()-дан кейін бірден speak() шақырса, кейбір браузерлер үндемей қалады
+ speakTimer=setTimeout(()=>{
+  parts.map(s=>s.trim()).filter(Boolean).forEach((p,i,arr)=>{
+   const u=new SpeechSynthesisUtterance(p);
+   if(voice){u.voice=voice;u.lang=voice.lang}else u.lang="kk-KZ";
+   u.rate=mode==="kk"?.9:.85;u.pitch=1.05;u.volume=1;
+   if(i===0)u.onstart=()=>btn.classList.add("speaking");
+   if(i===arr.length-1){u.onend=u.onerror=()=>btn.classList.remove("speaking")}
+   synth.speak(u);
+  });
+ },120);
+}
+function taskSpeech(t){return t.title+" "+t.text+" "+t.extra}
+
+/* ---------- Ойын ---------- */
+function confetti(){const a=["🎉","✨","💖","⭐","🌈"];for(let i=0;i<22;i++){const e=document.createElement("span");e.className="confetti";e.textContent=a[Math.floor(Math.random()*a.length)];e.style.left=Math.random()*100+"vw";e.style.fontSize=(16+Math.random()*18)+"px";e.style.animationDelay=Math.random()*.4+"s";document.body.appendChild(e);setTimeout(()=>e.remove(),2400)}}
+function showTask(i){
+ current=i;const t=tasks[i];
+ $("badge").textContent="🌟 ТАПСЫРМА № "+(i+1);
+ $("resultEmoji").textContent=t.emoji;
+ $("resultTitle").textContent=t.title;
+ $("resultText").textContent=t.text;
+ $("resultSmall").textContent=t.extra;
+ document.querySelector(".result-card").animate([{transform:"scale(.96)",opacity:.7},{transform:"scale(1)",opacity:1}],{duration:350});
+ tone(650+i*32);confetti();
+ if(soundOn)speak(taskSpeech(t));
+}
+function setBusy(b){spinning=b;$("spinBtn").disabled=b;$("nextBtn").disabled=b}
+// «Келесі тапсырма» да дөңгелекті айналдырады — нұсқағыш әрқашан шыққан тапсырманы көрсетеді
+function spin(excludeCurrent){
+ if(spinning)return;
+ if(synth)synth.cancel();
+ setBusy(true);
+ let i;do{i=Math.floor(Math.random()*tasks.length)}while(excludeCurrent&&i===current);
+ const targetMod=(360-(i*anglePer+anglePer/2))%360;
+ const currentMod=((rotation%360)+360)%360;
+ const delta=(targetMod-currentMod+360)%360;
+ rotation+=360*5+delta;
+ wheel.style.transform=`rotate(${rotation}deg)`;
+ tone(400,.2);
+ const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+ setTimeout(()=>{setBusy(false);showTask(i)},reduce?300:4500);
+}
+$("spinBtn").addEventListener("click",()=>spin(false));
+$("nextBtn").addEventListener("click",()=>spin(true));
+$("speakBtn").addEventListener("click",()=>{
+ if(current<0){speak("Айналдыру батырмасын басып, тапсырмаңды біл!");return}
+ speak(taskSpeech(tasks[current]));
+});
+$("soundBtn").addEventListener("click",e=>{
+ soundOn=!soundOn;
+ const b=e.currentTarget;
+ b.textContent=soundOn?"🔔 Дыбыс: қосулы":"🔕 Дыбыс: өшірулі";
+ b.setAttribute("aria-pressed",String(soundOn));
+ if(soundOn)tone();else if(synth)synth.cancel();
+});
+</script>
+</body>
+</html>

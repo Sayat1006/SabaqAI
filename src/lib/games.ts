@@ -28,6 +28,17 @@ export const GAMES: Game[] = [
     src: "/games/robo-algoritm.html",
     skills: [tr("Алгоритм құру"), tr("Цикл"), tr("Қатені түзету (debugging)"), tr("3 деңгей")],
   },
+  {
+    id: "konil-kui-dongelegi",
+    emoji: "🎡",
+    title: tr("Сиқырлы көңіл-күй дөңгелегі"),
+    subject: "Сынып сағаты",
+    grade: "1–4-сынып",
+    topic: tr("Жағымды көңіл-күй"),
+    description: tr("Сабақ басындағы сергіту сәті: оқушы дөңгелекті айналдырып, күлімдеу, жылы сөз айту, терең дем алу сияқты жағымды тапсырманы орындайды. Тапсырма қазақша дауыстап оқылады."),
+    src: "/games/konil-kui-dongelegi.html",
+    skills: [tr("Сергіту сәті"), tr("Ынтымақтастық"), tr("Дауыстап оқу")],
+  },
 ];
 
 export const gameUrl = (g: Game) => `${window.location.origin}${g.src}`;
