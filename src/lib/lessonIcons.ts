@@ -1,0 +1,40 @@
+// Сабақ слайдтарындағы белгішелер (экранда да, PowerPoint-та да бірдей).
+import {
+  Atom,
+  BookOpen,
+  Brain,
+  CircleQuestionMark,
+  Gamepad2,
+  HeartHandshake,
+  House,
+  Image as ImageIcon,
+  KeyRound,
+  Layers,
+  Lightbulb,
+  Pencil,
+  PersonStanding,
+  Smile,
+  Star,
+  Target,
+  type LucideIcon,
+} from "lucide-react";
+import type { IconName } from "./lessonDeck";
+
+export const LESSON_ICONS: Record<IconName, LucideIcon> = {
+  atom: Atom,
+  target: Target,
+  brain: Brain,
+  star: Star,
+  help: CircleQuestionMark,
+  bulb: Lightbulb,
+  book: BookOpen,
+  image: ImageIcon,
+  pencil: Pencil,
+  run: PersonStanding,
+  layers: Layers,
+  key: KeyRound,
+  game: Gamepad2,
+  smile: Smile,
+  home: House,
+  hands: HeartHandshake,
+};

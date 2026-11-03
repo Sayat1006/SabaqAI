@@ -2,6 +2,8 @@
 // өз өрістерін пайдаланады, қалғандары бос қалады. Ескі сақталған презентациялар
 // (title/bullets/two_column/highlight/quiz/closing) да осы пішімге сай келеді.
 
+import { normalizeLesson, type LessonSlide } from "./lessonDeck";
+
 export type SlideLayout =
   | "title"
   | "bullets"
@@ -14,7 +16,9 @@ export type SlideLayout =
   | "timeline"
   | "quiz"
   | "task"
-  | "closing";
+  | "closing"
+  /** ҚМЖ үлгісіндегі сабақ слайды: мазмұны `lesson` өрісінде (lessonDeck.ts). */
+  | "lesson";
 
 export interface SlideData {
   layout: SlideLayout;
@@ -53,9 +57,10 @@ export interface SlideData {
   /** task: тапсырма шарты, орындау қадамдары (bullets) және жауабы. */
   task_text?: string;
   answer?: string;
+  lesson?: LessonSlide;
 }
 
-const LAYOUTS: SlideLayout[] = ["title", "bullets", "image", "diagram", "chart", "table", "two_column", "highlight", "timeline", "quiz", "task", "closing"];
+const LAYOUTS: SlideLayout[] = ["title", "bullets", "image", "diagram", "chart", "table", "two_column", "highlight", "timeline", "quiz", "task", "closing", "lesson"];
 
 const strs = (v: unknown, max = 8): string[] =>
   Array.isArray(v) ? v.filter((x) => typeof x === "string" && x.trim()).map((x: string) => x.trim()).slice(0, max) : [];
@@ -102,7 +107,10 @@ export function normalizeSlide(raw: Partial<SlideData> & Record<string, unknown>
     explanation: str(raw.explanation),
     task_text: str(raw.task_text),
     answer: str(raw.answer),
+    lesson: normalizeLesson(raw.lesson),
   };
+  if (layout === "lesson" && !s.lesson) layout = "bullets";
+  if (layout !== "lesson") delete s.lesson;
 
   // Мазмұны жетіспейтін макеттерді қарапайымға ауыстырамыз, сонда бос слайд көрінбейді.
   const fallback = (): SlideLayout => (s.bullets.length ? "bullets" : s.highlight ? "highlight" : "bullets");
