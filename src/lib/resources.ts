@@ -16,24 +16,26 @@ export type ResourcePlatform =
   | "mentimeter"
   | "canva"
   | "google_forms"
+  | "opiq"
   | "custom";
 
 const google = (site: string) => (q: string) => `https://www.google.com/search?q=${encodeURIComponent(`${q} site:${site}`)}`;
 
-export const PLATFORMS: Record<Exclude<ResourcePlatform, "custom">, { label: string; kind: string; url: (q: string) => string }> = {
-  bilimland: { label: "BilimLand", kind: "Видеосабақ, интерактив", url: google("bilimland.kz") },
-  youtube: { label: "YouTube", kind: "Бейнематериал", url: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
-  wikipedia: { label: "Уикипедия", kind: "Анықтамалық", url: (q) => `https://kk.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}` },
-  okulyk: { label: "Okulyk.kz", kind: "Электронды оқулық", url: google("okulyk.kz") },
-  phet: { label: "PhET", kind: "Интерактивті модель", url: google("phet.colorado.edu") },
-  geogebra: { label: "GeoGebra", kind: "Интерактивті модель", url: google("geogebra.org") },
-  wordwall: { label: "Wordwall", kind: "Интерактивті ойын", url: google("wordwall.net") },
-  learningapps: { label: "LearningApps", kind: "Интерактивті жаттығу", url: google("learningapps.org") },
-  kahoot: { label: "Kahoot!", kind: "Викторина", url: google("create.kahoot.it") },
-  padlet: { label: "Padlet", kind: "Онлайн тақта", url: () => "https://padlet.com" },
-  mentimeter: { label: "Mentimeter", kind: "Сауалнама, рефлексия", url: () => "https://www.mentimeter.com" },
-  canva: { label: "Canva", kind: "Постер, инфографика", url: () => "https://www.canva.com" },
-  google_forms: { label: "Google Forms", kind: "Онлайн сауалнама", url: () => "https://forms.google.com" },
+export const PLATFORMS: Record<Exclude<ResourcePlatform, "custom">, { label: string; kind: string; home: string; url: (q: string) => string }> = {
+  bilimland: { label: "BilimLand", kind: "Видеосабақ, интерактив", home: "https://bilimland.kz/", url: google("bilimland.kz") },
+  youtube: { label: "YouTube", kind: "Бейнематериал", home: "https://www.youtube.com/", url: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}` },
+  wikipedia: { label: "Уикипедия", kind: "Анықтамалық", home: "https://kk.wikipedia.org/", url: (q) => `https://kk.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}` },
+  okulyk: { label: "Okulyk.kz", kind: "Электронды оқулық", home: "https://okulyk.kz/", url: google("okulyk.kz") },
+  phet: { label: "PhET", kind: "Интерактивті модель", home: "https://phet.colorado.edu/", url: google("phet.colorado.edu") },
+  geogebra: { label: "GeoGebra", kind: "Интерактивті модель", home: "https://www.geogebra.org/", url: google("geogebra.org") },
+  wordwall: { label: "Wordwall", kind: "Интерактивті ойын", home: "https://wordwall.net/", url: google("wordwall.net") },
+  learningapps: { label: "LearningApps", kind: "Интерактивті жаттығу", home: "https://learningapps.org/", url: google("learningapps.org") },
+  kahoot: { label: "Kahoot!", kind: "Викторина", home: "https://kahoot.com/", url: google("create.kahoot.it") },
+  padlet: { label: "Padlet", kind: "Онлайн тақта", home: "https://padlet.com/", url: () => "https://padlet.com" },
+  mentimeter: { label: "Mentimeter", kind: "Сауалнама, рефлексия", home: "https://www.mentimeter.com/", url: () => "https://www.mentimeter.com" },
+  canva: { label: "Canva", kind: "Постер, инфографика", home: "https://www.canva.com/", url: () => "https://www.canva.com" },
+  google_forms: { label: "Google Forms", kind: "Онлайн сауалнама", home: "https://forms.google.com/", url: () => "https://forms.google.com" },
+  opiq: { label: "OPIQ", kind: "Цифрлық оқулық", home: "https://www.opiq.kz/", url: () => "https://www.opiq.kz/" },
 };
 
 export const PLATFORM_KEYS = Object.keys(PLATFORMS) as Exclude<ResourcePlatform, "custom">[];
@@ -52,6 +54,17 @@ export function buildResource(raw: { title?: string; platform?: string; query?: 
   if (!key || !title) return null;
   const query = raw.query?.trim() || title;
   return { title, platform: key, url: PLATFORMS[key].url(query), note: raw.note?.trim() ?? "" };
+}
+
+/**
+ * ҚМЖ үлгісінің «Сандық ресурстар (QR-кодтар)» бөлімі: үлгідегідей платформаның басты беті
+ * (мыс. https://kahoot.com/) — QR-код әрдайым ашылатын сенімді бетке апарады.
+ */
+export function templateResource(raw: { title?: string; platform?: string; note?: string }): QmzhResource | null {
+  const key = PLATFORM_KEYS.find((k) => k === raw.platform);
+  if (!key) return null;
+  const p = PLATFORMS[key];
+  return { title: raw.title?.trim() || p.kind.toLowerCase(), platform: key, url: p.home, note: raw.note?.trim() ?? "" };
 }
 
 /** Мұғалім қосқан сілтеме: тек http(s) мекенжайлары қабылданады. */

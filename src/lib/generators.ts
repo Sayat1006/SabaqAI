@@ -4,7 +4,8 @@
 import { aiGenerateJson, isLimitError } from "./ai";
 import { subjectIn, type Lang } from "./lang";
 import { curriculum } from "./curriculum";
-import { buildResource, PLATFORM_KEYS, type QmzhResource } from "./resources";
+import { PLATFORM_KEYS, templateResource, type QmzhResource } from "./resources";
+import { plainText } from "./qmzhText";
 
 export type { QmzhResource } from "./resources";
 
@@ -13,12 +14,17 @@ export interface QmzhActivityRow {
   studentAction: string[];
   assessmentType: string;
   assessmentDetail: string;
+  /** Ресурстар; үлгі нұсқасында әр жол — бір ресурс. */
   resources: string;
+  /** Үлгі нұсқасы: «Бағалау (дескрипторлар)» ұяшығының жолдары (**қалың**, «• » тізім). */
+  assessment?: string[];
 }
 
 export interface QmzhStage {
   name: string;
   timeRange: string;
+  /** Үлгі нұсқасы: кезеңнің мақсаты (мыс. «Жаңа білімді меңгеру»), курсивпен шығады. */
+  purpose?: string;
   rows: QmzhActivityRow[];
 }
 
@@ -70,12 +76,26 @@ export interface LessonPlan {
   interdisciplinary?: string;
   priorKnowledge?: string;
   resources?: QmzhResource[];
-  planning?: { differentiation: string; assessment: string; safety: string };
+  planning?: { differentiation: string; assessment: string; safety: string; support?: string };
   reflection?: string[];
   homework?: string;
   /** Жоспар тілі (жоқ болса — қазақша). */
   lang?: Lang;
+  /**
+   * 2 — мектептің ресми ҚМЖ үлгісі бойынша жасалған жоспар: бекіту жолы, бірнеше оқыту мақсаты,
+   * 6 кезеңдік «Сабақтың барысы», ЕББҚ қолдауы, жауап кілті және QR-кодты сандық ресурстар.
+   * Жоқ болса — бұрынғы құрылым (бөлек тапсырмалар, сөздік, рефлексия).
+   */
+  format?: 2;
+  /** Бекітуші — оқу ісі жөніндегі орынбасардың аты-жөні. */
+  approver?: string;
+  objectives?: { code: string; text: string }[];
+  /** «Құндылықтарға баулу» жолындағы нақыл сөз (авторымен). */
+  valuesQuote?: string;
+  answerKey?: { level: string; answer: string }[];
 }
+
+export const isTemplatePlan = (p: LessonPlan) => p.format === 2;
 
 export const LESSON_TYPES = ["Аралас сабақ", "Жаңа білімді меңгерту", "Білімді бекіту", "Қайталау-жинақтау", "Практикалық сабақ", "Зерттеу сабағы"] as const;
 
@@ -89,15 +109,6 @@ export const TASK_KINDS = [
   "Шығармашылық тапсырма",
   "Зерттеу тапсырмасы",
 ] as const;
-
-function hashString(input: string): number {
-  let hash = 0;
-  for (let i = 0; i < input.length; i++) {
-    hash = (hash << 5) - hash + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return Math.abs(hash);
-}
 
 // «Адал азамат» тұжырымдамасы бойынша әр айдың құндылығы. ҚМЖ-дағы «Құндылықтарды дарыту»
 // жолы сабақ күнінің айына сай осы тізімнен алынады.
@@ -196,350 +207,212 @@ function formatToday(): string {
   return `${dd}.${mm}.${d.getFullYear()}`;
 }
 
-// Мұғалім өзі енгізген "Оқу мақсаттары" мәтінінен код (мыс. 7.2.1.4) пен
-// мазмұнды бөліп алады — енгізілген мақсаттар генерацияда басшылыққа алынады.
-function parseObjectivesInput(input: string): { code: string; text: string } | null {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  const firstLine = trimmed.split(/\r?\n/)[0].trim();
-  const codeMatch = firstLine.match(/\d+(\.\d+){2,3}/);
-  if (codeMatch) {
-    const text = firstLine.slice(codeMatch.index! + codeMatch[0].length).replace(/^[\s.:–—-]+/, "").trim();
-    return { code: codeMatch[0], text: text || trimmed };
-  }
-  return { code: "", text: trimmed };
+// ---------------------------------------------------------------------------------------------
+// ҚМЖ ресми үлгісі (2-нұсқа). Құрылым мұғалім берген үлгіден алынды және қатаң сақталады:
+// бекіту жолы → жалпы мәліметтер кестесі → «Сабақтың барысы» (6 кезең) → саралау, ЕББҚ қолдау,
+// бағалау және қауіпсіздік → деңгейлік тапсырмалардың жауап кілті → сандық ресурстар (QR).
+
+interface ScaffoldStage {
+  name: string;
+  purpose: string;
+  minutes: number;
 }
 
-function generateLessonPlanTemplate(
-  subject: string,
-  grade: string,
-  topic: string,
-  duration: number,
-  teacherName = "",
-  date = "",
-  objectivesInput = "",
-): LessonPlan {
-  const seed = hashString(`${subject}-${grade}-${topic}`);
-  const gradeNumber = gradeToNumber(grade);
+/** Үлгідегі 45 минуттық сабақтың уақыт үлесі: 6 + 12 + 7 + 2 + 11 + 7. */
+const STAGE_SHARE = [6, 12, 7, 2, 11, 7];
 
-  const manualObjective = parseObjectivesInput(objectivesInput);
-  const foundObjective = manualObjective ?? findObjective(subject, grade);
-  const objectiveCode = foundObjective?.code || `${gradeNumber}.1.1.1`;
-  const objectiveText = foundObjective?.text ?? `"${topic}" тақырыбы бойынша негізгі ұғымдар мен түсініктерді меңгеру`;
-
-  const goalTemplates = [
-    `"${topic}" тақырыбының негізгі ұғымдарын ажыратады және оның негізгі белгілерін атайды`,
-    `алған білімін "${topic}" тақырыбына қатысты нақты мысалдар келтіруде қолданады`,
-    `"${topic}" бойынша бақылаулары мен деректерін салыстырып, қорытындысын кемінде екі дәлелмен негіздейді`,
-  ];
-
-  const values = monthlyValue(date || formatToday());
-
-  const stages: QmzhStage[] = [
-    {
-      name: "Сабақтың басы",
-      timeRange: `1-${Math.max(3, Math.round(duration * 0.13))} мин`,
-      rows: [
-        {
-          teacherAction: [
-            `Сыныппен амандасып, сабаққа дайындықты тексереді. «Бүгін "${topic}" тақырыбын бірге зерттейміз.»`,
-            "Сабақ тақырыбы мен оқу мақсатын жариялайды.",
-            "Сабақтың ретін хабарлайды: қайталау, жаңа ұғымды ашу және бекіту.",
-          ],
-          studentAction: [
-            "Оқушылар амандасады және сабаққа қажетті құралдарын дайындайды.",
-            "Сабақ тақырыбы мен оқу мақсатын жазады.",
-            "Сабақ кезеңдерінің ретін тыңдап, жұмысқа дайындалады.",
-          ],
-          assessmentType: "Ауызша кері байланыс",
-          assessmentDetail: "Мұғалім оқушылардың сабаққа дайындығын және оқу мақсатын түсінуін қысқа сұрақтар арқылы анықтайды.",
-          resources: "—",
-        },
-      ],
-    },
-    {
-      name: "Сабақтың ортасы",
-      timeRange: `${Math.max(4, Math.round(duration * 0.15))}-${Math.max(5, Math.round(duration * 0.85))} мин`,
-      rows: [
-        {
-          teacherAction: [
-            `Өткен білімді еске түсіру үшін "${topic}" тақырыбына қатысты сұрақ қояды. «Бұл құбылыс/ұғым туралы не білеміз?»`,
-            "[Бірлескен ізденіс] Мәселе қойып, ашық сұрақтар сериясын жүргізеді, нұсқаларды бағаламай тақтаға тіркейді.",
-            `${subject} пәні бойынша "${topic}" тақырыбының негізгі бөлімдерін түсіндіреді, мысалдар мен көрнекі құралдарды қолданады (презентация, видео, схема).`,
-          ],
-          studentAction: [
-            `Оқушылар "${topic}" тақырыбына қатысты күнделікті мысалдарды атайды.`,
-            "[Бірлескен ізденіс] Ашық сұрақтарға болжамдарымен жауап береді, сыныптастарының нұсқаларын тыңдап, дамытады немесе қарсылық білдіреді.",
-            "Мұғалімнің түсіндіруін тыңдап, негізгі ұғымдарды дәптерге жазады.",
-          ],
-          assessmentType: "Ауызша кері байланыс",
-          assessmentDetail: "Мұғалім ашық сұрақтарға берілген нұсқалардан оқушылардың негізгі ұғымды қаншалықты түсінгенін бақылайды.",
-          resources: "Интерактивті тақта / проектор",
-        },
-        {
-          teacherAction: [
-            "1-тапсырманы («Тапсырмалар» бөлімін қараңыз) ұсынады және топтарға орындау тәртібін түсіндіреді.",
-            "Топтардың бастапқы жауаптарын тыңдайды, бағыттаушы сұрақтар қояды.",
-          ],
-          studentAction: [
-            "Топта 1-тапсырманың материалын оқып, талдайды.",
-            "Бастапқы жауаптарын топ мүшелерімен талқылайды.",
-          ],
-          assessmentType: "Қалыптастырушы бағалау",
-          assessmentDetail: "1-тапсырманың бағалау критерийлері мен дескрипторлары бойынша («Тапсырмалар» бөлімін қараңыз).",
-          resources: "1-тапсырма парағы",
-        },
-      ],
-    },
-    {
-      name: "Сабақтың соңы",
-      timeRange: `${Math.max(6, Math.round(duration * 0.87))}-${duration} мин`,
-      rows: [
-        {
-          teacherAction: [
-            `Сабақ нәтижесін «қайталадық – жаңа білдік – бекіттік» ретімен жинақтауды сұрайды. «Бүгін "${topic}" тақырыбы бойынша нені түсіндік?»`,
-            "Оқу мақсатына жетуді оқушылардың жауаптары арқылы бағалайды.",
-          ],
-          studentAction: [
-            "Оқушылар сабақта қайталаған, жаңа білген және бекіткен ұғымдарын атайды.",
-            "Оқу мақсатына жетуін өзі бағалайды.",
-          ],
-          assessmentType: "Сипаттамалық кері байланыс",
-          assessmentDetail: "Мұғалім оқушының жауабына қысқа түсініктеме береді.",
-          resources: "—",
-        },
-        {
-          teacherAction: [
-            `Үй тапсырмасын береді: "${topic}" тақырыбына қатысты 3-5 сұраққа жазбаша жауап дайындау.`,
-            "Орындау үлгісін қысқаша түсіндіреді.",
-          ],
-          studentAction: ["Оқушылар үй тапсырмасын дәптерге жазады."],
-          assessmentType: "Ауызша кері байланыс",
-          assessmentDetail: "Мұғалім үй тапсырмасының түсінікті қабылданғанын ауызша тексереді.",
-          resources: "—",
-        },
-      ],
-    },
-  ];
-
-  const taskSeed = seed + 3;
-  const statementPool = [
-    `"${topic}" тақырыбының негізгі анықтамасы ${subject} пәнінің іргелі ұғымдарына жатады.`,
-    `"${topic}" тек теориялық сипатта, күнделікті өмірде қолданылмайды.`,
-    `"${topic}" бойынша білім тек жаттауға негізделеді, түсінуді қажет етпейді.`,
-    `"${topic}" тақырыбын түсіну үшін алдыңғы сабақтарда алған білімдерді байланыстыру қажет.`,
-    `"${topic}" бойынша қорытынды жасау үшін кемінде екі нақты дәлел келтіру керек.`,
-  ];
-  const truthPattern = [true, false, false, true, true];
-
-  const task: QmzhTask = {
-    title: `Тапсырма 1. "${topic}" бойынша тұжырымдарды талдау`,
-    condition: [
-      "Топта жұмыс істеңдер.",
-      "Төмендегі тұжырымдарды оқып, әрқайсысын «дұрыс» немесе «бұрыс» деп белгілеңдер.",
-      "Әр тұжырымға өз дәлеліңді бір сөйлеммен жазыңдар.",
-    ],
-    tableTitle: "МАТЕРИАЛ · КЕСТЕ",
-    tableHeaders: ["№", "Тұжырым", "Дұрыс па?", "Дәлел"],
-    tableRows: statementPool.map((s, i) => [String(i + 1), s, "", ""]),
-    steps: [
-      "Алдымен әр тұжырымды мұқият оқыңдар.",
-      "Содан кейін оны «дұрыс» немесе «бұрыс» деп жіктеңдер.",
-      "Одан кейін өз пікірлеріңді дәлелмен негіздеңдер.",
-      "Соңында топ жауаптарын салыстырып, ортақ қорытындыны бір сөйлеммен тұжырымдаңдар.",
-    ],
-    criteria: [
-      {
-        criterion: "Тұжырымдарды дұрыс/бұрыс деп негізді түрде жіктейді.",
-        descriptors: [
-          "Әр тұжырымды берілген екі санаттың біріне орналастырады.",
-          "Жіктеуін тақырып бойынша білетін фактілерге сүйеніп түсіндіреді.",
-        ],
-      },
-      {
-        criterion: "Өз пікірін нақты дәлелмен негіздейді.",
-        descriptors: ["Әр тұжырымға кемінде бір нақты дәлел немесе мысал келтіреді."],
-      },
-      {
-        criterion: "Топтық салыстыру нәтижесінде қорытынды жасайды.",
-        descriptors: [
-          "Топ мүшелерінің жауаптарындағы ұқсастықтар мен айырмашылықтарды анықтайды.",
-          "Тақырып бойынша негізгі қорытындыны бір түсінікті сөйлеммен тұжырымдайды.",
-        ],
-      },
-    ],
-    differentiation:
-      "Қолдау қажет оқушыларға тірек сөздер ұсынылады. Қабілеті жоғары оқушылар өз дәлелдерін тақырыптың нақты мысалымен толықтырып, бір сөйлеммен қорытады.",
-    expectedResultRows: statementPool.map((s, i) => [
-      String(i + 1),
-      s,
-      truthPattern[(i + taskSeed) % truthPattern.length] ? "Дұрыс" : "Бұрыс",
-      truthPattern[(i + taskSeed) % truthPattern.length]
-        ? "Тақырыптың негізгі мазмұнына сәйкес келеді."
-        : "Тұжырым тақырыптың нақты мазмұнына қайшы келеді.",
-    ]),
-    expectedConclusion: `Қорытынды: "${topic}" тақырыбын дұрыс түсіну үшін негізгі ұғымдарды нақты дәлелдермен байланыстыра білу маңызды.`,
-  };
-
-  return {
-    subject,
-    grade,
-    topic,
-    duration,
-    teacherName: teacherName || "Мұғалімнің аты-жөні",
-    date: date || formatToday(),
-    section: `${subject} — ${topic}`,
-    gradeNumber,
-    objectiveCode,
-    objectiveText,
-    goals: goalTemplates,
-    valuesTitle: values.title,
-    valuesText: `«${values.title}» — ${values.text}`,
-    stages,
-    tasks: [task],
-  };
-}
-
-const qmzhRowAiSchema = {
-  type: "OBJECT",
-  properties: {
-    teacherAction: { type: "ARRAY", items: { type: "STRING" } },
-    studentAction: { type: "ARRAY", items: { type: "STRING" } },
-    assessmentType: { type: "STRING" },
-    assessmentDetail: { type: "STRING" },
-    resources: { type: "STRING" },
-  },
-  required: ["teacherAction", "studentAction", "assessmentType", "assessmentDetail", "resources"],
-};
-
-const qmzhStageAiSchema = {
-  type: "OBJECT",
-  properties: {
-    name: { type: "STRING" },
-    timeRange: { type: "STRING" },
-    rows: { type: "ARRAY", items: qmzhRowAiSchema },
-  },
-  required: ["name", "timeRange", "rows"],
-};
-
-const qmzhCriterionAiSchema = {
-  type: "OBJECT",
-  properties: {
-    criterion: { type: "STRING" },
-    descriptors: { type: "ARRAY", items: { type: "STRING" } },
-  },
-  required: ["criterion", "descriptors"],
-};
-
-const qmzhTaskAiSchema = {
-  type: "OBJECT",
-  properties: {
-    title: { type: "STRING" },
-    kind: { type: "STRING" },
-    method: { type: "STRING" },
-    level: { type: "STRING", enum: ["A", "B", "C"] },
-    time: { type: "STRING" },
-    condition: { type: "ARRAY", items: { type: "STRING" } },
-    tableTitle: { type: "STRING" },
-    tableHeaders: { type: "ARRAY", items: { type: "STRING" } },
-    tableRows: { type: "ARRAY", items: { type: "ARRAY", items: { type: "STRING" } } },
-    steps: { type: "ARRAY", items: { type: "STRING" } },
-    criteria: { type: "ARRAY", items: qmzhCriterionAiSchema },
-    differentiation: { type: "STRING" },
-    expectedResultRows: { type: "ARRAY", items: { type: "ARRAY", items: { type: "STRING" } } },
-    expectedConclusion: { type: "STRING" },
-  },
-  required: [
-    "title",
-    "kind",
-    "method",
-    "level",
-    "time",
-    "condition",
-    "tableTitle",
-    "tableHeaders",
-    "tableRows",
-    "steps",
-    "criteria",
-    "differentiation",
-    "expectedResultRows",
-    "expectedConclusion",
+const STAGE_TEXT: Record<Lang, { name: string; purpose: string }[]> = {
+  kk: [
+    { name: "Сабақтың басы", purpose: "Ұйымдастыру, қызығушылықты ояту, мақсат қою" },
+    { name: "Сабақтың ортасы", purpose: "Жаңа білімді меңгеру" },
+    { name: "Сабақтың ортасы", purpose: "Бекіту, жаттығу" },
+    { name: "Сергіту сәті", purpose: "" },
+    { name: "Сабақтың ортасы", purpose: "Деңгейлік тапсырмалар (жеке жұмыс)" },
+    { name: "Сабақтың соңы", purpose: "Бекіту, рефлексия, үй тапсырмасы" },
+  ],
+  ru: [
+    { name: "Начало урока", purpose: "Организация, мотивация, целеполагание" },
+    { name: "Середина урока", purpose: "Изучение нового материала" },
+    { name: "Середина урока", purpose: "Закрепление, практика" },
+    { name: "Физминутка", purpose: "" },
+    { name: "Середина урока", purpose: "Разноуровневые задания (индивидуальная работа)" },
+    { name: "Конец урока", purpose: "Закрепление, рефлексия, домашнее задание" },
+  ],
+  en: [
+    { name: "Beginning of the lesson", purpose: "Organisation, engagement, setting objectives" },
+    { name: "Middle of the lesson", purpose: "Learning new material" },
+    { name: "Middle of the lesson", purpose: "Consolidation, practice" },
+    { name: "Brain break", purpose: "" },
+    { name: "Middle of the lesson", purpose: "Levelled tasks (individual work)" },
+    { name: "End of the lesson", purpose: "Consolidation, reflection, homework" },
   ],
 };
 
-const lessonPlanAiSchema = {
+/** Сабақ ұзақтығына сай 6 кезеңнің минуттары (қосындысы ұзақтыққа дәл тең). */
+export function stageMinutes(duration: number): number[] {
+  const total = Math.min(Math.max(Math.round(duration) || 45, 20), 90);
+  const mins = STAGE_SHARE.map((m) => Math.max(1, Math.round((m * total) / 45)));
+  mins[1] += total - mins.reduce((a, b) => a + b, 0);
+  return mins;
+}
+
+function scaffold(duration: number, lang: Lang = "kk"): ScaffoldStage[] {
+  const mins = stageMinutes(duration);
+  return STAGE_TEXT[lang].map((s, i) => ({ ...s, minutes: mins[i] }));
+}
+
+const minutesLabel = (n: number, lang: Lang = "kk") => (lang === "en" ? `${n} min` : `${n} минут`);
+
+const SA = { type: "ARRAY", items: { type: "STRING" } };
+
+const templateStageAiSchema = {
   type: "OBJECT",
   properties: {
-    objectiveCode: { type: "STRING" },
-    objectiveText: { type: "STRING" },
-    goals: { type: "ARRAY", items: { type: "STRING" } },
-    valuesTitle: { type: "STRING" },
-    valuesText: { type: "STRING" },
-    stages: { type: "ARRAY", items: qmzhStageAiSchema },
-    tasks: { type: "ARRAY", items: qmzhTaskAiSchema },
-    vocabulary: {
+    purpose: { type: "STRING" },
+    teacher: SA,
+    student: SA,
+    assessment: SA,
+    resources: SA,
+  },
+  required: ["purpose", "teacher", "student", "assessment", "resources"],
+};
+
+const templatePlanAiSchema = {
+  type: "OBJECT",
+  properties: {
+    objectives: {
       type: "ARRAY",
-      items: { type: "OBJECT", properties: { term: { type: "STRING" }, definition: { type: "STRING" } }, required: ["term", "definition"] },
+      items: { type: "OBJECT", properties: { code: { type: "STRING" }, text: { type: "STRING" } }, required: ["code", "text"] },
+    },
+    goals: SA,
+    valuesQuote: { type: "STRING" },
+    valuesText: { type: "STRING" },
+    stages: { type: "ARRAY", items: templateStageAiSchema },
+    planning: {
+      type: "OBJECT",
+      properties: { differentiation: SA, support: SA, assessment: { type: "STRING" }, safety: { type: "STRING" } },
+      required: ["differentiation", "support", "assessment", "safety"],
+    },
+    answerKey: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: { level: { type: "STRING", enum: ["A", "B", "C"] }, answer: { type: "STRING" } },
+        required: ["level", "answer"],
+      },
     },
     resources: {
       type: "ARRAY",
       items: {
         type: "OBJECT",
-        properties: {
-          title: { type: "STRING" },
-          platform: { type: "STRING", enum: PLATFORM_KEYS },
-          query: { type: "STRING" },
-          note: { type: "STRING" },
-        },
-        required: ["title", "platform", "query", "note"],
+        properties: { platform: { type: "STRING", enum: PLATFORM_KEYS }, title: { type: "STRING" } },
+        required: ["platform", "title"],
       },
     },
-    planning: {
-      type: "OBJECT",
-      properties: { differentiation: { type: "STRING" }, assessment: { type: "STRING" }, safety: { type: "STRING" } },
-      required: ["differentiation", "assessment", "safety"],
-    },
-    reflection: { type: "ARRAY", items: { type: "STRING" } },
-    homework: { type: "STRING" },
   },
-  required: [
-    "objectiveCode",
-    "objectiveText",
-    "goals",
-    "valuesTitle",
-    "valuesText",
-    "stages",
-    "tasks",
-    "vocabulary",
-    "resources",
-    "planning",
-    "reflection",
-    "homework",
-  ],
+  required: ["objectives", "goals", "valuesQuote", "valuesText", "stages", "planning", "answerKey", "resources"],
 };
 
-type LessonPlanAiContent = Pick<
-  LessonPlan,
-  | "objectiveCode"
-  | "objectiveText"
-  | "goals"
-  | "valuesTitle"
-  | "valuesText"
-  | "stages"
-  | "tasks"
-  | "vocabulary"
-  | "planning"
-  | "reflection"
-  | "homework"
-> & { resources?: { title?: string; platform?: string; query?: string; note?: string }[] };
+interface TemplateAiContent {
+  objectives?: { code?: string; text?: string }[];
+  goals?: string[];
+  valuesQuote?: string;
+  valuesText?: string;
+  stages?: { purpose?: string; teacher?: string[]; student?: string[]; assessment?: string[]; resources?: string[] }[];
+  planning?: { differentiation?: string[]; support?: string[]; assessment?: string; safety?: string };
+  answerKey?: { level?: string; answer?: string }[];
+  resources?: { platform?: string; title?: string }[];
+}
 
 export interface LessonPlanOptions {
   lessonType?: string;
-  /** Мұғалім таңдаған тапсырма түрлері (TASK_KINDS ішінен). */
-  taskKinds?: string[];
-  taskCount?: number;
   notes?: string;
   lang?: Lang;
+  /** Бекітуші — оқу ісі жөніндегі орынбасар. */
+  approver?: string;
+}
+
+/** Мұғалім енгізген мақсаттар: әр жолда «7.2.1.4 - мазмұны». */
+function parseObjectiveLines(input: string): { code: string; text: string }[] {
+  return input
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => {
+      const m = l.match(/^(\d+(?:\.\d+){2,4})\s*[.:–—-]?\s*(.*)$/);
+      return m ? { code: m[1], text: m[2].trim() } : { code: "", text: l };
+    });
+}
+
+const clean = (list: unknown): string[] => (Array.isArray(list) ? list.map((x) => String(x ?? "").trim()).filter(Boolean) : []);
+
+/** Үлгінің 6 кезеңін AI жауабымен толтырады: атауы мен уақыты әрдайым үлгідегідей. */
+function buildStages(frame: ScaffoldStage[], ai: TemplateAiContent["stages"], lang: Lang): QmzhStage[] {
+  return frame.map((f, i) => {
+    const s = ai?.[i] ?? {};
+    const isBreak = i === 3;
+    const assessment = clean(s.assessment);
+    const resources = clean(s.resources);
+    return {
+      name: f.name,
+      timeRange: minutesLabel(f.minutes, lang),
+      purpose: isBreak ? "" : s.purpose?.trim() || f.purpose,
+      rows: [
+        {
+          teacherAction: clean(s.teacher),
+          studentAction: clean(s.student),
+          assessmentType: "",
+          assessmentDetail: "",
+          assessment: assessment.length ? assessment : ["–"],
+          resources: (resources.length ? resources : ["–"]).join("\n"),
+        },
+      ],
+    };
+  });
+}
+
+function templatePrompt(args: {
+  subject: string;
+  grade: string;
+  topic: string;
+  duration: number;
+  frame: ScaffoldStage[];
+  objectivesInstruction: string;
+  valueTitle: string;
+  lessonType: string;
+  notes?: string;
+  lang: Lang;
+}): string {
+  const { subject, grade, topic, frame, lang } = args;
+  const st = (i: number) => `«${frame[i].name}» — ${frame[i].minutes} мин${frame[i].purpose ? `, «${frame[i].purpose}»` : ""}`;
+  const langRule =
+    lang === "en"
+      ? `ТІЛ: БАРЛЫҚ мазмұн АҒЫЛШЫН тілінде. Қалың белгілердің ішіндегі сөздерді де ағылшынша жаз (мыс. **Organisation.**, **Descriptor:**, **2 points**, **Level A (knowledge, understanding) – green card.**). Деңгейлер: A, B, C.`
+      : lang === "ru"
+        ? `ТІЛ: БАРЛЫҚ мазмұн ОРЫС тілінде. Қалың белгілердің ішіндегі сөздерді де орысша жаз (мыс. **Организационный момент.**, **Дескриптор:**, **2 балла**, **Уровень А (знание, понимание) – зелёная карточка.**). Деңгейлер: А, В, С.`
+        : "ТІЛ: барлығы тек қазақ тілінде (шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін). Деңгейлер: А, В, С.";
+  return `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}"${lang !== "kk" ? ` (${subjectIn(subject, lang)})` : ""} пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${args.duration} минуттық сабаққа арналған қысқа мерзімді жоспарды (ҚМЖ) МЕКТЕПТІҢ РЕСМИ ҮЛГІСІ бойынша ҚАТАҢ толтыр.
+Сабақ түрі: ${args.lessonType}.
+${args.objectivesInstruction}
+${args.notes ? `Мұғалімнің тілегі: ${args.notes}\n` : ""}
+МӘТІН БЕЛГІЛЕРІ: әр массив элементі — ұяшықтағы бір абзац. Қалың мәтінді **...** арқылы белгіле (үлгідегі жапсырмалар: **Ұйымдастыру кезеңі.**, **Дескриптор:**, **2 балл**). Тізім пунктін «• » белгісімен баста. Басқа markdown қолданба.
+
+ӨРІСТЕР:
+1. "objectives" — оқу бағдарламасына сәйкес 1–3 оқыту мақсаты: "code" (ҮОБ коды, мыс. "10.1.2.1") және "text" (мазмұны кіші әріппен, мыс. "жүйелік және кездейсоқ қателіктерді ажырата білу;").
+2. "goals" — SMART сабақ мақсаттары, 3–4 жол; әрқайсысы оқушы не істейтінін өлшенетін етістікпен сипаттайды (мыс. "жүйелік және кездейсоқ қателіктерді ажыратады"), "Барлық оқушылар" деп БАСТАМА.
+3. Құндылық: осы айдың құндылығы — «${args.valueTitle}» («Адал азамат» бағдарламасы). "valuesQuote" — осы құндылыққа сай нақыл сөз немесе дана сөз, авторымен (мыс. «Еңбек етсең ерінбей, тояды қарның тіленбей» – Абай Құнанбайұлы). "valuesText" — құндылықтың сабақта нақты қалай жүзеге асатынын бір сөйлеммен сипатта.
+4. "stages" — ДӘЛ 6 элемент, мына ретпен (атауы мен уақытын өзгертпе, тек мазмұнын толтыр; "purpose" — көрсетілген мақсатты қайтар):
+   1) ${st(0)}: "teacher" — **Ұйымдастыру кезеңі.** (сәлемдесу, түгендеу, бағалау парағын тарату); **Білімді өзектендіру: «әдіс атауы».** (тақырыпқа қатысты нақты тапсырма); **Құндылыққа баулу:** (valuesQuote-ты келтір); **Проблемалық жағдаят:** (өмірмен байланысты сұрақ); соңғы жол — болжамдар арқылы тақырып пен мақсаттың бірге анықталуы. "student" — 2 жол. "assessment" — **Қалыптастырушы бағалау:** әдісі (мыс. «Бас бармақ»).
+   2) ${st(1)}: "teacher" — **Жаңа білімді меңгеру: «белсенді әдіс».** ұйымдастырылуы, одан кейін «• » арқылы жаңа тақырыптың НАҚТЫ мазмұны 3–5 пункт (анықтамалар, формулалар, мысалдар; негізгі терминдер **қалың**). "assessment" — **Дескриптор:**, «• » 2 дескриптор, **2 балл**.
+   3) ${st(2)}: "teacher" — **«әдіс атауы» (жұптық не топтық жұмыс).** ұйымдастырылуы; **Тапсырма:** нақты деректері бар тапсырма. "assessment" — **Дескриптор:**, «• » 1 дескриптор, **1 балл**.
+   4) ${st(3)}: "teacher" — **«жаттығу атауы».** қысқа сипаттамасы; "student" — 1 жол; "assessment" — ["–"]; "resources" — ["–"]; "purpose" — "".
+   5) ${st(4)}: "teacher" — **Саралау «Таңдау» арқылы:** түсіндірме; **А деңгейі (білу, түсіну) – жасыл карта.** келесі жолда нақты тапсырма; **В деңгейі (қолдану) – сары карта.** + тапсырма; **С деңгейі (талдау, жинақтау) – қызыл карта.** + тапсырма; **ЕББҚ оқушыларына:** қолдау тәсілі. "student" — 2 жол (деңгейін таңдап орындайды, жауап кілтімен тексереді). "assessment" — **Дескриптор:**, **А:** дескриптор – **2 балл**, **В:** … – **3 балл**, **С:** … – **4 балл**.
+   6) ${st(5)}: "teacher" — **Бекіту: онлайн-викторина** (Kahoot т.б.) және «• » 3 сұрақ үлгісі (жақшада жауабы), құрылғы жетіспесе — қағаз нұсқасы; **Рефлексия: «әдіс атауы»** – сипаттамасы; **Үй тапсырмасы (сараланған):**, одан кейін «• **А:** …», «• **В:** …», «• **С:** …». "student" — 3 жол. "assessment" — **Дескриптор:**, «• » дескриптор – **3 балл**, **Шкала (10 балл):** 9–10 «Өте жақсы», 7–8 «Жақсы», 5–6 «Қанағаттанарлық», 0–4 «Қолдау қажет».
+   Әр кезеңде "resources" — 1–3 нақты ресурс атауы (оқулық, презентация, карточкалар, платформа). Әр кезеңдегі педагог пен оқушы әрекеттері нақты, тақырыпқа сай, фактілері дұрыс болсын.
+5. "planning" — қорытынды кесте: "differentiation" — 4 жол: **Тапсырма арқылы:** …, **Таңдау арқылы:** …, **Қолдау арқылы:** …, **Қабілетті оқушыларға:** …; "support" — ЕББҚ оқушыларына қолдау, 3 жол: **Оқу қиындығы:** …, **Көру/есту қабілеті:** …, **Зейін тапшылығы:** …; "assessment" — бір сөйлем (бағалау парағы 10 балл, дескрипторлар, өзін-өзі және өзара бағалау…); "safety" — бір сөйлем (сергіту сәті, көзге арналған үзіліс, сыныпты желдету…).
+6. "answerKey" — 5-кезеңдегі А, В, С деңгейлік тапсырмалардың дұрыс жауаптары (level: "A", "B", "C"; answer — қысқа әрі нақты).
+7. "resources" — ДӘЛ 3 сандық ресурс (QR-код жасалады): "platform" тізімнен (мыс. kahoot, bilimland, opiq, phet, geogebra, wordwall, youtube), "title" — қысқа түрі кіші әріппен (мыс. "викторина", "видеосабақ", "цифрлық оқулық"). URL жазба.
+${langRule} Фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
 }
 
 export async function generateLessonPlan(
@@ -552,92 +425,204 @@ export async function generateLessonPlan(
   objectivesInput = "",
   options: LessonPlanOptions = {},
 ): Promise<LessonPlan> {
+  const lang: Lang = options.lang ?? "kk";
   const gradeNumber = gradeToNumber(grade);
-  const manualObjective = parseObjectivesInput(objectivesInput);
-  const foundObjective = manualObjective ?? findObjective(subject, grade);
-  const fallbackObjectiveCode = foundObjective?.code || `${gradeNumber}.1.1.1`;
-  const fallbackObjectiveText =
-    foundObjective?.text ?? `"${topic}" тақырыбы бойынша негізгі ұғымдар мен түсініктерді меңгеру`;
+  const manual = parseObjectiveLines(objectivesInput);
+  const found = findObjective(subject, grade);
+  const fallbackObjectives = manual.length
+    ? manual
+    : [{ code: found?.code || `${gradeNumber}.1.1.1`, text: found?.text ?? `"${topic}" тақырыбы бойынша негізгі ұғымдар мен түсініктерді меңгеру` }];
 
-  const objectivesInstruction = manualObjective
-    ? `Мұғалім мына оқыту мақсаттарын өзі енгізген — оларды МІНДЕТТІ түрде дәл сол қалпында, өзгертпей және басқасын ойлап шығармай, жоспардың негізі ретінде қолдан:\n"""\n${objectivesInput.trim()}\n"""\nБарлық кезеңдер (стадиялар), тапсырма мен бағалау критерийлері осы мақсаттарға қол жеткізуге бағытталсын. "objectiveCode" мен "objectiveText" өрістерін де осы мақсаттар негізінде (біріншісінен) толтыр.`
-    : `Оқыту мақсатының коды шамамен "${fallbackObjectiveCode}" секілді болсын, мазмұны "${topic}" тақырыбына нақты сәйкес келсін (қажет болса "${fallbackObjectiveText}" деген нұсқаны негіз ет, бірақ тақырыпқа лайықтап нақтыла).`;
+  const objectivesInstruction = manual.length
+    ? `Мұғалім мына оқыту мақсаттарын өзі енгізген — "objectives" өрісіне оларды ДӘЛ сол қалпында (кодымен) қайтар, басқасын қоспа; барлық кезең, тапсырма мен дескриптор осы мақсаттарға бағытталсын:\n"""\n${objectivesInput.trim()}\n"""`
+    : `Оқыту мақсаттарының коды ҮОБ-қа сай болсын (шамамен "${fallbackObjectives[0].code}" секілді), мазмұны "${topic}" тақырыбына нақты сәйкес келсін.`;
 
+  const frame = scaffold(duration, lang);
+  const value = monthlyValue(date || formatToday(), lang);
   const lessonType = options.lessonType || "Аралас сабақ";
-  const ru = options.lang === "ru";
-  const en = options.lang === "en";
-  const value = monthlyValue(date || formatToday(), options.lang);
-  const taskCount = Math.min(Math.max(options.taskCount ?? 3, 2), 5);
-  const kinds = options.taskKinds?.length ? options.taskKinds : ["Жұптық жұмыс", "Топтық жұмыс", "Жеке жұмыс"];
+  const prompt = templatePrompt({
+    subject,
+    grade,
+    topic,
+    duration,
+    frame,
+    objectivesInstruction,
+    valueTitle: value.title,
+    lessonType,
+    notes: options.notes,
+    lang,
+  });
 
-  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}"${ru || en ? ` (${subjectIn(subject, options.lang)})` : ""} пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${duration} минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр.
-Сабақ түрі: ${lessonType}.
-${objectivesInstruction}
-ҚҰНДЫЛЫҚ: осы айдың құндылығы — «${value.title}». "valuesTitle" дәл "${value.title}" болсын; "valuesText" — осы құндылықтың дәл осы сабақта, нақты тапсырмалар арқылы қалай дарытылатынын 1–2 сөйлеммен сипатта.
-${options.notes ? `Мұғалімнің тілегі: ${options.notes}\n` : ""}
-ТАЛАПТАР:
-1. "goals" — SMART үлгісіндегі 2–3 сабақ мақсаты ("Барлық оқушылар...", "Оқушылардың көбі...", "Кейбір оқушылар..." деп саралап).
-2. "stages" — дәл 3 кезең: "Сабақтың басы", "Сабақтың ортасы", "Сабақтың соңы"; уақыты ${duration} минутқа дәл сәйкес. Әр кезеңде 1–3 жол; ортасында кемінде 2 жол. Педагог пен оқушы әрекеттері нақты (не айтады, не істейді), әр жолда белсенді оқыту әдісі аталсын. "assessmentType" — қалыптастырушы бағалау түрі (мыс. "Екі жұлдыз, бір тілек", "Бағдаршам", "Смайлик", "Дескриптор бойынша өзін-өзі бағалау"); "resources" — осы жолда қолданылатын ресурстардың атаулары (төмендегі "resources" тізіміндегі атаулармен сәйкес болсын) және оқулық, үлестірме.
-3. "tasks" — дәл ${taskCount} ТҮРЛІ тапсырма. Жұмыс түрлері ("kind") мыналардан, барынша әртүрлі болсын: ${kinds.join(", ")}. Әр тапсырмада:
-   - "method" — нақты әдіс-тәсіл атауы (мыс. "Джигсо", "INSERT", "Ойлан — жұптас — бөліс", "Венн диаграммасы", "Кластер", "Галереяға саяхат", "Кейс-стади", "Ыстық орындық");
-   - "level" — A (білу/түсіну), B (қолдану), C (жоғары деңгей дағдылары); тапсырмалар A → C күрделенсін;
-   - "time" — мыс. "7 мин";
-   - "condition" — оқушыға арналған толық, нақты шарты (деректерімен);
-   - "tableTitle", "tableHeaders", "tableRows" — тапсырмаға қажет кесте (салыстыру, толтыру, бақылау, сәйкестендіру кестесі т.б.; толтыратын ұяшықтар бос "" болсын); кесте мүлдем қажет болмаса, "tableHeaders" пен "tableRows" бос тізім;
-   - "steps" — орындау қадамдары; "criteria" — 1–2 бағалау критерийі, әрқайсысында 2–3 дескриптор ("Білім алушы ..." деп басталсын);
-   - "differentiation" — саралау тәсілі (қолдау және тереңдету);
-   - "expectedResultRows" — кестенің толтырылған үлгісі (кесте болмаса бос), "expectedConclusion" — күтілетін нәтиже/жауап.
-4. "vocabulary" — 4–6 пәндік термин және қысқа анықтамасы (пәндік лексика).
-5. "resources" — 5–7 цифрлық ресурс. МАҢЫЗДЫ: URL жазба! Тек "platform" (тізімнен) және "query" (сол платформада іздейтін нақты сөз тіркесі, қазақша немесе халықаралық термин) бер. Платформаларды мақсатына қарай таңда: bilimland — видеосабақ/интерактив, youtube — бейнематериал, wikipedia — анықтама, okulyk — электронды оқулық, phet/geogebra — модельдеу (физика, химия, математика), wordwall/learningapps — интерактивті жаттығу, kahoot — викторина, padlet — топтық тақта, mentimeter — сауалнама/рефлексия, canva — постер, google_forms — онлайн бағалау. "note" — қай кезеңде, не үшін қолданылады.
-6. "planning" — ресми үлгідегі қорытынды кесте: "differentiation" (қолдау мен тереңдету қалай ұйымдастырылады), "assessment" (оқушы білімі қалай тексеріледі), "safety" (денсаулық сақтау, сергіту сәті, қауіпсіздік техникасы).
-7. "reflection" — сабақ соңындағы 3 рефлексия сұрағы; "homework" — саралап берілген үй тапсырмасы.
-${
-    en
-      ? `ТІЛ: жоспардың БАРЛЫҚ мазмұны АҒЫЛШЫН тілінде жазылсын (мақсаттар, кезең атаулары, әрекеттер, бағалау, тапсырмалар, кестелер, дескрипторлар, сөздік, жоспарлау кестесі, рефлексия, үй тапсырмасы). Кезең атаулары: "Beginning of the lesson", "Middle of the lesson", "End of the lesson". Мақсаттар "All learners will...", "Most learners will...", "Some learners will..." деп, дескрипторлар "The learner ..." деп басталсын. Ресурстардың "query" өрісі ағылшынша болсын.`
-      : ru
-      ? `ТІЛ: жоспардың БАРЛЫҚ мазмұны ОРЫС тілінде жазылсын (мақсаттар, кезең атаулары, әрекеттер, бағалау, тапсырмалар, кестелер, дескрипторлар, сөздік, жоспарлау кестесі, рефлексия, үй тапсырмасы). Кезең атаулары: "Начало урока", "Середина урока", "Конец урока". Мақсаттар "Все учащиеся...", "Большинство учащихся...", "Некоторые учащиеся..." деп, дескрипторлар "Обучающийся ..." деп басталсын. Ресурстардың "query" өрісі орысша немесе халықаралық термин болсын. Шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін.`
-      : "Барлығы тек қазақ тілінде (шет тілі пәнінде тапсырма мәтіндері сол тілде болуы мүмкін)."
-  } Фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
+  const base = {
+    subject,
+    grade,
+    topic,
+    duration,
+    teacherName: teacherName || "Мұғалімнің аты-жөні",
+    date: date || formatToday(),
+    section: subjectIn(subject, lang),
+    gradeNumber,
+    lang,
+    lessonType,
+    format: 2 as const,
+    approver: options.approver?.trim() ?? "",
+    valuesTitle: value.title,
+    tasks: [],
+  };
 
   try {
-    const ai = await aiGenerateJson<LessonPlanAiContent>(prompt, lessonPlanAiSchema);
+    const ai = await aiGenerateJson<TemplateAiContent>(prompt, templatePlanAiSchema);
+    const objectives = manual.length
+      ? manual
+      : (ai.objectives ?? []).map((o) => ({ code: o.code?.trim() ?? "", text: o.text?.trim() ?? "" })).filter((o) => o.text);
+    const objs = objectives.length ? objectives : fallbackObjectives;
+    const planning = ai.planning ?? {};
     return {
-      subject,
-      grade,
-      topic,
-      duration,
-      teacherName: teacherName || "Мұғалімнің аты-жөні",
-      date: date || formatToday(),
-      section: `${subjectIn(subject, options.lang)} — ${topic}`,
-      gradeNumber,
-      lang: options.lang ?? "kk",
-      objectiveCode: ai.objectiveCode || fallbackObjectiveCode,
-      objectiveText: ai.objectiveText || fallbackObjectiveText,
-      goals: ai.goals,
-      valuesTitle: value.title,
-      valuesText: ai.valuesText?.includes(value.title) ? ai.valuesText : `«${value.title}» — ${ai.valuesText || value.text}`,
-      stages: ai.stages,
-      tasks: (ai.tasks ?? []).map((t) => ({
-        ...t,
-        tableHeaders: t.tableHeaders ?? [],
-        tableRows: (t.tableRows ?? []).filter((r) => Array.isArray(r) && r.length),
-        expectedResultRows: (t.expectedResultRows ?? []).filter((r) => Array.isArray(r) && r.length),
-        level: (["A", "B", "C"] as const).find((l) => l === t.level),
-      })),
-      lessonType,
-      vocabulary: (ai.vocabulary ?? []).filter((v) => v.term),
-      resources: (ai.resources ?? []).map(buildResource).filter((r): r is QmzhResource => r !== null).slice(0, 8),
-      planning: ai.planning,
-      reflection: ai.reflection ?? [],
-      homework: ai.homework ?? "",
+      ...base,
+      objectiveCode: objs[0].code,
+      objectiveText: objs[0].text,
+      objectives: objs,
+      goals: clean(ai.goals),
+      valuesQuote: ai.valuesQuote?.trim() ?? "",
+      valuesText: ai.valuesText?.trim() || value.text,
+      stages: buildStages(frame, ai.stages, lang),
+      planning: {
+        differentiation: clean(planning.differentiation).join("\n"),
+        support: clean(planning.support).join("\n"),
+        assessment: planning.assessment?.trim() ?? "",
+        safety: planning.safety?.trim() ?? "",
+      },
+      answerKey: (ai.answerKey ?? [])
+        .map((k) => ({ level: (["A", "B", "C"] as const).find((l) => l === k.level) ?? "A", answer: k.answer?.trim() ?? "" }))
+        .filter((k) => k.answer),
+      resources: (ai.resources ?? []).map(templateResource).filter((r): r is QmzhResource => r !== null).slice(0, 3),
     };
   } catch (e) {
     // Үлгі нұсқасы тек қазақша — басқа тілдегі жоспарда қатені көрсетеміз.
     // AI лимиті біткенде де үлгіге ауыспаймыз: мұғалім себебін білуі керек.
-    if (ru || en || isLimitError(e)) throw e;
+    if (lang !== "kk" || isLimitError(e)) throw e;
     console.warn("ЖИ арқылы ҚМЖ жасау мүмкін болмады, үлгі нұсқасына көшірілді:", e);
-    return generateLessonPlanTemplate(subject, grade, topic, duration, teacherName, date, objectivesInput);
+    return fallbackTemplatePlan(base, fallbackObjectives, frame, value.text);
   }
+}
+
+/** AI қолжетімсіз болғанда: үлгі құрылымындағы жалпы мазмұн (мұғалім өңдеп толықтырады). */
+function fallbackTemplatePlan(
+  base: Omit<LessonPlan, "objectiveCode" | "objectiveText" | "goals" | "valuesText" | "stages">,
+  objectives: { code: string; text: string }[],
+  frame: ScaffoldStage[],
+  valueText: string,
+): LessonPlan {
+  const t = base.topic;
+  const ai: TemplateAiContent["stages"] = [
+    {
+      teacher: [
+        "**Ұйымдастыру кезеңі.** Сәлемдесу, түгендеу, бағалау парағын тарату.",
+        `**Білімді өзектендіру: «Миға шабуыл».** «${t}» тақырыбына қатысты 3 сұрақ қойылады, жауаптар тақтаға жазылады.`,
+        "**Құндылыққа баулу:** «Білім – таусылмас кен» – халық мақалы.",
+        `**Проблемалық жағдаят:** «${t}» күнделікті өмірде қай жерде кездеседі?`,
+        "Оқушылардың болжамдары тыңдалып, сабақтың тақырыбы мен мақсаты бірге анықталады.",
+      ],
+      student: ["Сұрақтарға жауап беріп, болжам айтады.", "Тақырып пен мақсатты анықтауға қатысады."],
+      assessment: ["**Қалыптастырушы бағалау:** ауызша кері байланыс, «Бас бармақ» әдісі."],
+      resources: ["Презентация", "Бағалау парағы"],
+    },
+    {
+      teacher: [
+        "**Жаңа білімді меңгеру: «Джигсо» (мозаика).** Сынып топтарға бөлінеді, әр топ мәтіннің бір бөлігін меңгеріп, өз тобына түсіндіреді.",
+        `• «${t}» тақырыбының негізгі ұғымдары мен анықтамалары.`,
+        "• Негізгі заңдылықтар мен мысалдар.",
+        "• Тақырыптың күнделікті өмірмен байланысы.",
+      ],
+      student: ["Топта бөлімді меңгеріп, өз тобына түсіндіреді."],
+      assessment: ["**Дескриптор:**", "• тақырыптың негізгі ұғымдарын түсіндіреді;", "• топта белсенді жұмыс істейді.", "**2 балл**"],
+      resources: ["Оқулық", "Презентация"],
+    },
+    {
+      teacher: [
+        "**«Жүргізуші – штурман» (жұптық жұмыс).** Жұптың бірі тапсырманы орындайды, екіншісі әр қадамын тексереді; келесі тапсырмада рөлдер ауысады.",
+        `**Тапсырма:** «${t}» бойынша жаттығу орындау.`,
+      ],
+      student: ["Тапсырманы орындап, шешімін талқылайды."],
+      assessment: ["**Дескриптор:**", "• тапсырманы қадамдап, дұрыс орындайды.", "**1 балл**"],
+      resources: ["Жұмыс дәптері", "Тапсырма карточкасы"],
+    },
+    {
+      teacher: ["**«Тепе-теңдік».** Оқушылар бір аяқпен тұрып, қолдарын жайып, тепе-теңдікті сақтайды."],
+      student: ["Қимыл арқылы орындайды."],
+      assessment: ["–"],
+      resources: ["–"],
+    },
+    {
+      teacher: [
+        "**Саралау «Таңдау» арқылы:** оқушылар деңгейін өздері таңдайды; А деңгейін орындаған оқушы В деңгейіне өтеді.",
+        "**А деңгейі (білу, түсіну) – жасыл карта.**",
+        `«${t}» тақырыбының негізгі ұғымдарына анықтама бер.`,
+        "**В деңгейі (қолдану) – сары карта.**",
+        "Алған білімді нақты мысалда қолдан.",
+        "**С деңгейі (талдау, жинақтау) – қызыл карта.**",
+        "Тақырып бойынша қорытынды жасап, дәлелде.",
+        "**ЕББҚ оқушыларына:** тапсырманы бөліктерге бөліп беру және қосымша 3–5 минут.",
+      ],
+      student: ["Деңгейін таңдап, тапсырманы жеке орындайды.", "Жауап кілтімен өзін-өзі тексереді."],
+      assessment: [
+        "**Дескриптор:**",
+        "**А:** негізгі ұғымдарды анықтайды – **2 балл**",
+        "**В:** білімін мысалда қолданады – **3 балл**",
+        "**С:** қорытынды жасап, дәлелдейді – **4 балл**",
+      ],
+      resources: ["Деңгейлік карточкалар (А – жасыл, В – сары, С – қызыл)", "Жауап кілті"],
+    },
+    {
+      teacher: [
+        "**Бекіту: Kahoot онлайн-викторинасы** (мұғалім алдын ала дайындайды).",
+        "Құрылғы жетіспесе – қағаз нұсқасы.",
+        "**Рефлексия: «Баспалдақ»** – оқушы стикерін өзі жеткен сатысына («білемін», «түсінемін», «қолдана аламын», «түсіндіре аламын») жапсырады.",
+        "**Үй тапсырмасы (сараланған):**",
+        "• **А:** оқулықтағы мәтінді оқу, 3 сұраққа жауап беру.",
+        "• **В:** тақырып бойынша 2 жаттығу орындау.",
+        "• **С:** тақырып бойынша шағын хабарлама дайындау.",
+      ],
+      student: ["Викторинаға жауап береді.", "Бағалау парағындағы балын қосып, өзін-өзі бағалайды.", "Рефлексия жасайды, үй тапсырмасының деңгейін таңдайды."],
+      assessment: [
+        "**Дескриптор:**",
+        "• викторина сұрақтарының кемінде 80%-ына дұрыс жауап береді – **3 балл**",
+        "**Шкала (10 балл):** 9–10 «Өте жақсы», 7–8 «Жақсы», 5–6 «Қанағаттанарлық», 0–4 «Қолдау қажет»",
+      ],
+      resources: ["Kahoot (QR-код)", "Рефлексия материалдары"],
+    },
+  ];
+  return {
+    ...base,
+    objectiveCode: objectives[0].code,
+    objectiveText: objectives[0].text,
+    objectives,
+    goals: [`«${t}» тақырыбының негізгі ұғымдарын түсіндіреді`, "алған білімін нақты мысалдарда қолданады", "тақырып бойынша қорытынды жасап, дәлелдейді"],
+    valuesQuote: "«Білім – таусылмас кен» – халық мақалы.",
+    valuesText: `Құндылық ${valueText}`,
+    stages: buildStages(frame, ai, "kk"),
+    planning: {
+      differentiation: [
+        "**Тапсырма арқылы:** А, В, С деңгейлік карталар.",
+        "**Таңдау арқылы:** оқушы деңгейін өзі таңдайды.",
+        "**Қолдау арқылы:** «Джигсо» (мозаика), жұп-тьютор.",
+        "**Қабілетті оқушыларға:** С деңгейі, қосымша зерттеу.",
+      ].join("\n"),
+      support: [
+        "**Оқу қиындығы:** тапсырманы бөліктерге бөліп беру және қосымша 3–5 минут.",
+        "**Көру/есту қабілеті:** толтырылған үлгі және бос орынды толықтыру тапсырмасы.",
+        "**Зейін тапшылығы:** белсенді рөл беру (уақыт сақшысы, материал таратушы).",
+      ].join("\n"),
+      assessment: "Бағалау парағы (10 балл), дескрипторлар, өзін-өзі және өзара бағалау, онлайн-викторина, рефлексия.",
+      safety: "Сергіту сәті, көзге арналған үзіліс, интерактивті тақтамен жұмыс уақытын шектеу, сыныпты желдету.",
+    },
+    answerKey: [
+      { level: "A", answer: "Негізгі ұғымдардың оқулықтағы анықтамалары." },
+      { level: "B", answer: "Мысалдағы дұрыс шешім (мұғалім толықтырады)." },
+      { level: "C", answer: "Дәлелді қорытынды (мұғалім толықтырады)." },
+    ],
+    resources: ["kahoot", "bilimland", "opiq"].map((platform) => templateResource({ platform })).filter((r): r is QmzhResource => r !== null),
+  };
 }
 
 // Әр сұрақ үлгісі өз мағынасына сай жауап нұсқаларымен жұпталған
@@ -650,22 +635,26 @@ export interface PresentationSlide {
 
 export function buildLessonPresentation(plan: LessonPlan): PresentationSlide[] {
   const slides: PresentationSlide[] = [];
+  const objectives = plan.objectives?.length ? plan.objectives : [{ code: plan.objectiveCode, text: plan.objectiveText }];
 
   slides.push({
     kind: "title",
     title: plan.topic,
-    bullets: [plan.subject, `${plan.gradeNumber}-сынып`, `Оқыту мақсаты: ${plan.objectiveCode}`],
+    bullets: [plan.subject, `${plan.gradeNumber}-сынып`, `Оқыту мақсаты: ${objectives.map((o) => o.code).filter(Boolean).join(", ")}`],
   });
 
   slides.push({
     kind: "content",
     title: "Сабақтың мақсаты",
-    bullets: plan.goals,
+    bullets: plan.goals.map(plainText),
   });
 
   plan.stages.forEach((stage) => {
-    const bullets = stage.rows.map((row) => row.teacherAction[0]).slice(0, 4);
-    slides.push({ kind: "content", title: stage.name, bullets });
+    const bullets = stage.rows
+      .flatMap((row) => (isTemplatePlan(plan) ? row.teacherAction.filter((l) => l.startsWith("**")) : row.teacherAction.slice(0, 1)))
+      .map(plainText)
+      .slice(0, 4);
+    slides.push({ kind: "content", title: stage.purpose ? `${stage.name}: ${stage.purpose}` : stage.name, bullets });
   });
 
   plan.tasks.forEach((task) => {
@@ -675,7 +664,7 @@ export function buildLessonPresentation(plan: LessonPlan): PresentationSlide[] {
   slides.push({
     kind: "content",
     title: `Құндылық: «${plan.valuesTitle}»`,
-    bullets: [plan.valuesText],
+    bullets: [plan.valuesQuote, plan.valuesText].filter((x): x is string => !!x).map(plainText),
   });
 
   const conclusion = plan.tasks[0]?.expectedConclusion ?? `"${plan.topic}" тақырыбы бойынша негізгі ұғымдарды меңгердік.`;

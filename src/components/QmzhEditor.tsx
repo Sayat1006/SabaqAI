@@ -1,6 +1,6 @@
 import { ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
 import { useState } from "react";
-import { TASK_KINDS, type LessonPlan, type QmzhActivityRow, type QmzhStage, type QmzhTask } from "../lib/generators";
+import { isTemplatePlan, TASK_KINDS, type LessonPlan, type QmzhActivityRow, type QmzhStage, type QmzhTask } from "../lib/generators";
 import { tr } from "../i18n";
 
 // ҚМЖ өңдегіші: жоспардың көшірмесімен (draft) жұмыс істейді, «Сақтау» басылғанда ғана
@@ -104,8 +104,7 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
   };
   const planning = d.planning ?? { differentiation: "", assessment: "", safety: "" };
 
-  return (
-    <div className="flex flex-col gap-3">
+  const toolbar = (
       <div className="sticky top-20 z-10 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-violet-200 bg-violet-100/90 px-4 py-3 backdrop-blur">
         <span className="text-sm font-semibold text-violet-800">{tr("Өңдеу режимі — өзгерістерді «Сақтау» арқылы сақтаңыз")}</span>
         <div className="flex gap-2">
@@ -117,6 +116,20 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
           </button>
         </div>
       </div>
+  );
+
+  if (isTemplatePlan(d)) {
+    return (
+      <div className="flex flex-col gap-3">
+        {toolbar}
+        <TemplateFields d={d} version={version} set={set} setStage={setStage} setRow={setRow} structural={structural} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {toolbar}
 
       <Section title={tr("Жалпы мәліметтер")} open>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -266,5 +279,137 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
         <Text title={tr("Үй тапсырмасы")} value={d.homework ?? ""} onChange={(homework) => set({ homework })} rows={2} />
       </Section>
     </div>
+  );
+}
+
+const RICH_HINT = () => tr("әр жол — бір абзац; **қалың**, «• » — тізім");
+const levelOf = (raw: string) => ({ А: "A", В: "B", С: "C", A: "A", B: "B", C: "C" })[raw.trim().toUpperCase()] ?? raw.trim();
+const emptyStage = (): QmzhStage => ({ name: tr("Сабақтың ортасы"), timeRange: tr("5 минут"), purpose: "", rows: [{ ...emptyRow(), assessment: [] }] });
+
+/** Ресми үлгі (2-нұсқа) бойынша жасалған жоспардың өрістері. */
+function TemplateFields({
+  d,
+  version,
+  set,
+  setStage,
+  setRow,
+  structural,
+}: {
+  d: LessonPlan;
+  version: number;
+  set: (patch: Partial<LessonPlan>) => void;
+  setStage: (si: number, patch: Partial<QmzhStage>) => void;
+  setRow: (si: number, ri: number, patch: Partial<QmzhActivityRow>) => void;
+  structural: (fn: (p: LessonPlan) => LessonPlan) => void;
+}) {
+  const planning = { differentiation: "", assessment: "", safety: "", support: "", ...d.planning };
+  const objectives = d.objectives?.length ? d.objectives : [{ code: d.objectiveCode, text: d.objectiveText }];
+  return (
+    <>
+      <Section title={tr("Жалпы мәліметтер")} open>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Text title={tr("Бекітуші (оқу ісі жөніндегі орынбасар)")} value={d.approver ?? ""} onChange={(approver) => set({ approver })} />
+          <Text title={tr("Бөлім")} value={d.section} onChange={(section) => set({ section })} />
+          <Text title={tr("Педагогтің аты-жөні")} value={d.teacherName} onChange={(teacherName) => set({ teacherName })} />
+          <Text title={tr("Күні")} value={d.date} onChange={(date) => set({ date })} />
+        </div>
+        <Text title={tr("Сабақтың тақырыбы")} value={d.topic} onChange={(topic) => set({ topic })} />
+        <Lines
+          title={tr("Оқу бағдарламасына сәйкес оқыту мақсаттары")}
+          hint={tr("әр жол: код - мазмұны")}
+          initial={objectives.map((o) => (o.code ? `${o.code} - ${o.text}` : o.text)).join("\n")}
+          parse={(t) =>
+            lines(t).map((l) => {
+              const m = l.match(/^(\d+(?:\.\d+){2,4})\s*[.:–—-]?\s*(.*)$/);
+              return m ? { code: m[1], text: m[2] } : { code: "", text: l };
+            })
+          }
+          onChange={(objs) => set({ objectives: objs, objectiveCode: objs[0]?.code ?? "", objectiveText: objs[0]?.text ?? "" })}
+        />
+        <Lines title={tr("Сабақтың мақсаты (SMART)")} initial={d.goals.join("\n")} parse={lines} onChange={(goals) => set({ goals })} />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Text title={tr("Құндылық («Адал азамат»)")} value={d.valuesTitle} onChange={(valuesTitle) => set({ valuesTitle })} />
+          <Text title={tr("Нақыл сөз")} value={d.valuesQuote ?? ""} onChange={(valuesQuote) => set({ valuesQuote })} />
+        </div>
+        <Text title={tr("Құндылық қалай жүзеге асады")} value={d.valuesText} onChange={(valuesText) => set({ valuesText })} rows={2} />
+      </Section>
+
+      <Section title={tr("Сабақтың барысы ({n} кезең)", { n: d.stages.length })}>
+        {d.stages.map((stage, si) => (
+          <div key={`${si}-${version}`} className="flex flex-col gap-3 rounded-xl border border-slate-200 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold">{tr("{n}-кезең", { n: si + 1 })}</span>
+              <div className="flex gap-1.5">
+                <button type="button" onClick={() => structural((p) => ({ ...p, stages: move(p.stages, si, -1) }))} disabled={si === 0} aria-label={tr("Жоғары жылжыту")} className={iconBtn}>
+                  <ArrowUp size={14} />
+                </button>
+                <button type="button" onClick={() => structural((p) => ({ ...p, stages: move(p.stages, si, 1) }))} disabled={si === d.stages.length - 1} aria-label={tr("Төмен жылжыту")} className={iconBtn}>
+                  <ArrowDown size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => window.confirm(tr("{n}-кезеңді өшіру керек пе?", { n: si + 1 })) && structural((p) => ({ ...p, stages: p.stages.filter((_, i) => i !== si) }))}
+                  disabled={d.stages.length <= 1}
+                  aria-label={tr("Кезеңді өшіру")}
+                  className={`${iconBtn} hover:border-rose-400 hover:text-rose-700`}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[1fr_120px_1.4fr]">
+              <Text title={tr("Кезең")} value={stage.name} onChange={(name) => setStage(si, { name })} />
+              <Text title={tr("Уақыты")} value={stage.timeRange} onChange={(timeRange) => setStage(si, { timeRange })} />
+              <Text title={tr("Кезеңнің мақсаты")} value={stage.purpose ?? ""} onChange={(purpose) => setStage(si, { purpose })} />
+            </div>
+            {stage.rows.map((row, ri) => (
+              <div key={ri} className="grid gap-2.5 rounded-lg bg-slate-50 p-3 sm:grid-cols-2">
+                <Lines title={tr("Педагогтың әрекеті")} hint={RICH_HINT()} rows={6} initial={row.teacherAction.join("\n")} parse={lines} onChange={(teacherAction) => setRow(si, ri, { teacherAction })} />
+                <Lines title={tr("Оқушының әрекеті")} rows={6} initial={row.studentAction.join("\n")} parse={lines} onChange={(studentAction) => setRow(si, ri, { studentAction })} />
+                <Lines
+                  title={tr("Бағалау (дескрипторлар)")}
+                  hint={RICH_HINT()}
+                  initial={(row.assessment ?? [row.assessmentType, row.assessmentDetail].filter(Boolean)).join("\n")}
+                  parse={lines}
+                  onChange={(assessment) => setRow(si, ri, { assessment })}
+                />
+                <Lines title={tr("Ресурстар")} initial={row.resources} parse={(t) => lines(t).join("\n")} onChange={(resources) => setRow(si, ri, { resources })} />
+              </div>
+            ))}
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => structural((p) => ({ ...p, stages: [...p.stages, emptyStage()] }))}
+          className="inline-flex w-fit items-center gap-1.5 rounded-[10px] border border-slate-200 px-3 py-2 text-[13px] font-semibold hover:border-violet-500"
+        >
+          <Plus size={14} /> {tr("Кезең қосу")}
+        </button>
+      </Section>
+
+      <Section title={tr("Саралау, ЕББҚ қолдау, бағалау және қауіпсіздік")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Text title={tr("Саралау")} hint={RICH_HINT()} value={planning.differentiation} onChange={(v) => set({ planning: { ...planning, differentiation: v } })} rows={4} />
+          <Text title={tr("ЕББҚ оқушыларына қолдау")} value={planning.support ?? ""} onChange={(v) => set({ planning: { ...planning, support: v } })} rows={4} />
+          <Text title={tr("Бағалау")} value={planning.assessment} onChange={(v) => set({ planning: { ...planning, assessment: v } })} rows={3} />
+          <Text title={tr("Денсаулық және қауіпсіздік")} value={planning.safety} onChange={(v) => set({ planning: { ...planning, safety: v } })} rows={3} />
+        </div>
+      </Section>
+
+      <Section title={tr("Деңгейлік тапсырмалардың жауап кілті")}>
+        <Lines
+          title={tr("Жауаптар")}
+          hint={tr("әр жол: деңгей: жауабы (мыс. А: ...)")}
+          initial={(d.answerKey ?? []).map((k) => `${k.level}: ${k.answer}`).join("\n")}
+          parse={(t) =>
+            lines(t).map((l) => {
+              const m = l.match(/^([A-CА-С])\s*[:.)–—-]\s*(.*)$/i);
+              return m ? { level: levelOf(m[1]), answer: m[2] } : { level: "", answer: l };
+            })
+          }
+          onChange={(answerKey) => set({ answerKey })}
+        />
+      </Section>
+    </>
   );
 }

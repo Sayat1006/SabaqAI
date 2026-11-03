@@ -9,13 +9,16 @@ import { useAuth } from "../context/useAuth";
 import { GRADES } from "../lib/catalog";
 import { allowedSubjects, pickSubject } from "../lib/subjects";
 import { qmzhLabels } from "../lib/docLabels";
-import { generateLessonPlan, LESSON_TYPES, TASK_KINDS, type LessonPlan } from "../lib/generators";
+import { generateLessonPlan, isTemplatePlan, LESSON_TYPES, type LessonPlan } from "../lib/generators";
+import { QmzhTemplateView } from "../components/QmzhDocument";
 import { gradeIn, subjectIn, type Lang } from "../lib/lang";
 import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, updateQmzh, type SavedQmzh } from "../lib/projects";
 import type { QmzhResource } from "../lib/resources";
 import { scrollToResult } from "../lib/scrollToResult";
 import { tr } from "../i18n";
 import { defaultMaterialLang } from "../lib/lang";
+
+const APPROVER_KEY = "ainur.qmzh.approver";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3 text-sm outline-none focus:border-violet-500";
 
@@ -69,8 +72,14 @@ export default function QmzhPage() {
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [lessonType, setLessonType] = useState<string>(LESSON_TYPES[0]);
-  const [taskKinds, setTaskKinds] = useState<string[]>([tr("Жұптық жұмыс"), tr("Топтық жұмыс"), tr("Функционалдық сауаттылық")]);
-  const [taskCount, setTaskCount] = useState(3);
+  // Бекітуші (оқу ісі жөніндегі орынбасар) — бір рет жазылады, келесі жоспарларға есте қалады.
+  const [approver, setApprover] = useState(() => {
+    try {
+      return localStorage.getItem(APPROVER_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [notes, setNotes] = useState("");
   const [lang, setLang] = useState<Lang>(prefill?.lang ?? defaultMaterialLang);
   const [savingResources, setSavingResources] = useState(false);
@@ -115,7 +124,9 @@ export default function QmzhPage() {
     setDuration(p.duration);
     setTeacherName(p.teacherName === "Мұғалімнің аты-жөні" ? "" : p.teacherName);
     setDate(p.date);
-    setObjectivesInput(p.objectiveCode ? `${p.objectiveCode} - ${p.objectiveText}` : "");
+    const objs = p.objectives?.length ? p.objectives : p.objectiveCode || p.objectiveText ? [{ code: p.objectiveCode, text: p.objectiveText }] : [];
+    setObjectivesInput(objs.map((o) => (o.code ? `${o.code} - ${o.text}` : o.text)).join("\n"));
+    if (p.approver) setApprover(p.approver);
     setPlan(p);
   }
 
@@ -144,14 +155,18 @@ export default function QmzhPage() {
     }
     setGenerating(true);
     scrollToResult();
+    try {
+      localStorage.setItem(APPROVER_KEY, approver.trim());
+    } catch {
+      /* жеке терезеде сақталмауы мүмкін */
+    }
     setError("");
     try {
       const newPlan = await generateLessonPlan(subject, grade, topic.trim(), duration, teacherName.trim(), date.trim(), objectivesInput.trim(), {
         lessonType,
-        taskKinds,
-        taskCount,
         notes: notes.trim(),
         lang,
+        approver,
       });
       setPlan(newPlan);
       setPlanId(null);
@@ -184,10 +199,6 @@ export default function QmzhPage() {
     } finally {
       setSavingResources(false);
     }
-  }
-
-  function toggleKind(k: string) {
-    setTaskKinds((list) => (list.includes(k) ? list.filter((x) => x !== k) : [...list, k]));
   }
 
   async function handleDeleteHistory(id: string) {
@@ -249,7 +260,7 @@ export default function QmzhPage() {
             <FormField label={tr("Сабақтың тақырыбы")}>
               <input value={topic} onChange={(e) => setTopic(e.target.value)} maxLength={300} placeholder={tr("мыс.: Физика – табиғат туралы ғылым")} className={fieldClass} />
             </FormField>
-            <FormField label={tr("Оқу мақсаттары")} hint={tr("Бос қалдырсаңыз, AI бағдарламаға сай мақсатты өзі ұсынады.")}>
+            <FormField label={tr("Оқу мақсаттары")} hint={tr("Әр мақсат — жеке жолда. Бос қалдырсаңыз, AI бағдарламаға сай мақсаттарды өзі ұсынады.")}>
               <textarea
                 rows={3}
                 value={objectivesInput}
@@ -265,46 +276,14 @@ export default function QmzhPage() {
                 ))}
               </select>
             </FormField>
-            <fieldset>
-              <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тапсырма түрлері")}</legend>
-              <div className="flex flex-wrap gap-1.5">
-                {TASK_KINDS.map((k) => {
-                  const on = taskKinds.includes(k);
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => toggleKind(k)}
-                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-600 hover:border-violet-500"}`}
-                    >
-                      {tr(k)}
-                    </button>
-                  );
-                })}
-              </div>
-              <span className="mt-1.5 block text-xs text-slate-500">{tr("Таңдамасаңыз, AI өзі әртүрлі жұмыс түрлерін ұсынады.")}</span>
-            </fieldset>
-            <FormField label={tr("Тапсырма саны")}>
-              <div className="grid grid-cols-4 gap-2">
-                {[2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    aria-pressed={taskCount === n}
-                    onClick={() => setTaskCount(n)}
-                    className={`min-h-10 rounded-xl border text-[13.5px] ${taskCount === n ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-500 hover:border-violet-500"}`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            </FormField>
             <FormField label={tr("Қосымша тілек")} hint={tr("Міндетті емес: мыс. «STEM элементі болсын», «ерекше білім беру қажеттілігі бар оқушы бар».")}>
               <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={`${fieldClass} resize-y`} />
             </FormField>
             <FormField label={tr("Педагогтің аты-жөні")}>
               <input value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder={tr("мыс.: Айтбаев Саят")} className={fieldClass} />
+            </FormField>
+            <FormField label={tr("Бекітуші (оқу ісі жөніндегі орынбасар)")} hint={tr("Міндетті емес: «Бекітемін» жолына жазылады және келесі жоспарларға есте қалады.")}>
+              <input value={approver} onChange={(e) => setApprover(e.target.value)} maxLength={120} placeholder={tr("мыс.: Г. Жылкайдарова")} className={fieldClass} />
             </FormField>
             <div className="grid grid-cols-2 gap-3">
               <FormField label={tr("Күні")}>
@@ -401,6 +380,10 @@ export default function QmzhPage() {
                 </div>
               </div>
 
+              {isTemplatePlan(plan) ? (
+                <QmzhTemplateView plan={plan} onResourcesChange={changeResources} savingResources={savingResources} />
+              ) : (
+                <>
               <div className="mb-8 overflow-hidden rounded-lg border border-violet-100">
                 <table className="w-full">
                   <tbody>
@@ -498,6 +481,8 @@ export default function QmzhPage() {
               )}
 
               <ResourcesSection resources={plan.resources ?? []} onChange={changeResources} saving={savingResources} lang={plan.lang} />
+                </>
+              )}
 
               <div className="mt-8 flex flex-wrap gap-2.5 border-t border-slate-200 pt-5 print:hidden">
                 <button type="button" onClick={() => setEditing(true)} className="inline-flex items-center gap-2 rounded-[11px] bg-violet-600 px-3.5 py-2.5 text-sm font-semibold text-white">

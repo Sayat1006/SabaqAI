@@ -147,6 +147,122 @@ const QMZH = {
 export type QmzhLabels = (typeof QMZH)["kk"];
 export const qmzhLabels = (lang: Lang | undefined): QmzhLabels => QMZH[lang ?? "kk"];
 
+// ҚМЖ ресми үлгісінің (2-нұсқа) тұрақты белгілері — мұғалім берген үлгідегі сөздер дәл сақталады.
+const QMZH_TPL = {
+  kk: {
+    approve: "Бекітемін:",
+    approverRole: "Оқу ісі жөніндегі орынбасары:",
+    section: "Бөлім:",
+    teacher: "Педагогтың аты-жөні:",
+    date: "Күні:",
+    dateSuffix: " ж.",
+    grade: "Сынып:",
+    present: "Қатысушылар саны:",
+    absent: "Қатыспағандар саны:",
+    topic: "Сабақтың тақырыбы:",
+    objectives: "Оқу бағдарламасына сәйкес оқыту мақсаттары:",
+    goals: "Сабақтың мақсаты (SMART):",
+    values: "Құндылықтарға баулу:",
+    valuesProgram: "«Адал азамат» бағдарламасы бойынша: ",
+    flow: "Сабақтың барысы:",
+    stageTime: "Сабақтың кезеңі / уақыты",
+    teacherAction: "Педагогтың әрекеті",
+    studentAction: "Оқушының әрекеті",
+    assessment: "Бағалау (дескрипторлар)",
+    resources: "Ресурстар",
+    planningTitle: "Саралау, ЕББҚ қолдау, бағалау және қауіпсіздік",
+    planDiff: "Саралау",
+    planSupport: "ЕББҚ оқушыларына қолдау",
+    planAssess: "Бағалау",
+    planSafety: "Денсаулық және қауіпсіздік",
+    keyTitle: "Деңгейлік тапсырмалардың жауап кілті",
+    keyLevel: "Деңгей",
+    keyAnswer: "Дұрыс жауап",
+    qrTitle: "Сандық ресурстар (QR-кодтар)",
+    minutes: (n: number) => `${n} минут`,
+    levels: { A: "А", B: "В", C: "С" } as Record<string, string>,
+    file: "KMZH",
+  },
+  ru: {
+    approve: "Утверждаю:",
+    approverRole: "Заместитель директора по учебной работе:",
+    section: "Раздел:",
+    teacher: "ФИО педагога:",
+    date: "Дата:",
+    dateSuffix: " г.",
+    grade: "Класс:",
+    present: "Количество присутствующих:",
+    absent: "Количество отсутствующих:",
+    topic: "Тема урока:",
+    objectives: "Цели обучения в соответствии с учебной программой:",
+    goals: "Цель урока (SMART):",
+    values: "Воспитание ценностей:",
+    valuesProgram: "По программе «Адал азамат»: ",
+    flow: "Ход урока:",
+    stageTime: "Этап урока / время",
+    teacherAction: "Действия педагога",
+    studentAction: "Действия учащихся",
+    assessment: "Оценивание (дескрипторы)",
+    resources: "Ресурсы",
+    planningTitle: "Дифференциация, поддержка учащихся с ООП, оценивание и безопасность",
+    planDiff: "Дифференциация",
+    planSupport: "Поддержка учащихся с ООП",
+    planAssess: "Оценивание",
+    planSafety: "Здоровье и безопасность",
+    keyTitle: "Ключ ответов к разноуровневым заданиям",
+    keyLevel: "Уровень",
+    keyAnswer: "Правильный ответ",
+    qrTitle: "Цифровые ресурсы (QR-коды)",
+    minutes: (n: number) => `${n} минут`,
+    levels: { A: "А", B: "В", C: "С" } as Record<string, string>,
+    file: "KSP",
+  },
+  en: {
+    approve: "Approved:",
+    approverRole: "Deputy Director for Academic Affairs:",
+    section: "Unit:",
+    teacher: "Teacher:",
+    date: "Date:",
+    dateSuffix: "",
+    grade: "Grade:",
+    present: "Number present:",
+    absent: "Number absent:",
+    topic: "Lesson topic:",
+    objectives: "Learning objectives (curriculum):",
+    goals: "Lesson objectives (SMART):",
+    values: "Values education:",
+    valuesProgram: "Under the «Adal Azamat» programme: ",
+    flow: "Lesson procedure:",
+    stageTime: "Stage / time",
+    teacherAction: "Teacher’s actions",
+    studentAction: "Learners’ actions",
+    assessment: "Assessment (descriptors)",
+    resources: "Resources",
+    planningTitle: "Differentiation, SEN support, assessment and safety",
+    planDiff: "Differentiation",
+    planSupport: "Support for learners with SEN",
+    planAssess: "Assessment",
+    planSafety: "Health and safety",
+    keyTitle: "Answer key for levelled tasks",
+    keyLevel: "Level",
+    keyAnswer: "Correct answer",
+    qrTitle: "Digital resources (QR codes)",
+    minutes: (n: number) => `${n} min`,
+    levels: { A: "A", B: "B", C: "C" } as Record<string, string>,
+    file: "Lesson-plan",
+  },
+} satisfies Record<Lang, unknown>;
+
+export type QmzhTplLabels = (typeof QMZH_TPL)["kk"];
+export const qmzhTplLabels = (lang: Lang | undefined): QmzhTplLabels => QMZH_TPL[lang ?? "kk"];
+
+/** Үлгідегідей «04.09.2026 ж.»: жұрнақ жоқ болса ғана қосылады. */
+export function tplDate(date: string, lang: Lang | undefined): string {
+  const d = date.trim();
+  const suffix = qmzhTplLabels(lang).dateSuffix;
+  return !d || !suffix || d.endsWith(suffix.trim()) || !/\d$/.test(d) ? d : `${d}${suffix}`;
+}
+
 const TEST = {
   kk: {
     types: {

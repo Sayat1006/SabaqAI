@@ -2,6 +2,7 @@
 // Барлығы `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
 
 import { tr } from "../i18n";
+import { plainText } from "./qmzhText";
 import { aiGenerateJson } from "./ai";
 import { curriculum } from "./curriculum";
 import type { LessonPlan } from "./generators";
@@ -134,16 +135,19 @@ ${planContext ? `Презентация мына қысқа мерзімді ж�
 
 /** ҚМЖ мазмұнын AI-ға берілетін қысқа мәтінге айналдырады. */
 export function planToContext(plan: LessonPlan): string {
-  const stageLines = plan.stages.map((st) => `${st.name} (${st.timeRange}): ${st.rows.flatMap((r) => r.teacherAction).slice(0, 3).join("; ")}`);
+  const stageLines = plan.stages.map(
+    (st) => `${st.name}${st.purpose ? ` — ${st.purpose}` : ""} (${st.timeRange}): ${st.rows.flatMap((r) => r.teacherAction).slice(0, 3).map(plainText).join("; ")}`,
+  );
   const taskLines = plan.tasks.map((t) => `${t.title}: ${t.condition.join(" ")}`);
+  const objectives = plan.objectives?.length ? plan.objectives : [{ code: plan.objectiveCode, text: plan.objectiveText }];
   return [
     `Пән: ${plan.subject}; сынып: ${plan.grade}`,
-    `Оқу мақсаты: ${plan.objectiveCode} — ${plan.objectiveText}`,
-    `Сабақ мақсаттары: ${plan.goals.join("; ")}`,
-    `Құндылық: ${plan.valuesTitle} — ${plan.valuesText}`,
+    `Оқу мақсаты: ${objectives.map((o) => `${o.code} — ${o.text}`).join("; ")}`,
+    `Сабақ мақсаттары: ${plan.goals.map(plainText).join("; ")}`,
+    `Құндылық: ${plan.valuesTitle} — ${plainText(plan.valuesText)}`,
     `Кезеңдер: ${stageLines.join(" | ")}`,
-    `Тапсырмалар: ${taskLines.join(" | ")}`,
-  ].join("\n").slice(0, 4000);
+    taskLines.length ? `Тапсырмалар: ${taskLines.join(" | ")}` : "",
+  ].filter(Boolean).join("\n").slice(0, 4000);
 }
 
 /** Презентация стиліне сай иллюстрация стилі. */
