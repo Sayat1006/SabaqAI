@@ -283,7 +283,9 @@ export function QmzhEditor({ plan, saving, onSave, onCancel }: { plan: LessonPla
 }
 
 const RICH_HINT = () => tr("әр жол — бір абзац; **қалың**, «• » — тізім");
-const levelOf = (raw: string) => ({ А: "A", В: "B", С: "C", A: "A", B: "B", C: "C" })[raw.trim().toUpperCase()] ?? raw.trim();
+const LEVEL_CODES: Record<string, string> = { А: "A", В: "B", С: "C", A: "A", B: "B", C: "C", ЕББҚ: "SEN", ЕБҚ: "SEN", SEN: "SEN", ООП: "SEN", БАРЛЫҒЫ: "ALL", ВСЕ: "ALL", ALL: "ALL" };
+const levelOf = (raw: string) => LEVEL_CODES[raw.trim().toUpperCase()] ?? raw.trim();
+const LEVEL_SHOWN: Record<string, string> = { SEN: "ЕББҚ", ALL: "Барлығы" };
 const emptyStage = (): QmzhStage => ({ name: tr("Сабақтың ортасы"), timeRange: tr("5 минут"), purpose: "", rows: [{ ...emptyRow(), assessment: [] }] });
 
 /** Ресми үлгі (2-нұсқа) бойынша жасалған жоспардың өрістері. */
@@ -400,10 +402,10 @@ function TemplateFields({
         <Lines
           title={tr("Жауаптар")}
           hint={tr("әр жол: деңгей: жауабы (мыс. А: ...)")}
-          initial={(d.answerKey ?? []).map((k) => `${k.level}: ${k.answer}`).join("\n")}
+          initial={(d.answerKey ?? []).map((k) => `${LEVEL_SHOWN[k.level] ?? k.level}: ${k.answer}`).join("\n")}
           parse={(t) =>
             lines(t).map((l) => {
-              const m = l.match(/^([A-CА-С])\s*[:.)–—-]\s*(.*)$/i);
+              const m = l.match(/^([A-CА-С]|ЕББҚ|ЕБҚ|SEN|ООП|Барлығы|Все|All)\s*[:.)–—-]\s*(.*)$/i);
               return m ? { level: levelOf(m[1]), answer: m[2] } : { level: "", answer: l };
             })
           }

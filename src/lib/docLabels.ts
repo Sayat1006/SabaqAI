@@ -180,7 +180,7 @@ const QMZH_TPL = {
     keyAnswer: "Дұрыс жауап",
     qrTitle: "Сандық ресурстар (QR-кодтар)",
     minutes: (n: number) => `${n} минут`,
-    levels: { A: "А", B: "В", C: "С" } as Record<string, string>,
+    levels: { A: "А", B: "В", C: "С", ALL: "Барлығы", SEN: "ЕББҚ" } as Record<string, string>,
     file: "KMZH",
   },
   ru: {
@@ -214,7 +214,7 @@ const QMZH_TPL = {
     keyAnswer: "Правильный ответ",
     qrTitle: "Цифровые ресурсы (QR-коды)",
     minutes: (n: number) => `${n} минут`,
-    levels: { A: "А", B: "В", C: "С" } as Record<string, string>,
+    levels: { A: "А", B: "В", C: "С", ALL: "Все", SEN: "ООП" } as Record<string, string>,
     file: "KSP",
   },
   en: {
@@ -248,7 +248,7 @@ const QMZH_TPL = {
     keyAnswer: "Correct answer",
     qrTitle: "Digital resources (QR codes)",
     minutes: (n: number) => `${n} min`,
-    levels: { A: "A", B: "B", C: "C" } as Record<string, string>,
+    levels: { A: "A", B: "B", C: "C", ALL: "All", SEN: "SEN" } as Record<string, string>,
     file: "Lesson-plan",
   },
 } satisfies Record<Lang, unknown>;

@@ -93,6 +93,42 @@ export interface LessonPlan {
   /** «Құндылықтарға баулу» жолындағы нақыл сөз (авторымен). */
   valuesQuote?: string;
   answerKey?: { level: string; answer: string }[];
+  /** Мұғалім таңдаған тапсырма түрлері (QMZH_TASK_KINDS кілттері). */
+  taskKinds?: QmzhTaskKind[];
+}
+
+/** ҚМЖ формасындағы тапсырма түрлері: таңдалғандары сабақтың тиісті кезеңдеріне орналасады. */
+export const QMZH_TASK_KINDS = [
+  { key: "levels", label: "Деңгейлік тапсырмалар" },
+  { key: "functional", label: "Функционалдық сауаттылық" },
+  { key: "individual", label: "Жеке жұмыс" },
+  { key: "pair", label: "Жұптық жұмыс" },
+  { key: "group", label: "Топтық жұмыс" },
+  { key: "ai", label: "ЖИ арқылы орындалатын" },
+  { key: "sen", label: "ЕБҚ оқушысына арналған" },
+] as const;
+export type QmzhTaskKind = (typeof QMZH_TASK_KINDS)[number]["key"];
+export const DEFAULT_TASK_KINDS: QmzhTaskKind[] = ["levels", "individual", "pair", "group"];
+
+/** Таңдалған тапсырма түрлерін ҚМЖ үлгісінің кезеңдеріне бөлу ережесі (AI-ға). */
+function taskKindsRule(kinds: QmzhTaskKind[]): string {
+  const has = (k: QmzhTaskKind) => kinds.includes(k);
+  const forms = [has("individual") && "жеке", has("pair") && "жұптық", has("group") && "топтық"].filter(Boolean);
+  const rules = [
+    forms.length
+      ? `Жұмыс формалары: ${forms.join(", ")} жұмыс — әрқайсысы кемінде бір кезеңде анық аталсын (мыс. «(${forms[0]} жұмыс)»); таңдалмаған жұмыс формасын қолданба.`
+      : "",
+    has("functional")
+      ? "Функционалдық сауаттылық: 3-кезеңдегі тапсырма өмірлік жағдаятқа (мәтін, кесте, график, нақты деректер) негізделсін және **Функционалдық сауаттылық тапсырмасы:** деп басталсын; дескрипторы соған сай."
+      : "",
+    has("ai")
+      ? `ЖИ арқылы орындалатын тапсырма: 2-, 3- немесе 5-кезеңнің бірінде **ЖИ арқылы орындалатын тапсырма:** — оқушылар ЖИ құралына (мыс. ChatGPT, Gemini) нақты сұраныс (промпт мәтінін тырнақшада бер) жазып, жауабын оқулықпен салыстырады, қатесін тауып, сыни бағалайды; академиялық адалдық пен дербес деректерді қорғау ережесін ескерт; сол кезеңнің "resources" тізіміне ЖИ құралын қос.`
+      : "",
+    has("sen")
+      ? `ЕБҚ оқушысына арналған тапсырма: 5-кезеңде бөлек бейімделген тапсырма **ЕББҚ оқушысына арналған тапсырма:** (қысқартылған шарт, тірек сөздер, үлгі не сурет арқылы, қадамдап орындалады); оның дескрипторын "assessment"-ке **ЕББҚ:** деп қос, ал дұрыс жауабын "answerKey"-ге level "SEN" деп қос.`
+      : "",
+  ].filter(Boolean);
+  return rules.length ? `ТАПСЫРМА ТҮРЛЕРІ (мұғалім таңдаған — барлығы сабақта МІНДЕТТІ түрде болсын):\n- ${rules.join("\n- ")}` : "";
 }
 
 export const isTemplatePlan = (p: LessonPlan) => p.format === 2;
@@ -297,7 +333,7 @@ const templatePlanAiSchema = {
       type: "ARRAY",
       items: {
         type: "OBJECT",
-        properties: { level: { type: "STRING", enum: ["A", "B", "C"] }, answer: { type: "STRING" } },
+        properties: { level: { type: "STRING", enum: ["A", "B", "C", "ALL", "SEN"] }, answer: { type: "STRING" } },
         required: ["level", "answer"],
       },
     },
@@ -326,6 +362,7 @@ interface TemplateAiContent {
 
 export interface LessonPlanOptions {
   lessonType?: string;
+  taskKinds?: QmzhTaskKind[];
   notes?: string;
   lang?: Lang;
   /** Бекітуші — оқу ісі жөніндегі орынбасар. */
@@ -382,6 +419,9 @@ function templatePrompt(args: {
   lessonType: string;
   notes?: string;
   lang: Lang;
+  stage5: string;
+  kindsRule: string;
+  answerRule: string;
 }): string {
   const { subject, grade, topic, frame, lang } = args;
   const st = (i: number) => `«${frame[i].name}» — ${frame[i].minutes} мин${frame[i].purpose ? `, «${frame[i].purpose}»` : ""}`;
@@ -394,7 +434,7 @@ function templatePrompt(args: {
   return `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}"${lang !== "kk" ? ` (${subjectIn(subject, lang)})` : ""} пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, ${args.duration} минуттық сабаққа арналған қысқа мерзімді жоспарды (ҚМЖ) МЕКТЕПТІҢ РЕСМИ ҮЛГІСІ бойынша ҚАТАҢ толтыр.
 Сабақ түрі: ${args.lessonType}.
 ${args.objectivesInstruction}
-${args.notes ? `Мұғалімнің тілегі: ${args.notes}\n` : ""}
+${args.notes ? `Мұғалімнің тілегі: ${args.notes}\n` : ""}${args.kindsRule ? `${args.kindsRule}\n` : ""}
 МӘТІН БЕЛГІЛЕРІ: әр массив элементі — ұяшықтағы бір абзац. Қалың мәтінді **...** арқылы белгіле (үлгідегі жапсырмалар: **Ұйымдастыру кезеңі.**, **Дескриптор:**, **2 балл**). Тізім пунктін «• » белгісімен баста. Басқа markdown қолданба.
 
 ӨРІСТЕР:
@@ -406,11 +446,11 @@ ${args.notes ? `Мұғалімнің тілегі: ${args.notes}\n` : ""}
    2) ${st(1)}: "teacher" — **Жаңа білімді меңгеру: «белсенді әдіс».** ұйымдастырылуы, одан кейін «• » арқылы жаңа тақырыптың НАҚТЫ мазмұны 3–5 пункт (анықтамалар, формулалар, мысалдар; негізгі терминдер **қалың**). "assessment" — **Дескриптор:**, «• » 2 дескриптор, **2 балл**.
    3) ${st(2)}: "teacher" — **«әдіс атауы» (жұптық не топтық жұмыс).** ұйымдастырылуы; **Тапсырма:** нақты деректері бар тапсырма. "assessment" — **Дескриптор:**, «• » 1 дескриптор, **1 балл**.
    4) ${st(3)}: "teacher" — **«жаттығу атауы».** қысқа сипаттамасы; "student" — 1 жол; "assessment" — ["–"]; "resources" — ["–"]; "purpose" — "".
-   5) ${st(4)}: "teacher" — **Саралау «Таңдау» арқылы:** түсіндірме; **А деңгейі (білу, түсіну) – жасыл карта.** келесі жолда нақты тапсырма; **В деңгейі (қолдану) – сары карта.** + тапсырма; **С деңгейі (талдау, жинақтау) – қызыл карта.** + тапсырма; **ЕББҚ оқушыларына:** қолдау тәсілі. "student" — 2 жол (деңгейін таңдап орындайды, жауап кілтімен тексереді). "assessment" — **Дескриптор:**, **А:** дескриптор – **2 балл**, **В:** … – **3 балл**, **С:** … – **4 балл**.
+   5) ${st(4)}: ${args.stage5}
    6) ${st(5)}: "teacher" — **Бекіту: онлайн-викторина** (Kahoot т.б.) және «• » 3 сұрақ үлгісі (жақшада жауабы), құрылғы жетіспесе — қағаз нұсқасы; **Рефлексия: «әдіс атауы»** – сипаттамасы; **Үй тапсырмасы (сараланған):**, одан кейін «• **А:** …», «• **В:** …», «• **С:** …». "student" — 3 жол. "assessment" — **Дескриптор:**, «• » дескриптор – **3 балл**, **Шкала (10 балл):** 9–10 «Өте жақсы», 7–8 «Жақсы», 5–6 «Қанағаттанарлық», 0–4 «Қолдау қажет».
    Әр кезеңде "resources" — 1–3 нақты ресурс атауы (оқулық, презентация, карточкалар, платформа). Әр кезеңдегі педагог пен оқушы әрекеттері нақты, тақырыпқа сай, фактілері дұрыс болсын.
 5. "planning" — қорытынды кесте: "differentiation" — 4 жол: **Тапсырма арқылы:** …, **Таңдау арқылы:** …, **Қолдау арқылы:** …, **Қабілетті оқушыларға:** …; "support" — ЕББҚ оқушыларына қолдау, 3 жол: **Оқу қиындығы:** …, **Көру/есту қабілеті:** …, **Зейін тапшылығы:** …; "assessment" — бір сөйлем (бағалау парағы 10 балл, дескрипторлар, өзін-өзі және өзара бағалау…); "safety" — бір сөйлем (сергіту сәті, көзге арналған үзіліс, сыныпты желдету…).
-6. "answerKey" — 5-кезеңдегі А, В, С деңгейлік тапсырмалардың дұрыс жауаптары (level: "A", "B", "C"; answer — қысқа әрі нақты).
+6. "answerKey" — ${args.answerRule}
 7. "resources" — ДӘЛ 3 сандық ресурс (QR-код жасалады): "platform" тізімнен (мыс. kahoot, bilimland, opiq, phet, geogebra, wordwall, youtube), "title" — қысқа түрі кіші әріппен (мыс. "викторина", "видеосабақ", "цифрлық оқулық"). URL жазба.
 ${langRule} Фактілері дұрыс, сынып деңгейіне сай. Дайын JSON схемаға сай қайтар.`;
 }
@@ -437,7 +477,14 @@ export async function generateLessonPlan(
     ? `Мұғалім мына оқыту мақсаттарын өзі енгізген — "objectives" өрісіне оларды ДӘЛ сол қалпында (кодымен) қайтар, басқасын қоспа; барлық кезең, тапсырма мен дескриптор осы мақсаттарға бағытталсын:\n"""\n${objectivesInput.trim()}\n"""`
     : `Оқыту мақсаттарының коды ҮОБ-қа сай болсын (шамамен "${fallbackObjectives[0].code}" секілді), мазмұны "${topic}" тақырыбына нақты сәйкес келсін.`;
 
+  const kinds = options.taskKinds?.length ? options.taskKinds : DEFAULT_TASK_KINDS;
+  const levelled = kinds.includes("levels");
   const frame = scaffold(duration, lang);
+  if (!levelled) frame[4].purpose = { kk: "Өзіндік жұмыс", ru: "Самостоятельная работа", en: "Independent work" }[lang];
+  const stage5 = levelled
+    ? `"teacher" — **Саралау «Таңдау» арқылы:** түсіндірме; **А деңгейі (білу, түсіну) – жасыл карта.** келесі жолда нақты тапсырма; **В деңгейі (қолдану) – сары карта.** + тапсырма; **С деңгейі (талдау, жинақтау) – қызыл карта.** + тапсырма; **ЕББҚ оқушыларына:** қолдау тәсілі. "student" — 2 жол (деңгейін таңдап орындайды, жауап кілтімен тексереді). "assessment" — **Дескриптор:**, **А:** дескриптор – **2 балл**, **В:** … – **3 балл**, **С:** … – **4 балл**.`
+    : `"teacher" — деңгейге БӨЛМЕЙ, барлық оқушыға ортақ бір тапсырма: **Тапсырма:** нақты шарты (деректерімен); **ЕББҚ оқушыларына:** қолдау тәсілі. "student" — 2 жол. "assessment" — **Дескриптор:**, «• » 2 дескриптор, **4 балл**. Үй тапсырмасын да деңгейге бөлмей бер.`;
+  const answerRule = `${levelled ? '5-кезеңдегі А, В, С деңгейлік тапсырмалардың дұрыс жауаптары (level: "A", "B", "C")' : '5-кезеңдегі ортақ тапсырманың дұрыс жауабы (level: "ALL")'}${kinds.includes("sen") ? ' және ЕББҚ оқушысына арналған тапсырманың жауабы (level: "SEN")' : ""}; answer — қысқа әрі нақты.`;
   const value = monthlyValue(date || formatToday(), lang);
   const lessonType = options.lessonType || "Аралас сабақ";
   const prompt = templatePrompt({
@@ -451,6 +498,9 @@ export async function generateLessonPlan(
     lessonType,
     notes: options.notes,
     lang,
+    stage5,
+    kindsRule: taskKindsRule(kinds),
+    answerRule,
   });
 
   const base = {
@@ -466,6 +516,7 @@ export async function generateLessonPlan(
     lessonType,
     format: 2 as const,
     approver: options.approver?.trim() ?? "",
+    taskKinds: kinds,
     valuesTitle: value.title,
     tasks: [],
   };
@@ -493,7 +544,7 @@ export async function generateLessonPlan(
         safety: planning.safety?.trim() ?? "",
       },
       answerKey: (ai.answerKey ?? [])
-        .map((k) => ({ level: (["A", "B", "C"] as const).find((l) => l === k.level) ?? "A", answer: k.answer?.trim() ?? "" }))
+        .map((k) => ({ level: (["A", "B", "C", "ALL", "SEN"] as const).find((l) => l === k.level) ?? "A", answer: k.answer?.trim() ?? "" }))
         .filter((k) => k.answer),
       resources: (ai.resources ?? []).map(templateResource).filter((r): r is QmzhResource => r !== null).slice(0, 3),
     };

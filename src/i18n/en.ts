@@ -1184,6 +1184,10 @@ const en: Record<string, string> = {
   "әр жол — бір абзац; **қалың**, «• » — тізім": "one paragraph per line; **bold**, “• ” — list",
   "әр жол: деңгей: жауабы (мыс. А: ...)": "each line: level: answer (e.g. A: ...)",
   "әр жол: код - мазмұны": "each line: code - text",
+  "Таңдалған түрлер ҚМЖ үлгісінің тиісті кезеңдеріне орналасады. Ештеңе таңдамасаңыз — деңгейлік, жеке, жұптық және топтық жұмыс.": "Selected task types are placed in the matching stages of the lesson plan template. If none is selected — levelled, individual, pair and group work.",
+  "Деңгейлік тапсырмалар": "Levelled tasks",
+  "ЖИ арқылы орындалатын": "Done with AI",
+  "ЕБҚ оқушысына арналған": "For learners with SEN",
 };
 
 export default en;

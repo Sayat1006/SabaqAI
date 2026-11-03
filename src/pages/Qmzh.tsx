@@ -9,7 +9,7 @@ import { useAuth } from "../context/useAuth";
 import { GRADES } from "../lib/catalog";
 import { allowedSubjects, pickSubject } from "../lib/subjects";
 import { qmzhLabels } from "../lib/docLabels";
-import { generateLessonPlan, isTemplatePlan, LESSON_TYPES, type LessonPlan } from "../lib/generators";
+import { DEFAULT_TASK_KINDS, generateLessonPlan, isTemplatePlan, LESSON_TYPES, QMZH_TASK_KINDS, type LessonPlan, type QmzhTaskKind } from "../lib/generators";
 import { QmzhTemplateView } from "../components/QmzhDocument";
 import { gradeIn, subjectIn, type Lang } from "../lib/lang";
 import { deleteProject, getQmzh, getQmzhList, saveQmzh, timeAgo, updateQmzh, type SavedQmzh } from "../lib/projects";
@@ -72,6 +72,7 @@ export default function QmzhPage() {
   const [plan, setPlan] = useState<LessonPlan | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [lessonType, setLessonType] = useState<string>(LESSON_TYPES[0]);
+  const [taskKinds, setTaskKinds] = useState<QmzhTaskKind[]>(DEFAULT_TASK_KINDS);
   // Бекітуші (оқу ісі жөніндегі орынбасар) — бір рет жазылады, келесі жоспарларға есте қалады.
   const [approver, setApprover] = useState(() => {
     try {
@@ -127,6 +128,7 @@ export default function QmzhPage() {
     const objs = p.objectives?.length ? p.objectives : p.objectiveCode || p.objectiveText ? [{ code: p.objectiveCode, text: p.objectiveText }] : [];
     setObjectivesInput(objs.map((o) => (o.code ? `${o.code} - ${o.text}` : o.text)).join("\n"));
     if (p.approver) setApprover(p.approver);
+    if (p.taskKinds?.length) setTaskKinds(p.taskKinds);
     setPlan(p);
   }
 
@@ -164,6 +166,7 @@ export default function QmzhPage() {
     try {
       const newPlan = await generateLessonPlan(subject, grade, topic.trim(), duration, teacherName.trim(), date.trim(), objectivesInput.trim(), {
         lessonType,
+        taskKinds,
         notes: notes.trim(),
         lang,
         approver,
@@ -276,6 +279,26 @@ export default function QmzhPage() {
                 ))}
               </select>
             </FormField>
+            <fieldset>
+              <legend className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тапсырма түрлері")}</legend>
+              <div className="flex flex-wrap gap-1.5">
+                {QMZH_TASK_KINDS.map(({ key, label }) => {
+                  const on = taskKinds.includes(key);
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => setTaskKinds((list) => (on ? list.filter((x) => x !== key) : [...list, key]))}
+                      className={`rounded-full border px-3 py-1.5 text-[12.5px] transition ${on ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 bg-surface text-slate-600 hover:border-violet-500"}`}
+                    >
+                      {tr(label)}
+                    </button>
+                  );
+                })}
+              </div>
+              <span className="mt-1.5 block text-xs text-slate-500">{tr("Таңдалған түрлер ҚМЖ үлгісінің тиісті кезеңдеріне орналасады. Ештеңе таңдамасаңыз — деңгейлік, жеке, жұптық және топтық жұмыс.")}</span>
+            </fieldset>
             <FormField label={tr("Қосымша тілек")} hint={tr("Міндетті емес: мыс. «STEM элементі болсын», «ерекше білім беру қажеттілігі бар оқушы бар».")}>
               <textarea rows={2} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={500} className={`${fieldClass} resize-y`} />
             </FormField>
