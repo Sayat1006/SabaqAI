@@ -23,6 +23,7 @@ const KtzhPage = lazy(() => import("./pages/Ktzh"));
 const ProgressPage = lazy(() => import("./pages/Progress"));
 const LiveHostPage = lazy(() => import("./pages/LiveHost"));
 const LivePlayPage = lazy(() => import("./pages/LivePlay"));
+const PollAnswerPage = lazy(() => import("./pages/PollAnswer"));
 const SchedulePage = lazy(() => import("./pages/Schedule"));
 const GamesPage = lazy(() => import("./pages/Games"));
 const PhysicsLabPage = lazy(() => import("./pages/PhysicsLab"));
@@ -39,6 +40,8 @@ export default function App() {
           <Route path="t/:code" element={<TakeTestPage />} />
           <Route path="l" element={<LivePlayPage />} />
           <Route path="l/:code" element={<LivePlayPage />} />
+          <Route path="p" element={<PollAnswerPage />} />
+          <Route path="p/:code" element={<PollAnswerPage />} />
           <Route element={<RequireAuth />}>
             {/* Тірі викторина: тақтаға толық бетпен шығады (мәзірсіз). */}
             <Route path="live/:id" element={<LiveHostPage />} />

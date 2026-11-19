@@ -1,11 +1,14 @@
 import { Maximize, Minimize, Pause, Play, Plus, RotateCcw, Shuffle, Sparkles, Trash2, Users } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
+import { ClassPoll, PollResults } from "../components/ClassPoll";
+import { deletePoll, getPollState, listPolls, SELF_METHODS, TRAFFIC_OPTIONS, type PollListItem, type PollState } from "../lib/polls";
 import { useFullscreen } from "../lib/useFullscreen";
 import { tr } from "../i18n";
 
 // Сабақ кезінде тақтаға (проекторға) шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу,
-// бағдаршам, шу өлшегіш, рефлексия.
+// бағдаршам, өзін-өзі бағалау, шу өлшегіш, рефлексия. Бағдаршам, өзін-өзі бағалау және рефлексияға
+// оқушылар телефоннан QR арқылы жауап бере алады (ClassPoll).
 // Сынып тізімдері тек осы құрылғының браузерінде сақталады.
 
 const card = "rounded-3xl border border-slate-200 bg-surface p-5 sm:p-6";
@@ -422,6 +425,27 @@ function GroupMaker({ students }: { students: string[] }) {
   );
 }
 
+/* ------------------------------------------------------- режим: QR / қолмен */
+
+type Mode = "qr" | "manual";
+
+function ModeSwitch({ mode, onChange }: { mode: Mode; onChange: (m: Mode) => void }) {
+  return (
+    <div className="flex rounded-full border border-slate-200 bg-slate-50 p-0.5 text-xs font-semibold" role="group" aria-label={tr("Жауап беру тәсілі")}>
+      {(
+        [
+          ["qr", tr("📱 Телефоннан (QR)")],
+          ["manual", tr("✋ Қолмен")],
+        ] as const
+      ).map(([m, label]) => (
+        <button key={m} type="button" aria-pressed={mode === m} onClick={() => onChange(m)} className={`rounded-full px-3 py-1.5 ${mode === m ? "bg-violet-600 text-white" : "text-slate-600"}`}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* -------------------------------------------------------------- бағдаршам */
 
 const LIGHTS = [
@@ -434,6 +458,7 @@ type LightKey = (typeof LIGHTS)[number]["key"];
 
 function TrafficLight() {
   const { ref, full, toggle } = useFullscreen();
+  const [mode, setMode] = useState<Mode>("qr");
   const [counts, setCounts] = useState<Record<LightKey, number>>({ green: 0, yellow: 0, red: 0 });
   const [question, setQuestion] = useState("");
   const total = counts.green + counts.yellow + counts.red;
@@ -444,13 +469,20 @@ function TrafficLight() {
     <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "justify-center !rounded-none !border-0 p-10" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-bold">{tr("🚦 Бағдаршам")}</h2>
-        <FullButton full={full} onClick={toggle} />
+        <div className="flex items-center gap-2">
+          {!full && <ModeSwitch mode={mode} onChange={setMode} />}
+          <FullButton full={full} onClick={toggle} />
+        </div>
       </div>
       {full ? (
-        question && <div className="text-center text-4xl font-bold">{question}</div>
+        question && mode === "manual" && <div className="text-center text-4xl font-bold">{question}</div>
       ) : (
         <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={tr("Сұрақ немесе тақырып (міндетті емес)")} aria-label={tr("Бағдаршам сұрағы")} className={field} />
       )}
+      {mode === "qr" ? (
+        <ClassPoll slot="traffic" kind="traffic" method="traffic" title={question} options={TRAFFIC_OPTIONS(tr)} full={full} />
+      ) : (
+      <>
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {LIGHTS.map((l) => (
           <div key={l.key} className="flex flex-col gap-1.5">
@@ -490,6 +522,55 @@ function TrafficLight() {
       {!full && total > 0 && counts.red + counts.yellow > counts.green && (
         <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{tr("Оқушылардың көбі әлі толық түсінбеді — тақырыпты басқа мысалмен қайта түсіндірген дұрыс.")}</p>
       )}
+      </>
+      )}
+    </div>
+  );
+}
+
+/* --------------------------------------------------------- өзін-өзі бағалау */
+
+function SelfAssessment() {
+  const { ref, full, toggle } = useFullscreen();
+  const methods = SELF_METHODS(tr);
+  const [idx, setIdx] = useState(0);
+  const [question, setQuestion] = useState(methods[0].question);
+  const m = methods[idx];
+  return (
+    <div ref={ref} className={`${card} flex flex-col gap-4 ${full ? "justify-center !rounded-none !border-0 p-10" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">{tr("🙋 Өзін-өзі бағалау")}</h2>
+        <FullButton full={full} onClick={toggle} />
+      </div>
+      {!full && (
+        <>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Өзін-өзі бағалау әдісі")}>
+            {methods.map((x, i) => (
+              <button
+                key={x.key}
+                type="button"
+                aria-pressed={idx === i}
+                onClick={() => {
+                  setIdx(i);
+                  setQuestion(x.question);
+                }}
+                className={`rounded-full border px-3 py-1.5 text-sm ${idx === i ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 hover:border-violet-500"}`}
+              >
+                {x.name}
+              </button>
+            ))}
+          </div>
+          <input value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={300} aria-label={tr("Сұрақ")} className={field} />
+          <div className="flex flex-wrap gap-1.5 text-sm text-slate-600">
+            {m.options.map((o) => (
+              <span key={o.label} className="rounded-full bg-slate-100 px-2.5 py-1">
+                {o.emoji} {o.label}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
+      <ClassPoll slot="self" kind="self" method={m.key} title={question} options={m.options} full={full} />
     </div>
   );
 }
@@ -623,15 +704,16 @@ function NoiseMeter() {
 /* -------------------------------------------------------------- рефлексия */
 
 const REFLECTIONS = [
-  { name: tr("Екі жұлдыз, бір тілек"), prompts: [tr("⭐ Сабақта маған ұнағаны…"), tr("⭐ Бүгін мен жақсы орындадым…"), tr("🙏 Келесі сабақта қалайтыным…")] },
-  { name: tr("Аяқталмаған сөйлем"), prompts: [tr("Бүгін мен білдім…"), tr("Маған қиын болды…"), tr("Енді мен … аламын"), tr("Мені таң қалдырғаны…")] },
-  { name: "3-2-1", prompts: [tr("3️⃣ Бүгін білген үш жаңа нәрсе"), tr("2️⃣ Маған қызық болған екі дерек"), tr("1️⃣ Әлі де қойғым келетін бір сұрақ")] },
+  { key: "stars", name: tr("Екі жұлдыз, бір тілек"), prompts: [tr("⭐ Сабақта маған ұнағаны…"), tr("⭐ Бүгін мен жақсы орындадым…"), tr("🙏 Келесі сабақта қалайтыным…")] },
+  { key: "sentence", name: tr("Аяқталмаған сөйлем"), prompts: [tr("Бүгін мен білдім…"), tr("Маған қиын болды…"), tr("Енді мен … аламын"), tr("Мені таң қалдырғаны…")] },
+  { key: "321", name: "3-2-1", prompts: [tr("3️⃣ Бүгін білген үш жаңа нәрсе"), tr("2️⃣ Маған қызық болған екі дерек"), tr("1️⃣ Әлі де қойғым келетін бір сұрақ")] },
   {
+    key: "fingers",
     name: tr("Бес саусақ"),
     prompts: [tr("👍 Бас бармақ — маған не ұнады?"), tr("☝️ Сұқ саусақ — не үйрендім?"), tr("✋ Ортаңғы саусақ — көңіл-күйім қандай болды?"), tr("💍 Атсыз саусақ — кімге көмектестім, маған кім көмектесті?"), tr("🤙 Шынашақ — әлі не білгім келеді?")],
   },
-  { name: tr("Бағдаршам"), prompts: [tr("🟢 Бәрін түсіндім, өзгелерге түсіндіре аламын"), tr("🟡 Түсіндім, бірақ сұрақтарым бар"), tr("🔴 Түсінбедім, көмек керек")] },
-  { name: tr("Бір сөзбен"), prompts: [tr("Бүгінгі сабақты бір сөзбен сипаттаңыз"), tr("Бүгінгі көңіл-күйіңізді бір сөзбен айтыңыз")] },
+  { key: "traffic", name: tr("Бағдаршам"), prompts: [tr("🟢 Бәрін түсіндім, өзгелерге түсіндіре аламын"), tr("🟡 Түсіндім, бірақ сұрақтарым бар"), tr("🔴 Түсінбедім, көмек керек")] },
+  { key: "oneword", name: tr("Бір сөзбен"), prompts: [tr("Бүгінгі сабақты бір сөзбен сипаттаңыз"), tr("Бүгінгі көңіл-күйіңізді бір сөзбен айтыңыз")] },
 ];
 
 const QUESTIONS = [
@@ -651,6 +733,7 @@ const QUESTIONS = [
 
 function Reflection() {
   const { ref, full, toggle } = useFullscreen();
+  const [mode, setMode] = useState<Mode>("qr");
   const [idx, setIdx] = useState(0);
   const [question, setQuestion] = useState("");
   const tech = REFLECTIONS[idx];
@@ -664,11 +747,16 @@ function Reflection() {
     <div ref={ref} className={`${card} flex flex-col gap-4 lg:col-span-2 ${full ? "justify-center !rounded-none !border-0 p-12" : ""}`}>
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-lg font-bold">{tr("💬 Рефлексия")}</h2>
-        <FullButton full={full} onClick={toggle} />
+        <div className="flex items-center gap-2">
+          {!full && <ModeSwitch mode={mode} onChange={setMode} />}
+          <FullButton full={full} onClick={toggle} />
+        </div>
       </div>
       {!full && (
         <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Рефлексия әдісі")}>
-          {REFLECTIONS.map((r, i) => (
+          {REFLECTIONS.filter((r) => mode === "manual" || r.key !== "traffic").map((r) => {
+            const i = REFLECTIONS.indexOf(r);
+            return (
             <button
               key={r.name}
               type="button"
@@ -681,10 +769,20 @@ function Reflection() {
             >
               {r.name}
             </button>
-          ))}
+            );
+          })}
         </div>
       )}
-      {question ? (
+      {mode === "qr" ? (
+        <ClassPoll
+          slot="reflection"
+          kind="reflection"
+          method={question ? "question" : tech.key}
+          title={question ? "" : `«${tech.name}»`}
+          prompts={question ? [question] : tech.prompts}
+          full={full}
+        />
+      ) : question ? (
         <div className={`rounded-2xl bg-gradient-to-br from-violet-100 to-fuchsia-100 px-5 py-8 text-center font-bold ${full ? "text-6xl leading-tight" : "text-2xl"}`} aria-live="polite">
           {question}
         </div>
@@ -716,6 +814,83 @@ function Reflection() {
 
 /* ---------------------------------------------------------------- бет */
 
+/* ------------------------------------------------------ сауалнамалар тарихы */
+
+const KIND_LABEL = { traffic: () => tr("🚦 Бағдаршам"), self: () => tr("🙋 Өзін-өзі бағалау"), reflection: () => tr("💬 Рефлексия") };
+
+function PollHistory() {
+  const [items, setItems] = useState<PollListItem[] | null>(null);
+  const [open, setOpen] = useState<PollState | null>(null);
+  const [error, setError] = useState("");
+
+  const load = useCallback(() => {
+    listPolls()
+      .then((x) => {
+        setItems(x);
+        setError("");
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : tr("Тізімді жүктеу мүмкін болмады.")));
+  }, []);
+
+  useEffect(() => {
+    load();
+    window.addEventListener("ainur-polls-changed", load);
+    return () => window.removeEventListener("ainur-polls-changed", load);
+  }, [load]);
+
+  async function show(id: string) {
+    if (open?.id === id) return setOpen(null);
+    try {
+      setOpen(await getPollState(id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tr("Нәтижені ашу мүмкін болмады."));
+    }
+  }
+
+  async function remove(id: string) {
+    if (!window.confirm(tr("Сауалнама мен барлық жауабын өшіру керек пе?"))) return;
+    try {
+      await deletePoll(id);
+      if (open?.id === id) setOpen(null);
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : tr("Жою мүмкін болмады."));
+    }
+  }
+
+  if (!items?.length && !error) return null;
+  return (
+    <div className={`${card} flex flex-col gap-3 lg:col-span-2`}>
+      <h2 className="text-lg font-bold">{tr("📊 Соңғы сауалнамалар")}</h2>
+      {error && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+      <ul className="flex flex-col gap-1.5">
+        {(items ?? []).map((p) => (
+          <li key={p.id} className="rounded-2xl border border-slate-200">
+            <div className="flex flex-wrap items-center gap-2 px-3 py-2">
+              <button type="button" onClick={() => void show(p.id)} aria-expanded={open?.id === p.id} className="min-w-0 flex-1 text-left">
+                <span className="font-semibold">{KIND_LABEL[p.kind]()}</span>
+                {p.title && <span className="text-slate-600"> · {p.title}</span>}
+                <span className="block text-xs text-slate-500">
+                  {new Date(p.created_at).toLocaleString()} · {tr("код")} {p.code}
+                </span>
+              </button>
+              <button type="button" onClick={() => void remove(p.id)} aria-label={tr("Өшіру")} className="rounded-lg p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-700">
+                <Trash2 size={15} />
+              </button>
+            </div>
+            {open?.id === p.id && (
+              <div className="border-t border-slate-200 p-3">
+                <div className="mb-2 text-sm text-slate-500">{tr("Жауап берді: {n}", { n: open.responses.length })}</div>
+                {open.responses.length ? <PollResults st={open} /> : <p className="text-sm text-slate-500">{tr("Жауап жоқ.")}</p>}
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function ClassToolsPage() {
   const [lists, setLists] = useState<ClassList[]>(loadLists);
   const [activeId, setActiveId] = useState(() => loadLists()[0]?.id ?? "");
@@ -731,7 +906,7 @@ export default function ClassToolsPage() {
       <PageHeader
         crumb={tr("Сабақ құралдары")}
         title={tr("Сабақ құралдары")}
-        subtitle={tr("Сабақ кезінде тақтаға шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, шу өлшегіш және рефлексия. «Толық экран» батырмасымен проекторға үлкейтіп көрсетіңіз.")}
+        subtitle={tr("Сабақ кезінде тақтаға шығаратын құралдар: таймер, кездейсоқ оқушы, топқа бөлу, бағдаршам, өзін-өзі бағалау, рефлексия және шу өлшегіш. Бағдаршам, өзін-өзі бағалау мен рефлексияға оқушылар телефоннан QR арқылы жауап береді. «Толық экран» батырмасымен проекторға үлкейтіп көрсетіңіз.")}
       />
       <div className="mt-8 grid items-start gap-6 lg:grid-cols-2">
         <Timer />
@@ -739,8 +914,10 @@ export default function ClassToolsPage() {
         <RandomPicker key={`p-${activeId}`} students={students} />
         <GroupMaker key={`g-${activeId}`} students={students} />
         <TrafficLight />
-        <NoiseMeter />
+        <SelfAssessment />
         <Reflection />
+        <NoiseMeter />
+        <PollHistory />
       </div>
     </div>
   );
