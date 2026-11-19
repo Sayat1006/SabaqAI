@@ -2,7 +2,8 @@ import { Maximize, Minimize, Pause, Play, Plus, RotateCcw, Shuffle, Sparkles, Tr
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PageHeader } from "../components/PageHeader";
 import { ClassPoll, PollResults } from "../components/ClassPoll";
-import { deletePoll, getPollState, listPolls, SELF_METHODS, TRAFFIC_OPTIONS, type PollListItem, type PollState } from "../lib/polls";
+import { deletePoll, getPollState, listPolls, planDescriptors, SELF_METHODS, TRAFFIC_OPTIONS, type Descriptor, type PollListItem, type PollState, type RubricMethod } from "../lib/polls";
+import { getQmzhList, type SavedQmzh } from "../lib/projects";
 import { useFullscreen } from "../lib/useFullscreen";
 import { tr } from "../i18n";
 
@@ -815,9 +816,244 @@ function Reflection() {
 
 /* ---------------------------------------------------------------- бет */
 
+/* ------------------------------------------------ дескриптор бойынша бағалау */
+
+const RUBRIC_KEY = "ainur-rubric-descriptors";
+
+function loadDescriptors(): Descriptor[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RUBRIC_KEY) ?? "[]") as Descriptor[];
+    if (Array.isArray(raw) && raw.length) return raw.slice(0, 12).map((d) => ({ text: String(d.text ?? ""), points: Math.min(Math.max(Number(d.points) || 1, 1), 10) }));
+  } catch {
+    // бос тізіммен бастаймыз
+  }
+  return [
+    { text: "", points: 1 },
+    { text: "", points: 1 },
+  ];
+}
+
+const RUBRIC_METHODS: { key: RubricMethod; label: () => string; hint: () => string }[] = [
+  { key: "self", label: () => tr("🙋 Өзін-өзі"), hint: () => tr("Әр оқушы өз жұмысын дескрипторлар бойынша бағалайды.") },
+  { key: "peer", label: () => tr("👥 Жұптық (өзара)"), hint: () => tr("Оқушы жұбын таңдап, оның жұмысын бағалайды. Бірнеше сыныптасын бағалауға болады.") },
+  { key: "group", label: () => tr("🧩 Топтық"), hint: () => tr("Оқушы өз тобын көрсетіп, басқа топтың жұмысын бағалайды. Нәтижеде әр топтың орташа балы шығады.") },
+];
+
+function RubricAssessment({ students }: { students: string[] }) {
+  const { ref, full, toggle } = useFullscreen();
+  const [method, setMethod] = useState<RubricMethod>("peer");
+  const [title, setTitle] = useState("");
+  const [desc, setDesc] = useState<Descriptor[]>(loadDescriptors);
+  const [useList, setUseList] = useState(true);
+  const [groups, setGroups] = useState(4);
+  const [plans, setPlans] = useState<SavedQmzh[] | null>(null);
+  const [planId, setPlanId] = useState("");
+  const [picked, setPicked] = useState<Set<number>>(new Set());
+  const [importError, setImportError] = useState("");
+
+  const change = (next: Descriptor[]) => {
+    setDesc(next);
+    try {
+      localStorage.setItem(RUBRIC_KEY, JSON.stringify(next));
+    } catch {
+      // сақталмаса да жұмыс істей береді
+    }
+  };
+  const ready = desc.filter((d) => d.text.trim()).map((d) => ({ text: d.text.trim(), points: d.points }));
+  const targets = method === "group" ? Array.from({ length: groups }, (_, i) => tr("{n}-топ", { n: i + 1 })) : method === "peer" && useList ? students : [];
+  const plan = plans?.find((p) => p.id === planId)?.plan;
+  const fromPlan = plan ? planDescriptors(plan) : [];
+
+  async function openImport() {
+    setImportError("");
+    if (plans) return setPlans(null);
+    try {
+      const list = await getQmzhList(15);
+      setPlans(list);
+      setPlanId(list[0]?.id ?? "");
+      setPicked(new Set());
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : tr("ҚМЖ тізімін жүктеу мүмкін болмады."));
+    }
+  }
+
+  function addPicked() {
+    const add = fromPlan.filter((_, i) => picked.has(i)).map((d) => ({ text: d.text, points: d.points }));
+    const kept = desc.filter((d) => d.text.trim());
+    change([...kept, ...add].slice(0, 12));
+    setPlans(null);
+  }
+
+  return (
+    <div ref={ref} className={`${card} flex flex-col gap-4 lg:col-span-2 ${full ? "justify-center !rounded-none !border-0 p-10" : ""}`}>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-lg font-bold">{tr("📝 Дескриптор бойынша бағалау")}</h2>
+        <FullButton full={full} onClick={toggle} />
+      </div>
+      <ClassPoll
+        slot="rubric"
+        kind="rubric"
+        method={method}
+        title={title}
+        descriptors={ready}
+        targets={targets}
+        requireNames
+        blocked={ready.length ? undefined : tr("Кемінде бір дескриптор жазыңыз.")}
+        full={full}
+        setup={
+          full ? null : (
+        <>
+          <div className="flex flex-wrap gap-2" role="group" aria-label={tr("Бағалау түрі")}>
+            {RUBRIC_METHODS.map((m) => (
+              <button
+                key={m.key}
+                type="button"
+                aria-pressed={method === m.key}
+                onClick={() => setMethod(m.key)}
+                className={`rounded-full border px-3 py-1.5 text-sm ${method === m.key ? "border-violet-600 bg-violet-600 text-white" : "border-slate-200 hover:border-violet-500"}`}
+              >
+                {m.label()}
+              </button>
+            ))}
+          </div>
+          <p className="text-sm text-slate-500">{RUBRIC_METHODS.find((m) => m.key === method)!.hint()}</p>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={300} placeholder={tr("Тапсырма (мыс.: 2-тапсырма, «Кластер» құру)")} aria-label={tr("Тапсырма")} className={field} />
+
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-slate-600">{tr("Дескрипторлар және балл")}</span>
+              <button type="button" onClick={() => void openImport()} className={btn}>
+                {plans ? tr("Жабу") : tr("ҚМЖ-дан алу")}
+              </button>
+            </div>
+            {importError && <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{importError}</p>}
+            {plans && (
+              <div className="flex flex-col gap-2 rounded-2xl border border-violet-200 bg-violet-50/40 p-3">
+                {plans.length === 0 ? (
+                  <p className="text-sm text-slate-500">{tr("Сақталған ҚМЖ жоқ.")}</p>
+                ) : (
+                  <>
+                    <select
+                      value={planId}
+                      onChange={(e) => {
+                        setPlanId(e.target.value);
+                        setPicked(new Set());
+                      }}
+                      aria-label={tr("ҚМЖ")}
+                      className={field}
+                    >
+                      {plans.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.plan.topic} · {p.plan.grade}
+                        </option>
+                      ))}
+                    </select>
+                    {fromPlan.length ? (
+                      <ul className="flex max-h-64 flex-col gap-1 overflow-y-auto">
+                        {fromPlan.map((d, i) => (
+                          <li key={i}>
+                            <label className="flex items-start gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
+                              <input
+                                type="checkbox"
+                                checked={picked.has(i)}
+                                onChange={() =>
+                                  setPicked((s) => {
+                                    const n = new Set(s);
+                                    if (n.has(i)) n.delete(i);
+                                    else n.add(i);
+                                    return n;
+                                  })
+                                }
+                                className="mt-0.5 h-4 w-4 accent-violet-600"
+                              />
+                              <span>
+                                {d.text} <span className="text-slate-500">· {d.points} {tr("балл")} · {d.stage}</span>
+                              </span>
+                            </label>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-500">{tr("Бұл ҚМЖ-да дескриптор табылмады.")}</p>
+                    )}
+                    <button type="button" onClick={addPicked} disabled={!picked.size} className={`${primary} self-start`}>
+                      {tr("Таңдалғанды қосу ({n})", { n: picked.size })}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+            <ol className="flex flex-col gap-2">
+              {desc.map((d, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <span className="w-7 shrink-0 text-center text-sm font-bold text-slate-500">D{i + 1}</span>
+                  <input
+                    value={d.text}
+                    onChange={(e) => change(desc.map((x, j) => (j === i ? { ...x, text: e.target.value } : x)))}
+                    maxLength={300}
+                    placeholder={tr("мыс.: формуланы дұрыс қолданады")}
+                    aria-label={tr("{n}-дескриптор", { n: i + 1 })}
+                    className={field}
+                  />
+                  <select
+                    value={d.points}
+                    onChange={(e) => change(desc.map((x, j) => (j === i ? { ...x, points: Number(e.target.value) } : x)))}
+                    aria-label={tr("Балл")}
+                    className="w-24 shrink-0 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2.5 text-sm"
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <option key={n} value={n}>
+                        {n} {tr("балл")}
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" onClick={() => change(desc.filter((_, j) => j !== i))} disabled={desc.length <= 1} aria-label={tr("Өшіру")} className="rounded-lg p-2 text-slate-500 hover:bg-rose-50 hover:text-rose-700 disabled:opacity-40">
+                    <Trash2 size={15} />
+                  </button>
+                </li>
+              ))}
+            </ol>
+            <button type="button" onClick={() => change([...desc, { text: "", points: 1 }])} disabled={desc.length >= 12} className={`${btn} self-start`}>
+              <Plus size={15} /> {tr("Дескриптор қосу")}
+            </button>
+          </div>
+
+          {method === "peer" && (
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={useList && students.length > 0} disabled={!students.length} onChange={(e) => setUseList(e.target.checked)} className="h-4 w-4 accent-violet-600" />
+              {students.length
+                ? tr("Жұбын сынып тізімінен таңдайды ({n} оқушы)", { n: students.length })
+                : tr("Сынып тізімі бос — оқушылар жұбының атын өзі жазады")}
+            </label>
+          )}
+          {method === "group" && (
+            <label className="flex items-center gap-2 text-sm">
+              {tr("Топ саны:")}
+              <select value={groups} onChange={(e) => setGroups(Number(e.target.value))} className="rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5">
+                {[2, 3, 4, 5, 6, 7, 8].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </>
+          )
+        }
+      />
+    </div>
+  );
+}
+
 /* ------------------------------------------------------ сауалнамалар тарихы */
 
-const KIND_LABEL = { traffic: () => tr("🚦 Бағдаршам"), self: () => tr("🙋 Өзін-өзі бағалау"), reflection: () => tr("💬 Рефлексия") };
+const KIND_LABEL = {
+  traffic: () => tr("🚦 Бағдаршам"),
+  self: () => tr("🙋 Өзін-өзі бағалау"),
+  reflection: () => tr("💬 Рефлексия"),
+  rubric: () => tr("📝 Дескриптор бойынша бағалау"),
+};
 
 function PollHistory() {
   const [items, setItems] = useState<PollListItem[] | null>(null);
@@ -917,6 +1153,7 @@ export default function ClassToolsPage() {
         <TrafficLight />
         <SelfAssessment />
         <Reflection />
+        <RubricAssessment students={students} />
         <NoiseMeter />
         <PollHistory />
       </div>

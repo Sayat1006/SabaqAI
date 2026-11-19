@@ -6,7 +6,15 @@ import { tr } from "../i18n";
 import type { Lang } from "./lang";
 import { supabase } from "./supabaseClient";
 
-export type PollKind = "traffic" | "self" | "reflection";
+export type PollKind = "traffic" | "self" | "reflection" | "rubric";
+
+/** Дескриптор бойынша бағалау әдісі: өзін-өзі, жұбын (өзара), басқа топты. */
+export type RubricMethod = "self" | "peer" | "group";
+
+export interface Descriptor {
+  text: string;
+  points: number;
+}
 
 export interface PollOption {
   emoji: string;
@@ -17,6 +25,11 @@ export interface PollResponse {
   name: string | null;
   choice: number | null;
   texts: string[] | null;
+  /** rubric: кім/қай топ бағаланды, бағалаушының тобы, әр дескриптор бойынша балл, пікір. */
+  target?: string | null;
+  group?: string | null;
+  marks?: number[] | null;
+  comment?: string | null;
   at: string;
 }
 
@@ -28,6 +41,8 @@ export interface PollState {
   title: string;
   options: PollOption[];
   prompts: string[];
+  descriptors?: Descriptor[];
+  targets?: string[];
   ask_name: boolean;
   lang: Lang;
   is_open: boolean;
@@ -41,10 +56,14 @@ export interface PublicPoll {
   title: string;
   options: PollOption[];
   prompts: string[];
+  descriptors?: Descriptor[];
+  targets?: string[];
   ask_name: boolean;
   lang: Lang;
   is_open: boolean;
-  answer: { name: string | null; choice: number | null; texts: string[] | null } | null;
+  answer: { name: string | null; choice: number | null; texts: string[] | null; marks?: number[] | null; comment?: string | null } | null;
+  /** Жұптық/топтық бағалауда осы телефоннан бағаланғандар. */
+  assessed?: { target: string; group: string | null; name: string | null }[];
 }
 
 export interface PollListItem {
@@ -65,7 +84,7 @@ export class PollError extends Error {
   }
 }
 
-const KNOWN = ["not_found", "closed", "full", "bad_name", "bad_answer", "bad_poll", "too_many", "not_allowed"];
+const KNOWN = ["not_found", "closed", "full", "bad_name", "bad_answer", "bad_target", "bad_poll", "too_many", "not_allowed"];
 
 function wrap(error: { message: string; code?: string }): PollError {
   if (error.code === "PGRST202" || error.code === "42P01" || /Could not find the (function|table)|does not exist/i.test(error.message)) {
@@ -88,10 +107,12 @@ export async function createPoll(p: {
   title: string;
   options?: PollOption[];
   prompts?: string[];
+  descriptors?: Descriptor[];
+  targets?: string[];
   askName: boolean;
   lang: Lang;
 }): Promise<{ id: string; code: string }> {
-  const { data, error } = await supabase.rpc("poll_create", {
+  const args: Record<string, unknown> = {
     p_kind: p.kind,
     p_method: p.method,
     p_title: p.title,
@@ -99,8 +120,16 @@ export async function createPoll(p: {
     p_prompts: p.prompts ?? [],
     p_ask_name: p.askName,
     p_lang: p.lang,
-  });
-  if (error) throw wrap(error);
+  };
+  // Бағалау өрістері тек «rubric» үшін жіберіледі — 16-жаңарту орындалмаған базада басқа сауалнамалар бұрынғыдай жұмыс істейді.
+  if (p.kind === "rubric") Object.assign(args, { p_descriptors: p.descriptors ?? [], p_targets: p.targets ?? [] });
+  const { data, error } = await supabase.rpc("poll_create", args);
+  if (error) {
+    if (p.kind === "rubric" && (error.code === "PGRST202" || /Could not find the function/i.test(error.message))) {
+      throw new PollError("setup", tr("Дескриптор бойынша бағалау әлі қосылмаған. Әкімші Supabase-те supabase/update-16-rubric-assessment.sql файлын орындауы керек."));
+    }
+    throw wrap(error);
+  }
   return data as { id: string; code: string };
 }
 
@@ -132,14 +161,20 @@ export async function getPublicPoll(code: string, device: string): Promise<Publi
   return data as PublicPoll;
 }
 
-export async function answerPoll(code: string, device: string, a: { name?: string; choice?: number; texts?: string[] }): Promise<void> {
-  const { error } = await supabase.rpc("poll_answer", {
+export async function answerPoll(
+  code: string,
+  device: string,
+  a: { name?: string; choice?: number; texts?: string[]; target?: string; group?: string; marks?: number[]; comment?: string },
+): Promise<void> {
+  const args: Record<string, unknown> = {
     p_code: code,
     p_device: device,
     p_name: a.name ?? null,
     p_choice: a.choice ?? null,
     p_texts: a.texts ?? null,
-  });
+  };
+  if (a.marks) Object.assign(args, { p_target: a.target ?? null, p_group: a.group ?? null, p_marks: a.marks, p_comment: a.comment ?? null });
+  const { error } = await supabase.rpc("poll_answer", args);
   if (error) throw wrap(error);
 }
 
@@ -224,4 +259,81 @@ export function wordCloud(texts: string[]): [string, number][] {
     else counts.set(key, { word: w, n: 1 });
   }
   return [...counts.values()].sort((a, b) => b.n - a.n).slice(0, 40).map((x) => [x.word, x.n]);
+}
+
+/* ------------------------------------------------- дескриптор бойынша бағалау */
+
+/** Бір бағалаудың жалпы балы. */
+export const rubricTotal = (marks: number[] | null | undefined) => (marks ?? []).reduce((a, b) => a + (Number(b) || 0), 0);
+export const rubricMax = (d: Descriptor[] | undefined) => (d ?? []).reduce((a, x) => a + x.points, 0);
+
+export interface RubricRow {
+  /** Бағаланған оқушы немесе топ. */
+  target: string;
+  /** Бағалау саны. */
+  count: number;
+  /** Әр дескриптор бойынша орташа балл. */
+  avg: number[];
+  /** Орташа жалпы балл. */
+  total: number;
+  reviews: { by: string; group: string | null; marks: number[]; comment: string }[];
+}
+
+/** Нәтижелерді бағаланғандар бойынша топтастыру (өзін-өзі бағалауда — бағалаушының өзі). */
+export function rubricRows(st: PollState): RubricRow[] {
+  const d = st.descriptors ?? [];
+  const map = new Map<string, RubricRow>();
+  for (const r of st.responses) {
+    const target = (st.method === "self" ? r.name : r.target)?.trim() || "—";
+    const marks = d.map((_, i) => Number(r.marks?.[i]) || 0);
+    const row = map.get(target) ?? { target, count: 0, avg: d.map(() => 0), total: 0, reviews: [] };
+    row.count++;
+    row.reviews.push({ by: r.name ?? "", group: r.group ?? null, marks, comment: r.comment ?? "" });
+    map.set(target, row);
+  }
+  for (const row of map.values()) {
+    row.avg = d.map((_, i) => row.reviews.reduce((a, x) => a + x.marks[i], 0) / row.count);
+    row.total = row.avg.reduce((a, b) => a + b, 0);
+  }
+  const order = st.targets ?? [];
+  return [...map.values()].sort((a, b) => {
+    const ia = order.indexOf(a.target);
+    const ib = order.indexOf(b.target);
+    if (ia >= 0 && ib >= 0) return ia - ib;
+    return a.target.localeCompare(b.target);
+  });
+}
+
+/**
+ * ҚМЖ-дағы дескрипторлар: «Бағалау (дескрипторлар)» ұяшығындағы пункттер және ескі жоспарлардағы
+ * тапсырма критерийлері. «– 2 балл» сияқты балл жазылса, ол да алынады.
+ */
+export function planDescriptors(plan: {
+  stages?: { name: string; purpose?: string; timeRange?: string; rows: { assessment?: string[]; assessmentDetail?: string }[] }[];
+  tasks?: { title: string; criteria?: { descriptors: string[] }[] }[];
+}): { stage: string; text: string; points: number }[] {
+  const out: { stage: string; text: string; points: number }[] = [];
+  const clean = (s: string) => s.replace(/\*\*/g, "").replace(/^\s*[•●▪◦-]\s*/, "").trim();
+  for (const st of plan.stages ?? []) {
+    const stage = st.purpose ? `${st.name} — ${st.purpose}` : st.name;
+    for (const row of st.rows ?? []) {
+      for (const raw of row.assessment ?? []) {
+        let t = clean(raw);
+        if (!t || /^(Дескриптор|Дескрипторы|Descriptors?)\s*:?$/i.test(t) || /^(Шкала|Scale)/i.test(t) || /^\d+\s*(балл|балла|баллов|points?)\.?$/i.test(t)) continue;
+        if (/^(Қалыптастырушы бағалау|Формативное оценивание|Formative assessment)/i.test(t) || t === "–") continue;
+        let points = 1;
+        const m = t.match(/[–—-]\s*(\d+)\s*(балл|балла|баллов|points?)\.?\s*$/i);
+        if (m) {
+          points = Math.min(Math.max(Number(m[1]), 1), 10);
+          t = t.slice(0, m.index).trim();
+        }
+        t = t.replace(/^[АВСABC]\s*:\s*/, "").replace(/[;.]\s*$/, "");
+        if (t.length >= 4) out.push({ stage, text: t, points });
+      }
+    }
+  }
+  for (const task of plan.tasks ?? []) {
+    for (const c of task.criteria ?? []) for (const d of c.descriptors) if (d.trim()) out.push({ stage: task.title, text: clean(d), points: 1 });
+  }
+  return out;
 }

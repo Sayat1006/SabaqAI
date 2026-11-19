@@ -2,7 +2,7 @@ import QRCode from "qrcode";
 import { Eye, EyeOff, Lock, LockOpen, QrCode, RotateCcw, Smartphone, Square } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { tr, uiLang } from "../i18n";
-import { createPoll, getPollState, OPTION_TONES, pollControl, PollError, pollLink, pollsChanged, wordCloud, type PollKind, type PollOption, type PollState } from "../lib/polls";
+import { createPoll, getPollState, OPTION_TONES, pollControl, PollError, pollLink, pollsChanged, rubricMax, rubricRows, wordCloud, type Descriptor, type PollKind, type PollOption, type PollState } from "../lib/polls";
 
 // Мұғалімнің QR сауалнамасы: тақтаға QR мен код шығады, оқушылар телефоннан жауап береді,
 // нәтиже 2 секунд сайын жаңарады. Белсенді сауалнама осы браузерде есте қалады —
@@ -57,6 +57,7 @@ function QrImage({ url, size }: { url: string; size: number }) {
 
 export function PollResults({ st, full = false, hideNames = false }: { st: PollState; full?: boolean; hideNames?: boolean }) {
   const n = st.responses.length;
+  if (st.kind === "rubric") return <RubricResults st={st} full={full} hideNames={hideNames} />;
   if (st.kind !== "reflection") {
     const tones = OPTION_TONES[st.kind === "traffic" ? "traffic" : st.method] ?? OPTION_TONES.traffic;
     const counts = st.options.map((_, i) => st.responses.filter((r) => r.choice === i).length);
@@ -146,6 +147,10 @@ export function ClassPoll({
   prompts,
   full,
   requireNames = false,
+  descriptors,
+  targets,
+  blocked,
+  setup,
 }: {
   /** Белсенді сауалнаманы есте сақтайтын кілт (карточка бойынша). */
   slot: string;
@@ -157,6 +162,13 @@ export function ClassPoll({
   full: boolean;
   /** Оқушылар міндетті түрде аты-жөнін жазады (бағдаршам, рефлексия). */
   requireNames?: boolean;
+  /** Дескриптор бойынша бағалау: дескрипторлар мен бағаланатындар (сынып тізімі / топтар). */
+  descriptors?: Descriptor[];
+  targets?: string[];
+  /** Сауалнаманы бастауға болмайтын себеп (мыс. дескриптор жоқ). */
+  blocked?: string;
+  /** Баптау өрістері: тек сауалнама басталмай тұрғанда көрсетіледі (басталған соң өзгерту әсер етпейді). */
+  setup?: React.ReactNode;
 }) {
   const [pollId, setPollId] = useState<string | null>(() => readActive(slot));
   const [st, setSt] = useState<PollState | null>(null);
@@ -207,7 +219,7 @@ export function ClassPoll({
     setBusy(true);
     setError("");
     try {
-      const p = await createPoll({ kind, method, title: title.trim(), options, prompts, askName, lang: uiLang });
+      const p = await createPoll({ kind, method, title: title.trim(), options, prompts, descriptors, targets, askName, lang: uiLang });
       setActive(p.id);
       pollsChanged();
     } catch (e) {
@@ -239,6 +251,8 @@ export function ClassPoll({
 
   if (!pollId) {
     return (
+      <>
+      {setup}
       <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-5 text-center">
         <Smartphone size={30} className="text-violet-500" />
         <p className="max-w-md text-sm text-slate-600">{tr("Тақтаға QR-код шығады. Оқушылар телефонмен сканерлеп, тіркелусіз жауап береді — нәтиже осы жерде бірден көрінеді.")}</p>
@@ -251,11 +265,13 @@ export function ClassPoll({
             <span className="font-normal text-slate-500">({askName ? tr("мұғалім атын көреді") : tr("жауаптар аноним")})</span>
           </label>
         )}
-        <button type="button" onClick={() => void start()} disabled={busy} className={primary}>
+        {blocked && <p className="text-sm font-semibold text-amber-700">{blocked}</p>}
+        <button type="button" onClick={() => void start()} disabled={busy || !!blocked} className={primary}>
           <QrCode size={16} /> {busy ? tr("Дайындалуда...") : tr("QR-кодты көрсету")}
         </button>
         {errorBox}
       </div>
+      </>
     );
   }
 
@@ -322,6 +338,94 @@ export function ClassPoll({
         </div>
       )}
       {errorBox}
+    </div>
+  );
+}
+
+/** Дескриптор бойынша бағалау нәтижесі: бағаланған әр оқушы/топ бойынша кесте және пікірлер. */
+function RubricResults({ st, full, hideNames }: { st: PollState; full: boolean; hideNames: boolean }) {
+  const d = st.descriptors ?? [];
+  const max = rubricMax(d);
+  const rows = rubricRows(st);
+  const [open, setOpen] = useState<string | null>(null);
+  const fmt = (x: number) => (Number.isInteger(x) ? String(x) : x.toFixed(1));
+  const tone = (ratio: number) => (ratio >= 0.8 ? "bg-emerald-100 text-emerald-800" : ratio >= 0.5 ? "bg-amber-100 text-amber-900" : "bg-rose-100 text-rose-800");
+  const pending = st.method === "group" || st.method === "peer" ? (st.targets ?? []).filter((t) => !rows.some((r) => r.target === t)) : [];
+  const who = st.method === "group" ? tr("Топ") : tr("Оқушы");
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200">
+        <table className={`w-full border-collapse ${full ? "text-xl" : "text-sm"}`}>
+          <thead className="bg-slate-50 text-left">
+            <tr>
+              <th className="px-3 py-2 font-semibold">{who}</th>
+              {d.map((x, i) => (
+                <th key={i} className="px-2 py-2 text-center font-semibold" title={x.text}>
+                  D{i + 1}
+                </th>
+              ))}
+              <th className="px-3 py-2 text-center font-semibold">{tr("Балл")}</th>
+              {st.method !== "self" && <th className="px-2 py-2 text-center font-semibold">{tr("Бағалады")}</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.target} className="border-t border-slate-100">
+                <td className="px-3 py-2 font-semibold">
+                  <button type="button" onClick={() => setOpen(open === r.target ? null : r.target)} className="text-left hover:text-violet-700" aria-expanded={open === r.target}>
+                    {hideNames && st.method !== "group" ? "•••" : r.target}
+                  </button>
+                </td>
+                {d.map((x, i) => (
+                  <td key={i} className="px-1.5 py-1.5 text-center">
+                    <span className={`inline-block min-w-9 rounded-lg px-1.5 py-0.5 font-bold ${tone(r.avg[i] / x.points)}`}>{fmt(r.avg[i])}</span>
+                  </td>
+                ))}
+                <td className="px-3 py-2 text-center font-bold tabular-nums">
+                  {fmt(r.total)} / {max}
+                </td>
+                {st.method !== "self" && <td className="px-2 py-2 text-center text-slate-500">{r.count}</td>}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <ol className={`flex flex-col gap-0.5 text-slate-600 ${full ? "text-lg" : "text-xs"}`}>
+        {d.map((x, i) => (
+          <li key={i}>
+            <b>D{i + 1}</b> — {x.text} ({x.points} {tr("балл")})
+          </li>
+        ))}
+      </ol>
+      {pending.length > 0 && !full && (
+        <p className="text-sm text-slate-500">
+          {tr("Әлі бағаланбағандар:")} {pending.join(", ")}
+        </p>
+      )}
+      {open &&
+        (() => {
+          const r = rows.find((x) => x.target === open);
+          if (!r) return null;
+          return (
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/50 p-3">
+              <div className={`mb-2 font-bold ${full ? "text-xl" : ""}`}>{r.target}</div>
+              <ul className="flex flex-col gap-1.5">
+                {r.reviews.map((v, i) => (
+                  <li key={i} className={`rounded-xl bg-surface px-3 py-2 ${full ? "text-lg" : "text-sm"}`}>
+                    {st.method !== "self" && !hideNames && (
+                      <span className="font-semibold text-violet-700">
+                        {v.by}
+                        {v.group ? ` (${v.group})` : ""}:{" "}
+                      </span>
+                    )}
+                    {v.marks.join(" · ")} = <b>{v.marks.reduce((a, b) => a + b, 0)}</b>
+                    {v.comment && <span className="text-slate-600"> — «{v.comment}»</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })()}
     </div>
   );
 }
