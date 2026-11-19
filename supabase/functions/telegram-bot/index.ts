@@ -18,7 +18,9 @@
 // @ts-expect-error Deno жаһандық объектісі тек Supabase Edge орталарында бар
 import { createClient } from "npm:@supabase/supabase-js@2";
 // @ts-expect-error Deno жаһандық объектісі тек Supabase Edge орталарында бар
-import { AlignmentType, Document, ExternalHyperlink, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from "npm:docx@9";
+import { AlignmentType, BorderStyle, Document, ExternalHyperlink, HeadingLevel, ImageRun, LevelFormat, Packer, Paragraph, ShadingType, Table, TableCell, TableLayoutType, TableRow, TextRun, WidthType } from "npm:docx@9";
+// @ts-expect-error Deno жаһандық объектісі тек Supabase Edge орталарында бар
+import QRCode from "npm:qrcode@1.5.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -154,42 +156,22 @@ async function gemini<T>(prompt: string, schema: object, log?: UsageLog): Promis
 const S = { type: "STRING" };
 const SA = { type: "ARRAY", items: S };
 
-// ҚМЖ — сайттағы генератормен бірдей құрылым (сайт оны «Жобалардан» аша алады).
+// ҚМЖ — сайттағы генератормен бірдей құрылым (мектептің ресми үлгісі, format: 2),
+// сондықтан сайт оны «Жобалардан» ашып, өңдей алады.
+const PLATFORM_KEYS = ["bilimland", "youtube", "wikipedia", "okulyk", "phet", "geogebra", "wordwall", "learningapps", "kahoot", "padlet", "mentimeter", "canva", "google_forms", "opiq"];
 const planSchema = {
   type: "OBJECT",
   properties: {
-    objectiveCode: S, objectiveText: S, goals: SA, valuesText: S,
-    vocabulary: { type: "ARRAY", items: { type: "OBJECT", properties: { term: S, definition: S }, required: ["term", "definition"] } },
-    stages: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          name: S, timeRange: S,
-          rows: { type: "ARRAY", items: { type: "OBJECT", properties: { teacherAction: SA, studentAction: SA, assessmentType: S, assessmentDetail: S, resources: S }, required: ["teacherAction", "studentAction", "assessmentType", "assessmentDetail", "resources"] } },
-        },
-        required: ["name", "timeRange", "rows"],
-      },
-    },
-    tasks: {
-      type: "ARRAY",
-      items: {
-        type: "OBJECT",
-        properties: {
-          title: S, kind: S, method: S, level: { type: "STRING", enum: ["A", "B", "C"] }, time: S, condition: SA,
-          tableTitle: S, tableHeaders: SA, tableRows: { type: "ARRAY", items: SA }, steps: SA,
-          criteria: { type: "ARRAY", items: { type: "OBJECT", properties: { criterion: S, descriptors: SA }, required: ["criterion", "descriptors"] } },
-          differentiation: S, expectedResultRows: { type: "ARRAY", items: SA }, expectedConclusion: S,
-        },
-        required: ["title", "kind", "method", "level", "time", "condition", "tableTitle", "tableHeaders", "tableRows", "steps", "criteria", "differentiation", "expectedResultRows", "expectedConclusion"],
-      },
-    },
-    resources: { type: "ARRAY", items: { type: "OBJECT", properties: { title: S, platform: { type: "STRING", enum: ["bilimland", "youtube", "wikipedia", "okulyk", "phet", "geogebra", "wordwall", "learningapps", "kahoot", "padlet", "mentimeter", "canva", "google_forms"] }, query: S, note: S }, required: ["title", "platform", "query", "note"] } },
-    planning: { type: "OBJECT", properties: { differentiation: S, assessment: S, safety: S }, required: ["differentiation", "assessment", "safety"] },
-    reflection: SA,
-    homework: S,
+    objectives: { type: "ARRAY", items: { type: "OBJECT", properties: { code: S, text: S }, required: ["code", "text"] } },
+    goals: SA,
+    valuesQuote: S,
+    valuesText: S,
+    stages: { type: "ARRAY", items: { type: "OBJECT", properties: { purpose: S, teacher: SA, student: SA, assessment: SA, resources: SA }, required: ["purpose", "teacher", "student", "assessment", "resources"] } },
+    planning: { type: "OBJECT", properties: { differentiation: SA, support: SA, assessment: S, safety: S }, required: ["differentiation", "support", "assessment", "safety"] },
+    answerKey: { type: "ARRAY", items: { type: "OBJECT", properties: { level: { type: "STRING", enum: ["A", "B", "C"] }, answer: S }, required: ["level", "answer"] } },
+    resources: { type: "ARRAY", items: { type: "OBJECT", properties: { platform: { type: "STRING", enum: PLATFORM_KEYS }, title: S }, required: ["platform", "title"] } },
   },
-  required: ["objectiveCode", "objectiveText", "goals", "valuesText", "vocabulary", "stages", "tasks", "resources", "planning", "reflection", "homework"],
+  required: ["objectives", "goals", "valuesQuote", "valuesText", "stages", "planning", "answerKey", "resources"],
 };
 
 const MONTH_VALUE: Record<number, string> = {
@@ -199,16 +181,26 @@ const MONTH_VALUE: Record<number, string> = {
   7: "Еңбекқорлық және кәсіби біліктілік", 8: "Еңбекқорлық және кәсіби біліктілік",
 };
 
-const google = (site: string) => (q: string) => `https://www.google.com/search?q=${encodeURIComponent(`${q} site:${site}`)}`;
-const PLATFORM_URL: Record<string, (q: string) => string> = {
-  bilimland: google("bilimland.kz"),
-  youtube: (q) => `https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`,
-  wikipedia: (q) => `https://kk.wikipedia.org/w/index.php?search=${encodeURIComponent(q)}`,
-  okulyk: google("okulyk.kz"), phet: google("phet.colorado.edu"), geogebra: google("geogebra.org"),
-  wordwall: google("wordwall.net"), learningapps: google("learningapps.org"), kahoot: google("create.kahoot.it"),
-  padlet: () => "https://padlet.com", mentimeter: () => "https://www.mentimeter.com", canva: () => "https://www.canva.com",
-  google_forms: () => "https://forms.google.com",
+// Сайттағы resources.ts-пен бірдей: QR-код платформаның сенімді басты бетіне апарады.
+const PLATFORM: Record<string, { label: string; home: string }> = {
+  bilimland: { label: "BilimLand", home: "https://bilimland.kz/" }, youtube: { label: "YouTube", home: "https://www.youtube.com/" },
+  wikipedia: { label: "Уикипедия", home: "https://kk.wikipedia.org/" }, okulyk: { label: "Okulyk.kz", home: "https://okulyk.kz/" },
+  phet: { label: "PhET", home: "https://phet.colorado.edu/" }, geogebra: { label: "GeoGebra", home: "https://www.geogebra.org/" },
+  wordwall: { label: "Wordwall", home: "https://wordwall.net/" }, learningapps: { label: "LearningApps", home: "https://learningapps.org/" },
+  kahoot: { label: "Kahoot!", home: "https://kahoot.com/" }, padlet: { label: "Padlet", home: "https://padlet.com/" },
+  mentimeter: { label: "Mentimeter", home: "https://www.mentimeter.com/" }, canva: { label: "Canva", home: "https://www.canva.com/" },
+  google_forms: { label: "Google Forms", home: "https://forms.google.com/" }, opiq: { label: "OPIQ", home: "https://www.opiq.kz/" },
 };
+
+// Үлгідегі 6 кезең: атауы, мақсаты және 45 минуттағы уақыты.
+const STAGES = [
+  { name: "Сабақтың басы", purpose: "Ұйымдастыру, қызығушылықты ояту, мақсат қою", minutes: 6 },
+  { name: "Сабақтың ортасы", purpose: "Жаңа білімді меңгеру", minutes: 12 },
+  { name: "Сабақтың ортасы", purpose: "Бекіту, жаттығу", minutes: 7 },
+  { name: "Сергіту сәті", purpose: "", minutes: 2 },
+  { name: "Сабақтың ортасы", purpose: "Деңгейлік тапсырмалар (жеке жұмыс)", minutes: 11 },
+  { name: "Сабақтың соңы", purpose: "Бекіту, рефлексия, үй тапсырмасы", minutes: 7 },
+];
 
 function today() {
   const d = new Date();
@@ -218,34 +210,54 @@ function today() {
 // deno-lint-ignore no-explicit-any
 type Json = any;
 
+const clean = (list: unknown): string[] => (Array.isArray(list) ? list.map((x) => String(x ?? "").trim()).filter(Boolean) : []);
+
 async function generatePlan(subject: string, grade: string, topic: string, teacherName: string, log?: UsageLog): Promise<Json> {
   const value = MONTH_VALUE[new Date().getMonth() + 1];
-  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, 45 минуттық сабаққа арналған ЖОҒАРЫ САПАЛЫ, толық қысқа мерзімді жоспар (ҚМЖ) құрастыр. Сабақ түрі: аралас сабақ.
-Оқу мақсатын ҮОБ-қа сай код (мыс. "5.1.2.3") және мазмұнымен бер.
-ҚҰНДЫЛЫҚ: осы айдың құндылығы — «${value}»; "valuesText" осы құндылықтың сабақта қалай дарытылатынын 1–2 сөйлеммен сипатта.
-"goals" — 3 саралау мақсаты ("Барлық оқушылар...", "Оқушылардың көбі...", "Кейбір оқушылар...").
-"stages" — дәл 3 кезең: "Сабақтың басы", "Сабақтың ортасы", "Сабақтың соңы" (45 минут); педагог пен оқушы әрекеттері нақты, белсенді әдістер аталсын.
-"tasks" — дәл 3 ТҮРЛІ тапсырма (жұптық, топтық, функционалдық сауаттылық): әдіс-тәсіл, деңгей A→C, уақыт, толық шарты, қажет болса кестесі (толтыратын ұяшықтар бос), 1–2 критерий және "Білім алушы ..." деп басталатын дескрипторлар, саралау, күтілетін нәтиже.
-"vocabulary" — 4–6 пәндік термин және анықтамасы.
-"resources" — 5 цифрлық ресурс: URL ЖАЗБА, тек "platform" (тізімнен) мен "query" (іздеу сөзі) және "note" (қай кезеңде).
-"planning" — саралау, бағалау, денсаулық және қауіпсіздік; "reflection" — 3 сұрақ; "homework" — саралап берілген үй тапсырмасы.
-Барлығы қазақ тілінде, фактілері дұрыс.`;
+  const st = (i: number) => `«${STAGES[i].name}» — ${STAGES[i].minutes} мин${STAGES[i].purpose ? `, «${STAGES[i].purpose}»` : ""}`;
+  const prompt = `Сен тәжірибелі қазақстандық мектеп мұғалімі әрі әдіскерсің. "${subject}" пәнінен "${grade}" сыныбына, "${topic}" тақырыбына, 45 минуттық сабаққа арналған қысқа мерзімді жоспарды (ҚМЖ) МЕКТЕПТІҢ РЕСМИ ҮЛГІСІ бойынша ҚАТАҢ толтыр. Сабақ түрі: аралас сабақ.
+МӘТІН БЕЛГІЛЕРІ: әр массив элементі — ұяшықтағы бір абзац. Қалың мәтінді **...** арқылы белгіле. Тізім пунктін «• » белгісімен баста. Басқа markdown қолданба.
+1. "objectives" — ҮОБ-қа сай 1–3 оқыту мақсаты: "code" (мыс. "10.1.2.1") және "text" (мазмұны кіші әріппен).
+2. "goals" — SMART мақсаттар, 3–4 жол; әрқайсысы өлшенетін етістікпен (мыс. "жүйелік және кездейсоқ қателіктерді ажыратады").
+3. Осы айдың құндылығы — «${value}». "valuesQuote" — осы құндылыққа сай нақыл сөз, авторымен; "valuesText" — құндылықтың сабақта қалай жүзеге асатыны, бір сөйлем.
+4. "stages" — ДӘЛ 6 элемент, ретімен ("purpose" — көрсетілген мақсат):
+   1) ${st(0)}: "teacher" — **Ұйымдастыру кезеңі.** …; **Білімді өзектендіру: «әдіс».** …; **Құндылыққа баулу:** (нақыл сөз); **Проблемалық жағдаят:** …; болжамдар арқылы тақырып пен мақсат анықталады. "student" — 2 жол. "assessment" — **Қалыптастырушы бағалау:** әдісі.
+   2) ${st(1)}: "teacher" — **Жаңа білімді меңгеру: «белсенді әдіс».** ұйымдастырылуы, одан кейін «• » арқылы тақырыптың НАҚТЫ мазмұны 3–5 пункт. "assessment" — **Дескриптор:**, «• » 2 дескриптор, **2 балл**.
+   3) ${st(2)}: "teacher" — **«әдіс» (жұптық жұмыс).** …; **Тапсырма:** нақты деректері бар тапсырма. "assessment" — **Дескриптор:**, «• » 1 дескриптор, **1 балл**.
+   4) ${st(3)}: "teacher" — **«жаттығу атауы».** сипаттамасы; "student" — 1 жол; "assessment" — ["–"]; "resources" — ["–"]; "purpose" — "".
+   5) ${st(4)}: "teacher" — **Саралау «Таңдау» арқылы:** …; **А деңгейі (білу, түсіну) – жасыл карта.** + тапсырма; **В деңгейі (қолдану) – сары карта.** + тапсырма; **С деңгейі (талдау, жинақтау) – қызыл карта.** + тапсырма; **ЕББҚ оқушыларына:** … "assessment" — **Дескриптор:**, **А:** … – **2 балл**, **В:** … – **3 балл**, **С:** … – **4 балл**.
+   6) ${st(5)}: "teacher" — **Бекіту: онлайн-викторина** және «• » 3 сұрақ үлгісі (жауабымен); **Рефлексия: «әдіс»** – …; **Үй тапсырмасы (сараланған):**, «• **А:** …», «• **В:** …», «• **С:** …». "assessment" — **Дескриптор:**, «• » … – **3 балл**, **Шкала (10 балл):** 9–10 «Өте жақсы», 7–8 «Жақсы», 5–6 «Қанағаттанарлық», 0–4 «Қолдау қажет».
+   Әр кезеңде "resources" — 1–3 нақты ресурс атауы.
+5. "planning": "differentiation" — 4 жол (**Тапсырма арқылы:**, **Таңдау арқылы:**, **Қолдау арқылы:**, **Қабілетті оқушыларға:**); "support" — 3 жол (**Оқу қиындығы:**, **Көру/есту қабілеті:**, **Зейін тапшылығы:**); "assessment" мен "safety" — бір-бір сөйлем.
+6. "answerKey" — 5-кезеңдегі А, В, С тапсырмаларының дұрыс жауаптары (level: A, B, C).
+7. "resources" — ДӘЛ 3 сандық ресурс: "platform" (тізімнен) және "title" — қысқа түрі (мыс. "викторина", "видеосабақ", "цифрлық оқулық"). URL жазба.
+Барлығы қазақ тілінде, фактілері дұрыс, сынып деңгейіне сай.`;
   const ai = await gemini<Json>(prompt, planSchema, log);
+  const objectives = (ai.objectives ?? []).map((o: Json) => ({ code: String(o.code ?? "").trim(), text: String(o.text ?? "").trim() })).filter((o: Json) => o.text);
+  const objs = objectives.length ? objectives : [{ code: "", text: `«${topic}» тақырыбы бойынша негізгі ұғымдарды меңгеру` }];
+  const stages = STAGES.map((f, i) => {
+    const x = ai.stages?.[i] ?? {};
+    const assessment = clean(x.assessment);
+    const resources = clean(x.resources);
+    return {
+      name: f.name, timeRange: `${f.minutes} минут`, purpose: i === 3 ? "" : String(x.purpose ?? "").trim() || f.purpose,
+      rows: [{ teacherAction: clean(x.teacher), studentAction: clean(x.student), assessmentType: "", assessmentDetail: "", assessment: assessment.length ? assessment : ["–"], resources: (resources.length ? resources : ["–"]).join("\n") }],
+    };
+  });
+  const pl = ai.planning ?? {};
   return {
-    subject, grade, topic, duration: 45,
+    subject, grade, topic, duration: 45, format: 2, approver: "",
     teacherName: teacherName || "Мұғалімнің аты-жөні",
-    date: today(), section: `${subject} — ${topic}`, gradeNumber: grade.match(/\d+/)?.[0] ?? grade,
-    objectiveCode: ai.objectiveCode ?? "", objectiveText: ai.objectiveText ?? "", goals: ai.goals ?? [],
-    valuesTitle: value,
-    valuesText: String(ai.valuesText ?? "").includes(value) ? ai.valuesText : `«${value}» — ${ai.valuesText ?? ""}`,
-    stages: ai.stages ?? [],
-    tasks: (ai.tasks ?? []).map((t: Json) => ({ ...t, tableHeaders: t.tableHeaders ?? [], tableRows: t.tableRows ?? [], expectedResultRows: t.expectedResultRows ?? [] })),
-    lessonType: "Аралас сабақ",
-    vocabulary: ai.vocabulary ?? [],
+    date: today(), section: subject, gradeNumber: grade.match(/\d+/)?.[0] ?? grade,
+    objectiveCode: objs[0].code, objectiveText: objs[0].text, objectives: objs,
+    goals: clean(ai.goals), valuesTitle: value, valuesQuote: String(ai.valuesQuote ?? "").trim(), valuesText: String(ai.valuesText ?? "").trim(),
+    stages, tasks: [], lessonType: "Аралас сабақ",
+    planning: { differentiation: clean(pl.differentiation).join("\n"), support: clean(pl.support).join("\n"), assessment: String(pl.assessment ?? ""), safety: String(pl.safety ?? "") },
+    answerKey: (ai.answerKey ?? []).map((k: Json) => ({ level: ["A", "B", "C"].includes(k.level) ? k.level : "A", answer: String(k.answer ?? "").trim() })).filter((k: Json) => k.answer),
     resources: (ai.resources ?? [])
-      .filter((r: Json) => PLATFORM_URL[r.platform] && r.title)
-      .map((r: Json) => ({ title: r.title, platform: r.platform, url: PLATFORM_URL[r.platform](r.query || r.title), note: r.note ?? "" })),
-    planning: ai.planning, reflection: ai.reflection ?? [], homework: ai.homework ?? "",
+      .filter((r: Json) => PLATFORM[r.platform])
+      .slice(0, 3)
+      .map((r: Json) => ({ title: String(r.title ?? "").trim() || "ресурс", platform: r.platform, url: PLATFORM[r.platform].home, note: "" })),
     source: "telegram",
   };
 }
@@ -281,14 +293,6 @@ async function generateTest(subject: string, grade: string, topic: string, log?:
 /* ---------------------------------------------------------------- Word құжаттары */
 
 const p = (text: string, bold = false) => new Paragraph({ children: [new TextRun({ text: String(text ?? ""), bold })], spacing: { after: 80 } });
-const h = (text: string, level: (typeof HeadingLevel)[keyof typeof HeadingLevel] = HeadingLevel.HEADING_2) => new Paragraph({ text, heading: level, spacing: { before: 200, after: 100 } });
-const bullet = (text: string) => new Paragraph({ text: String(text ?? ""), bullet: { level: 0 } });
-const cell = (children: Paragraph[], shade = false, width?: number) =>
-  new TableCell({ children: children.length ? children : [p("")], shading: shade ? { fill: "F7DFCB" } : undefined, width: width ? { size: width, type: WidthType.PERCENTAGE } : undefined });
-const tbl = (rows: TableRow[]) => new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows });
-const headRow = (cols: string[]) => new TableRow({ tableHeader: true, children: cols.map((c) => cell([p(c, true)], true)) });
-const textRow = (cols: string[]) => new TableRow({ children: cols.map((c) => cell([p(c)])) });
-
 // A4, барлық шеті 1 см (567 twip) — кестелер парақтың енін толық алады.
 const makeDoc = (children: (Paragraph | Table)[]) =>
   new Document({
@@ -296,53 +300,109 @@ const makeDoc = (children: (Paragraph | Table)[]) =>
     sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 567, bottom: 567, left: 567, right: 567 } } }, children }],
   });
 
+// Ресми ҚМЖ үлгісі: A4, шеттері 1,27 см, Times New Roman 11 pt, бағандар ені үлгідегідей
+// (сайттағы exportDocx.ts → exportTemplateQmzh-пен бірдей).
+const TF = "Times New Roman";
+const TS = 22;
+const tb = { style: BorderStyle.SINGLE, size: 4, color: "auto" };
+const tRun = (text: string, o: Json = {}) => new TextRun({ text, font: TF, size: TS, ...o });
+function tPara(raw: string, o: Json = {}) {
+  let line = String(raw ?? "").trim();
+  let bullet = false;
+  if (/^\*\*\s*•\s*/.test(line)) { bullet = true; line = "**" + line.replace(/^\*\*\s*•\s*/, ""); }
+  else if (/^\s*[•●▪◦]\s*/.test(line)) { bullet = true; line = line.replace(/^\s*[•●▪◦]\s*/, ""); }
+  const runs: Json[] = [];
+  line.split(/(\*\*.+?\*\*)/g).filter(Boolean).forEach((part) => {
+    const bold = /^\*\*.+\*\*$/.test(part);
+    const text = part.replace(/\*\*/g, "");
+    if (text) runs.push(tRun(text, { bold: o.bold || bold || undefined, italics: o.italics }));
+  });
+  return new Paragraph({ spacing: { after: 0, line: 240 }, alignment: o.align, numbering: bullet ? { reference: "qmzh-bullet", level: 0 } : undefined, children: runs });
+}
+const tLines = (lines: string[]) => { const l = (lines ?? []).map((x) => String(x ?? "").trim()).filter(Boolean); return l.length ? l.map((x) => tPara(x)) : [tPara("")]; };
+const split = (s: string) => String(s ?? "").split(/\r?\n/).map((x) => x.trim()).filter(Boolean);
+const tCell = (children: Paragraph[], width: number, o: Json = {}) =>
+  new TableCell({ width: { size: width, type: WidthType.DXA }, columnSpan: o.span, margins: { top: 30, bottom: 30, left: 80, right: 80 }, shading: o.fill ? { type: ShadingType.CLEAR, color: "auto", fill: o.fill } : undefined, children });
+const tTable = (widths: number[], rows: TableRow[]) =>
+  new Table({ width: { size: 10466, type: WidthType.DXA }, columnWidths: widths, layout: TableLayoutType.FIXED, borders: { top: tb, bottom: tb, left: tb, right: tb, insideHorizontal: tb, insideVertical: tb }, rows });
+const tHead = (widths: number[], titles: string[]) => new TableRow({ tableHeader: true, children: titles.map((t, i) => tCell([tPara(t, { bold: true, align: AlignmentType.CENTER })], widths[i], { fill: "D9E2F3" })) });
+const tHeading = (text: string) => new Paragraph({ keepNext: true, spacing: { before: 120, after: 40 }, children: [tRun(text, { bold: true })] });
+
+async function qrPng(url: string): Promise<Uint8Array | null> {
+  try {
+    const dataUrl: string = await QRCode.toDataURL(url, { width: 240, margin: 1, errorCorrectionLevel: "M" });
+    const bin = atob(dataUrl.split(",")[1]);
+    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  } catch {
+    return null;
+  }
+}
+
 async function planDocx(plan: Json): Promise<Blob> {
+  const IW = [2700, 3883, 3883];
+  const info = (label: string, value: Paragraph[]) => new TableRow({ children: [tCell([tPara(label, { bold: true })], IW[0]), tCell(value, IW[1] + IW[2], { span: 2 })] });
+  const date = /\d$/.test(plan.date) ? `${plan.date} ж.` : plan.date;
   const kids: (Paragraph | Table)[] = [
-    new Paragraph({ text: `Қысқа мерзімді сабақ жоспары — ${plan.subject}`, heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER }),
-    tbl(
-      [
-        ["Бөлім", plan.section], ["Педагогтің аты-жөні", plan.teacherName], ["Күні", plan.date],
-        [`Сынып ${plan.gradeNumber}`, "Қатысушылар саны ____   Қатыспағандар саны ____"], ["Сабақтың тақырыбы", plan.topic],
-        ["Оқу бағдарламасына сәйкес оқыту мақсаттары", `${plan.objectiveCode} — ${plan.objectiveText}`],
-        ["Сабақтың мақсаты", plan.goals.join("\n")],
-        ["Құндылықтарды дарыту", plan.valuesText],
-      ].map(([a, b]) => new TableRow({ children: [cell([p(a, true)], true, 32), cell(String(b ?? "").split("\n").map((x) => p(x)), false, 68)] })),
-    ),
+    tPara("Бекітемін:"),
+    tPara(`Оқу ісі жөніндегі орынбасары: ${plan.approver || "____________________"}`),
+    tPara(""),
+    tTable(IW, [
+      info("Бөлім:", [tPara(plan.section)]),
+      info("Педагогтың аты-жөні:", [tPara(plan.teacherName)]),
+      info("Күні:", [tPara(date)]),
+      new TableRow({ children: [tCell([new Paragraph({ children: [tRun("Сынып:", { bold: true }), tRun(` ${plan.gradeNumber}`)] })], IW[0]), tCell([tPara("Қатысушылар саны:")], IW[1]), tCell([tPara("Қатыспағандар саны:")], IW[2])] }),
+      info("Сабақтың тақырыбы:", [tPara(plan.topic, { bold: true })]),
+      info("Оқу бағдарламасына сәйкес оқыту мақсаттары:", tLines(plan.objectives.map((o: Json) => (o.code ? `${o.code} - ${o.text}` : o.text)))),
+      info("Сабақтың мақсаты (SMART):", tLines(plan.goals)),
+      info("Құндылықтарға баулу:", [
+        new Paragraph({ children: [tRun("«Адал азамат» бағдарламасы бойынша: "), tRun(plan.valuesTitle, { bold: true }), tRun(".")] }),
+        ...(plan.valuesQuote ? [tPara(plan.valuesQuote, { italics: true })] : []),
+        tPara(plan.valuesText),
+      ]),
+    ]),
+    tHeading("Сабақтың барысы:"),
   ];
-  if (plan.vocabulary.length) kids.push(h("Пәндік лексика"), tbl([headRow(["Термин", "Анықтамасы"]), ...plan.vocabulary.map((v: Json) => textRow([v.term, v.definition]))]));
-  kids.push(h("Сабақтың барысы"));
-  const flow = [headRow(["Кезең / уақыт", "Педагогтің әрекеті", "Оқушының әрекеті", "Бағалау", "Ресурстар"])];
+  const FW = [1250, 3900, 2200, 1900, 1216];
+  const flow = [tHead(FW, ["Сабақтың кезеңі / уақыты", "Педагогтың әрекеті", "Оқушының әрекеті", "Бағалау (дескрипторлар)", "Ресурстар"])];
   for (const st of plan.stages)
     for (const r of st.rows ?? [])
-      flow.push(new TableRow({ children: [cell([p(st.name, true), p(st.timeRange)]), cell((r.teacherAction ?? []).map(p)), cell((r.studentAction ?? []).map(p)), cell([p(r.assessmentType, true), p(r.assessmentDetail)]), cell([p(r.resources)])] }));
-  kids.push(tbl(flow));
-  plan.tasks.forEach((t: Json, i: number) => {
-    kids.push(h(`${i + 1}-тапсырма. ${t.title}`, HeadingLevel.HEADING_3));
-    kids.push(new Paragraph({ children: [new TextRun({ text: [t.kind, t.method && `Әдіс: ${t.method}`, t.level && `Деңгейі: ${t.level}`, t.time && `Уақыты: ${t.time}`].filter(Boolean).join(" · "), italics: true, color: "B85A2A" })] }));
-    (t.condition ?? []).forEach((c: string) => kids.push(p(c)));
-    const w = (t.tableHeaders ?? []).length;
-    const fit = (r: string[]) => Array.from({ length: w }, (_, k) => r[k] ?? "");
-    if (w && t.tableRows?.length) kids.push(p(t.tableTitle || "", true), tbl([headRow(t.tableHeaders), ...t.tableRows.map((r: string[]) => textRow(fit(r)))]));
-    if (t.steps?.length) kids.push(p("Орындау қадамдары:", true), ...t.steps.map((x: string, k: number) => p(`${k + 1}. ${x}`)));
-    kids.push(p("Бағалау критерийлері мен дескрипторлары:", true));
-    kids.push(tbl([headRow(["Критерий", "Дескриптор", "Ұпай"]), ...(t.criteria ?? []).flatMap((c: Json) => (c.descriptors ?? []).map((d: string, k: number) => textRow([k === 0 ? c.criterion : "", d, "1"])))]));
-    if (t.differentiation) kids.push(p("Саралау:", true), p(t.differentiation));
-    kids.push(p("Күтілетін нәтиже:", true));
-    if (w && t.expectedResultRows?.length) kids.push(tbl([headRow(t.tableHeaders), ...t.expectedResultRows.map((r: string[]) => textRow(fit(r)))]));
-    kids.push(p(t.expectedConclusion));
+      flow.push(new TableRow({ children: [
+        tCell([tPara(st.name, { bold: true }), tPara(st.timeRange, { bold: true }), ...(st.purpose ? [tPara(st.purpose, { italics: true })] : [])], FW[0], { fill: "F2F2F2" }),
+        tCell(tLines(r.teacherAction), FW[1]), tCell(tLines(r.studentAction), FW[2]), tCell(tLines(r.assessment ?? []), FW[3]), tCell(tLines(split(r.resources)), FW[4]),
+      ] }));
+  kids.push(tTable(FW, flow));
+  const PW = [2718, 2990, 2378, 2380];
+  const pl = plan.planning ?? {};
+  kids.push(tHeading("Саралау, ЕББҚ қолдау, бағалау және қауіпсіздік"),
+    tTable(PW, [tHead(PW, ["Саралау", "ЕББҚ оқушыларына қолдау", "Бағалау", "Денсаулық және қауіпсіздік"]), new TableRow({ children: [pl.differentiation, pl.support, pl.assessment, pl.safety].map((v, i) => tCell(tLines(split(v)), PW[i])) })]));
+  if (plan.answerKey?.length) {
+    const KW = [815, 9651];
+    const LV: Record<string, string> = { A: "А", B: "В", C: "С" };
+    kids.push(tHeading("Деңгейлік тапсырмалардың жауап кілті"), tTable(KW, [tHead(KW, ["Деңгей", "Дұрыс жауап"]), ...plan.answerKey.map((k: Json) => new TableRow({ children: [tCell([tPara(LV[k.level] ?? k.level, { bold: true })], KW[0]), tCell(tLines(split(k.answer)), KW[1])] }))]));
+  }
+  if (plan.resources?.length) {
+    const RW = [3488, 3488, 3490];
+    const imgs = await Promise.all(plan.resources.map((r: Json) => qrPng(r.url)));
+    const rows: TableRow[] = [];
+    for (let i = 0; i < plan.resources.length; i += 3)
+      rows.push(new TableRow({ children: RW.map((w, c) => {
+        const r = plan.resources[i + c];
+        if (!r) return tCell([tPara("")], w);
+        const img = imgs[i + c];
+        return tCell([
+          new Paragraph({ children: [tRun(PLATFORM[r.platform]?.label ?? r.title, { bold: true }), tRun(` – ${r.title}`)] }),
+          new Paragraph({ children: [new ExternalHyperlink({ link: r.url, children: [new TextRun({ text: r.url, font: TF, size: TS, color: "0563C1", underline: {} })] })] }),
+          ...(img ? [new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ type: "png", data: img, transformation: { width: 56, height: 56 } })] })] : []),
+        ], w);
+      }) }));
+    kids.push(tHeading("Сандық ресурстар (QR-кодтар)"), tTable(RW, rows));
+  }
+  const doc = new Document({
+    styles: { default: { document: { run: { font: TF, size: TS }, paragraph: { spacing: { after: 0, line: 240 } } } } },
+    numbering: { config: [{ reference: "qmzh-bullet", levels: [{ level: 0, format: LevelFormat.BULLET, text: "•", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 284, hanging: 227 } } } }] }] },
+    sections: [{ properties: { page: { size: { width: 11906, height: 16838 }, margin: { top: 720, right: 720, bottom: 720, left: 720 } } }, children: kids }],
   });
-  if (plan.planning) {
-    kids.push(p(""), tbl([headRow(["Саралау", "Бағалау", "Денсаулық және қауіпсіздік"]), textRow([plan.planning.differentiation, plan.planning.assessment, plan.planning.safety])]));
-  }
-  if (plan.reflection.length) kids.push(h("Рефлексия"), ...plan.reflection.map(bullet));
-  if (plan.homework) kids.push(h("Үй тапсырмасы"), p(plan.homework));
-  if (plan.resources.length) {
-    kids.push(h("Ресурстар мен сілтемелер"));
-    plan.resources.forEach((r: Json, i: number) =>
-      kids.push(new Paragraph({ children: [new TextRun(`${i + 1}. `), new ExternalHyperlink({ link: r.url, children: [new TextRun({ text: r.title, style: "Hyperlink", color: "0563C1", underline: {} })] }), new TextRun(r.note ? ` — ${r.note}` : "")] })),
-    );
-  }
-  return await Packer.toBlob(makeDoc(kids));
+  return await Packer.toBlob(doc);
 }
 
 async function testDocx(test: Json): Promise<Blob> {

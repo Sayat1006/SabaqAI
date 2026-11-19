@@ -1,6 +1,7 @@
 import { ImagePlus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import type { SlideData } from "../lib/slides";
+import type { LessonItem, LessonSlide } from "../lib/lessonDeck";
 import { tr } from "../i18n";
 
 // Слайд өңдегіші. Тізім өрістері мәтін күйінде жергілікті сақталады (жол = бір элемент),
@@ -78,7 +79,7 @@ export function SlideEditor({
   imageBusy: boolean;
 }) {
   const s = slide;
-  const hasImage = s.layout === "title" || s.layout === "image";
+  const hasImage = s.layout === "title" || s.layout === "image" || (s.layout === "lesson" && !!s.image_prompt);
 
   return (
     <div className="flex flex-col gap-3.5">
@@ -86,6 +87,8 @@ export function SlideEditor({
       {["title", "closing", "bullets", "image", "diagram", "chart", "table", "highlight", "timeline"].includes(s.layout) && (
         <TextInput title={tr("Қосымша жол")} hint={tr("міндетті емес")} value={s.subheading} onChange={(subheading) => onChange({ subheading })} max={300} />
       )}
+
+      {s.layout === "lesson" && s.lesson && <LessonFields lesson={s.lesson} onChange={(patch) => onChange({ lesson: { ...s.lesson!, ...patch } })} />}
 
       {s.layout === "highlight" && (
         <Label title={tr("Басты ой / анықтама")}>
@@ -268,5 +271,73 @@ export function SlideEditor({
         <textarea value={s.notes} rows={2} maxLength={1000} onChange={(e) => onChange({ notes: e.target.value })} className={`${field} resize-y`} />
       </Label>
     </div>
+  );
+}
+
+const itemsText = (items: LessonItem[] | undefined, cols: (keyof LessonItem)[]) => (items ?? []).map((it) => cols.map((c) => it[c] ?? "").join(" | ")).join("\n");
+const parseItems = (text: string, cols: (keyof LessonItem)[]): LessonItem[] =>
+  nonEmpty(text).map((l) => {
+    const parts = cells(l);
+    const it: LessonItem = { label: "", text: "" };
+    cols.forEach((c, i) => (it[c] = parts[i] ?? ""));
+    return it;
+  });
+
+/** ҚМЖ үлгісіндегі сабақ слайдының өрістері (түріне қарай). */
+function LessonFields({ lesson: l, onChange }: { lesson: LessonSlide; onChange: (patch: Partial<LessonSlide>) => void }) {
+  const k = l.kind;
+  const RICH = tr("әр жол — бір абзац; **қалың**");
+  const NOTE: Partial<Record<LessonSlide["kind"], string>> = {
+    practice: tr("Әдістің сипаттамасы (көлбеу жол)"),
+    problem: tr("Төменгі жолақ"),
+    knowledge: tr("Сурет асты жазуы"),
+    picture: tr("Суретке сұрақ"),
+    levels: tr("Төменгі жол"),
+    quiz: tr("QR-код асты жазуы"),
+    closing: tr("Нақыл сөз"),
+  };
+  return (
+    <>
+      {k !== "title" && k !== "closing" && <TextInput title={tr("Кезең белгісі")} hint={tr("мыс. Сабақтың басы · 6 мин")} value={l.stage ?? ""} onChange={(stage) => onChange({ stage })} />}
+      {k === "title" && (
+        <>
+          <TextInput title={tr("Жоғарғы жол")} value={l.kicker ?? ""} onChange={(kicker) => onChange({ kicker })} />
+          <TextInput title={tr("Бөлім")} value={l.section ?? ""} onChange={(section) => onChange({ section })} max={300} />
+          <LinesInput title={tr("Ақпарат")} hint={tr("әр жол — бір жол")} initial={(l.info ?? []).join("\n")} parse={nonEmpty} onChange={(info) => onChange({ info })} rows={2} />
+        </>
+      )}
+      {(k === "goals" || k === "warmup") && (
+        <>
+          <TextInput title={k === "goals" ? tr("Сол жақ карточка атауы") : tr("Құндылық")} value={l.sideTitle ?? ""} onChange={(sideTitle) => onChange({ sideTitle })} />
+          <LinesInput title={k === "goals" ? tr("Оқу мақсаттары") : tr("Нақыл сөз")} hint={tr("әр жол — бір пункт")} initial={(l.side ?? []).join("\n")} parse={nonEmpty} onChange={(side) => onChange({ side })} rows={3} />
+        </>
+      )}
+      {k === "goals" && (
+        <>
+          <TextInput title={tr("Тізім атауы")} value={l.listTitle ?? ""} onChange={(listTitle) => onChange({ listTitle })} />
+          <LinesInput title={tr("Сабақтың мақсаттары")} hint={tr("әр жол — бір мақсат")} initial={(l.items ?? []).map((it) => it.text).join("\n")} parse={(t) => nonEmpty(t).map((text, i) => ({ label: String(i + 1), text }))} onChange={(items) => onChange({ items })} />
+        </>
+      )}
+      {["warmup", "practice", "problem", "knowledge", "break", "level", "reflection"].includes(k) && (
+        <LinesInput title={k === "knowledge" ? tr("Негізгі ойлар") : tr("Мәтін")} hint={RICH} initial={(l.text ?? []).join("\n")} parse={nonEmpty} onChange={(text) => onChange({ text })} />
+      )}
+      {NOTE[k] && <TextInput title={NOTE[k]!} value={l.note ?? ""} onChange={(note) => onChange({ note })} max={400} />}
+      {k === "level" && <TextInput title={tr("Жауабы")} value={l.answer ?? ""} onChange={(answer) => onChange({ answer })} max={600} />}
+      {k === "levels" && (
+        <LinesInput title={tr("Деңгейлер")} hint={tr("әр жол: әріп | атауы | сипаттамасы")} initial={itemsText(l.items, ["label", "text", "extra"])} parse={(t) => parseItems(t, ["label", "text", "extra"])} onChange={(items) => onChange({ items })} rows={3} />
+      )}
+      {k === "quiz" && (
+        <>
+          <LinesInput title={tr("Сұрақтар")} hint={tr("әр жол: сұрақ | жауабы")} initial={itemsText(l.items, ["text", "extra"])} parse={(t) => parseItems(t, ["text", "extra"]).map((it, i) => ({ ...it, label: String(i + 1) }))} onChange={(items) => onChange({ items })} rows={3} />
+          <TextInput title={tr("QR-код сілтемесі")} value={l.qr ?? ""} onChange={(qr) => onChange({ qr: /^https?:\/\//i.test(qr.trim()) ? qr.trim() : "" })} max={1000} />
+        </>
+      )}
+      {k === "reflection" && (
+        <LinesInput title={tr("Бағалау шкаласы")} hint={tr("әр жол: балл | бағасы")} initial={itemsText(l.items, ["label", "text"])} parse={(t) => parseItems(t, ["label", "text"])} onChange={(items) => onChange({ items })} rows={4} />
+      )}
+      {k === "homework" && (
+        <LinesInput title={tr("Үй тапсырмасы")} hint={tr("әр жол: деңгей (A, B, C) | атауы | тапсырма")} initial={itemsText(l.items, ["label", "text", "extra"])} parse={(t) => parseItems(t, ["label", "text", "extra"])} onChange={(items) => onChange({ items })} rows={3} />
+      )}
+    </>
   );
 }

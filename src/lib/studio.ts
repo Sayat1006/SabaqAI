@@ -2,6 +2,7 @@
 // Барлығы `ai-generate` Edge Function арқылы Gemini-ге жүгінеді.
 
 import { tr } from "../i18n";
+import { plainText } from "./qmzhText";
 import { aiGenerateJson } from "./ai";
 import { curriculum } from "./curriculum";
 import type { LessonPlan } from "./generators";
@@ -134,16 +135,19 @@ ${planContext ? `Презентация мына қысқа мерзімді ж�
 
 /** ҚМЖ мазмұнын AI-ға берілетін қысқа мәтінге айналдырады. */
 export function planToContext(plan: LessonPlan): string {
-  const stageLines = plan.stages.map((st) => `${st.name} (${st.timeRange}): ${st.rows.flatMap((r) => r.teacherAction).slice(0, 3).join("; ")}`);
+  const stageLines = plan.stages.map(
+    (st) => `${st.name}${st.purpose ? ` — ${st.purpose}` : ""} (${st.timeRange}): ${st.rows.flatMap((r) => r.teacherAction).slice(0, 3).map(plainText).join("; ")}`,
+  );
   const taskLines = plan.tasks.map((t) => `${t.title}: ${t.condition.join(" ")}`);
+  const objectives = plan.objectives?.length ? plan.objectives : [{ code: plan.objectiveCode, text: plan.objectiveText }];
   return [
     `Пән: ${plan.subject}; сынып: ${plan.grade}`,
-    `Оқу мақсаты: ${plan.objectiveCode} — ${plan.objectiveText}`,
-    `Сабақ мақсаттары: ${plan.goals.join("; ")}`,
-    `Құндылық: ${plan.valuesTitle} — ${plan.valuesText}`,
+    `Оқу мақсаты: ${objectives.map((o) => `${o.code} — ${o.text}`).join("; ")}`,
+    `Сабақ мақсаттары: ${plan.goals.map(plainText).join("; ")}`,
+    `Құндылық: ${plan.valuesTitle} — ${plainText(plan.valuesText)}`,
     `Кезеңдер: ${stageLines.join(" | ")}`,
-    `Тапсырмалар: ${taskLines.join(" | ")}`,
-  ].join("\n").slice(0, 4000);
+    taskLines.length ? `Тапсырмалар: ${taskLines.join(" | ")}` : "",
+  ].filter(Boolean).join("\n").slice(0, 4000);
 }
 
 /** Презентация стиліне сай иллюстрация стилі. */
@@ -411,6 +415,46 @@ ${
     const order = { A: 0, B: 1, C: 2 };
     questions.sort((x, y) => order[x.level] - order[y.level]);
   }
+  return questions;
+}
+
+/** Мұғалімнің файлындағы (не қойған мәтініндегі) тапсырмаларды тест сұрақтарына айналдыру. */
+export async function extractTestFromText(
+  text: string,
+  input: { subject: string; grade: string; topic: string; lang?: Lang },
+): Promise<TestQuestion[]> {
+  const prompt = `Сен Қазақстан мектептеріне арналған тәжірибелі мұғалім-әдіскерсің. Төменде мұғалімнің өз файлындағы мәтін берілген (тест, тапсырмалар жинағы, жұмыс парағы не оқулық бөлімі).
+Пән: ${input.subject}. Сынып: ${input.grade}.${input.topic ? ` Тақырып: ${input.topic}.` : ""}
+
+МІНДЕТ: мәтіндегі тапсырмаларды көп нұсқалы тест сұрақтарына айналдыр.
+- Мәтінде дайын сұрақтар болса — сол сұрақтарды СӨЗІН ӨЗГЕРТПЕЙ, сол ретпен ал; ойдан жаңа сұрақ қоспа. Тек айқын емле қатесін түзетуге болады.
+- Сұрақтың нұсқалары берілсе — соларды ал ("A)", "1." сияқты белгілерін алып таста). Нұсқалары жоқ сұраққа 4 нұсқа құрастыр: біреуі дұрыс, қалғандары сенімді, бірақ анық қате.
+- Жауап кілті берілсе — "correctIndex"-ті соған сәйкес қой; берілмесе — дұрыс жауапты өзің анықта.
+- Мәтінде сұрақ жоқ болса (тек түсіндірме, оқулық мәтіні) — сол мазмұнға негізделген 10 сұрақ құрастыр.
+- Сұрақ саны 40-тан аспасын.
+- "level": A — білу/түсіну, B — қолдану, C — жоғары деңгей дағдылары.
+- "explanation" — дұрыс жауаптың бір сөйлемдік түсіндірмесі.
+- Түсіндірме мен өзің қосқан нұсқалар ${inLang(input.lang)}; бастапқы сұрақтар өз тілінде қалады.
+
+МӘТІН:
+"""
+${text.slice(0, 30000)}
+"""`;
+  const result = await aiGenerateJson<{ questions: Partial<TestQuestion>[] }>(prompt, testSchema);
+  const questions = (result.questions ?? [])
+    .filter((q) => q.question && Array.isArray(q.options) && q.options.length >= 2)
+    .slice(0, 40)
+    .map((q) => {
+      const options = q.options!.map((o) => o.replace(/^\s*[A-EА-Д1-6][).]\s*/, "")).slice(0, 6);
+      return {
+        question: q.question!.replace(/^\s*\d+[).]\s*/, ""),
+        options,
+        correctIndex: Math.min(Math.max(Number(q.correctIndex) || 0, 0), options.length - 1),
+        explanation: q.explanation ?? "",
+        level: (["A", "B", "C"] as const).find((l) => l === q.level) ?? "A",
+      };
+    });
+  if (questions.length === 0) throw new Error(tr("Файлдан тапсырма табылмады. Басқа файл жүктеп не мәтінін қойып көріңіз."));
   return questions;
 }
 

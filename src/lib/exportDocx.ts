@@ -5,6 +5,8 @@ import {
   Document,
   ExternalHyperlink,
   Footer,
+  ImageRun,
+  LevelFormat,
   HeadingLevel,
   Packer,
   PageNumber,
@@ -17,13 +19,17 @@ import {
   WidthType,
   convertMillimetersToTwip,
   PageOrientation,
+  ShadingType,
+  TableLayoutType,
 } from "docx";
+import QRCode from "qrcode";
 import { downloadBlob } from "./downloadBlob";
-import type { LessonPlan } from "./generators";
+import { isTemplatePlan, type LessonPlan } from "./generators";
+import { parseRichLine, splitLines } from "./qmzhText";
 import { platformKind, platformLabel } from "./resources";
 import type { SavedTest } from "./projects";
 import type { DocData } from "./documents";
-import { difficultyIn, ktzhLabels, periodIn, qmzhLabels, testLabels } from "./docLabels";
+import { difficultyIn, ktzhLabels, periodIn, qmzhLabels, qmzhTplLabels, testLabels, tplDate } from "./docLabels";
 import { kindLabel, ktzhTotalHours, type KtzhData } from "./ktzh";
 import { gradeIn, subjectIn } from "./lang";
 
@@ -187,6 +193,7 @@ function headerCell(text: string, widthPct?: number) {
 }
 
 export async function exportQmzhToDocx(plan: LessonPlan) {
+  if (isTemplatePlan(plan)) return exportTemplateQmzh(plan);
   const L = qmzhLabels(plan.lang);
   const infoTable = table([
     labelRow(L.section, [body(plan.section)]),
@@ -374,6 +381,248 @@ export async function exportQmzhToDocx(plan: LessonPlan) {
   }
 
   await buildAndDownload(children, `${L.file}-${plan.topic}.docx`);
+}
+
+/* ------------------------------------------------------------------ ҚМЖ ресми үлгісі (2-нұсқа)
+ * Мұғалім берген Word үлгісінің пішімі дәл қайталанады: A4 кітаптық, шеттері 1,27 см (720 twip),
+ * Times New Roman 11 pt, жол аралығы 1,0, кесте ені 10466 twip, бағандар ені үлгідегідей,
+ * тақырып жолдары #D9E2F3, кезең ұяшықтары #F2F2F2, қара жіңішке шекаралар.
+ */
+const TPL_FONT = "Times New Roman";
+const TPL_SIZE = 22;
+const TPL_WIDTH = 10466;
+const TPL_BULLET = "qmzh-bullet";
+const tplBorder = { style: BorderStyle.SINGLE, size: 4, color: "auto" };
+const tplBorders = { top: tplBorder, bottom: tplBorder, left: tplBorder, right: tplBorder, insideHorizontal: tplBorder, insideVertical: tplBorder };
+const tplMargins = { top: 30, bottom: 30, left: 80, right: 80 };
+
+const tplRun = (text: string, o: { bold?: boolean; italics?: boolean } = {}) => new TextRun({ text, font: TPL_FONT, size: TPL_SIZE, ...o });
+
+/** Бір жол: **қалың** бөліктер және «• » тізімі (Word-тың нағыз тізімі). */
+function tplPara(line: string, o: { bold?: boolean; italics?: boolean; align?: (typeof AlignmentType)[keyof typeof AlignmentType] } = {}) {
+  const parsed = parseRichLine(line);
+  return new Paragraph({
+    spacing: { after: 0, line: 240 },
+    alignment: o.align,
+    numbering: parsed.bullet ? { reference: TPL_BULLET, level: 0 } : undefined,
+    children: parsed.parts.map((p) => tplRun(p.text, { bold: o.bold || p.bold || undefined, italics: o.italics })),
+  });
+}
+
+const tplLines = (lines: string[]) => {
+  const list = lines.map((l) => l.trim()).filter(Boolean);
+  return list.length ? list.map((l) => tplPara(l)) : [tplPara("")];
+};
+
+function tplCell(children: Paragraph[], o: { width: number; span?: number; fill?: string; rowSpan?: number } ) {
+  return new TableCell({
+    width: { size: o.width, type: WidthType.DXA },
+    columnSpan: o.span,
+    rowSpan: o.rowSpan,
+    margins: tplMargins,
+    verticalAlign: "top",
+    shading: o.fill ? { type: ShadingType.CLEAR, color: "auto", fill: o.fill } : undefined,
+    children,
+  });
+}
+
+function tplTable(widths: number[], rows: TableRow[]) {
+  return new Table({
+    width: { size: TPL_WIDTH, type: WidthType.DXA },
+    columnWidths: widths,
+    layout: TableLayoutType.FIXED,
+    borders: tplBorders,
+    rows,
+  });
+}
+
+const tplHeadRow = (widths: number[], titles: string[]) =>
+  new TableRow({
+    tableHeader: true,
+    children: titles.map((t, i) => tplCell([tplPara(t, { bold: true, align: AlignmentType.CENTER })], { width: widths[i], fill: "D9E2F3" })),
+  });
+
+const tplHeading = (text: string) =>
+  new Paragraph({ keepNext: true, spacing: { before: 120, after: 40 }, children: [tplRun(text, { bold: true })] });
+
+async function qrPng(url: string): Promise<Uint8Array | null> {
+  try {
+    const dataUrl = await QRCode.toDataURL(url, { width: 240, margin: 1, errorCorrectionLevel: "M" });
+    const bin = atob(dataUrl.split(",")[1]);
+    return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+  } catch {
+    return null;
+  }
+}
+
+async function exportTemplateQmzh(plan: LessonPlan) {
+  const L = qmzhTplLabels(plan.lang);
+  const objectives = plan.objectives?.length ? plan.objectives : [{ code: plan.objectiveCode, text: plan.objectiveText }];
+  const children: (Paragraph | Table)[] = [];
+
+  children.push(new Paragraph({ spacing: { after: 0, line: 240 }, children: [tplRun(L.approve)] }));
+  children.push(new Paragraph({ spacing: { after: 0, line: 240 }, children: [tplRun(`${L.approverRole} ${plan.approver?.trim() || "____________________"}`)] }));
+  children.push(new Paragraph({ spacing: { after: 0, line: 240 }, children: [tplRun("")] }));
+
+  // 1. Жалпы мәліметтер: 2700 | 3883 | 3883 (мәні екі бағанды алады).
+  const IW = [2700, 3883, 3883];
+  const info = (label: string, value: Paragraph[]) =>
+    new TableRow({ children: [tplCell([tplPara(label, { bold: true })], { width: IW[0] }), tplCell(value, { width: IW[1] + IW[2], span: 2 })] });
+  children.push(
+    tplTable(IW, [
+      info(L.section, [tplPara(plan.section)]),
+      info(L.teacher, [tplPara(plan.teacherName)]),
+      info(L.date, [tplPara(tplDate(plan.date, plan.lang))]),
+      new TableRow({
+        children: [
+          tplCell([new Paragraph({ spacing: { after: 0, line: 240 }, children: [tplRun(L.grade, { bold: true }), tplRun(` ${plan.gradeNumber}`)] })], { width: IW[0] }),
+          tplCell([tplPara(L.present)], { width: IW[1] }),
+          tplCell([tplPara(L.absent)], { width: IW[2] }),
+        ],
+      }),
+      info(L.topic, [tplPara(plan.topic, { bold: true })]),
+      info(L.objectives, tplLines(objectives.map((o) => (o.code ? `${o.code} - ${o.text}` : o.text)))),
+      info(L.goals, tplLines(plan.goals)),
+      info(L.values, [
+        new Paragraph({ spacing: { after: 0, line: 240 }, children: [tplRun(L.valuesProgram), tplRun(plan.valuesTitle, { bold: true }), tplRun(".")] }),
+        ...(plan.valuesQuote ? [tplPara(plan.valuesQuote, { italics: true })] : []),
+        tplPara(plan.valuesText),
+      ]),
+    ]),
+  );
+
+  // 2. Сабақтың барысы: 1250 | 3900 | 2200 | 1900 | 1216.
+  const FW = [1250, 3900, 2200, 1900, 1216];
+  children.push(tplHeading(L.flow));
+  const flow: TableRow[] = [tplHeadRow(FW, [L.stageTime, L.teacherAction, L.studentAction, L.assessment, L.resources])];
+  for (const stage of plan.stages) {
+    stage.rows.forEach((row, ri) => {
+      const stageCell = tplCell(
+        [
+          tplPara(stage.name, { bold: true }),
+          tplPara(stage.timeRange, { bold: true }),
+          ...(stage.purpose ? [tplPara(stage.purpose, { italics: true })] : []),
+        ],
+        { width: FW[0], fill: "F2F2F2", rowSpan: stage.rows.length > 1 ? stage.rows.length : undefined },
+      );
+      const assessment = row.assessment ?? [row.assessmentType && `**${row.assessmentType}**`, row.assessmentDetail].filter(Boolean);
+      flow.push(
+        new TableRow({
+          cantSplit: false,
+          children: [
+            ...(ri === 0 ? [stageCell] : []),
+            tplCell(tplLines(row.teacherAction), { width: FW[1] }),
+            tplCell(tplLines(row.studentAction), { width: FW[2] }),
+            tplCell(tplLines(assessment), { width: FW[3] }),
+            tplCell(tplLines(splitLines(row.resources)), { width: FW[4] }),
+          ],
+        }),
+      );
+    });
+  }
+  children.push(tplTable(FW, flow));
+
+  // 3. Саралау, ЕББҚ қолдау, бағалау және қауіпсіздік: 2718 | 2990 | 2378 | 2380.
+  if (plan.planning) {
+    const PW = [2718, 2990, 2378, 2380];
+    const pl = plan.planning;
+    children.push(tplHeading(L.planningTitle));
+    children.push(
+      tplTable(PW, [
+        tplHeadRow(PW, [L.planDiff, L.planSupport, L.planAssess, L.planSafety]),
+        new TableRow({
+          children: [pl.differentiation, pl.support ?? "", pl.assessment, pl.safety].map((v, i) => tplCell(tplLines(splitLines(v)), { width: PW[i] })),
+        }),
+      ]),
+    );
+  }
+
+  // 4. Деңгейлік тапсырмалардың жауап кілті: 815 | 9651.
+  if (plan.answerKey?.length) {
+    const KW = [815, 9651];
+    children.push(tplHeading(L.keyTitle));
+    children.push(
+      tplTable(KW, [
+        tplHeadRow(KW, [L.keyLevel, L.keyAnswer]),
+        ...plan.answerKey.map(
+          (k) =>
+            new TableRow({
+              children: [tplCell([tplPara(L.levels[k.level] ?? k.level, { bold: true })], { width: KW[0] }), tplCell(tplLines(splitLines(k.answer)), { width: KW[1] })],
+            }),
+        ),
+      ]),
+    );
+  }
+
+  // 5. Сандық ресурстар (QR-кодтар): 3 тең баған, әр ұяшықта атауы, сілтемесі және QR-код.
+  const resources = plan.resources ?? [];
+  if (resources.length) {
+    const RW = [3488, 3488, 3490];
+    children.push(tplHeading(L.qrTitle));
+    const images = await Promise.all(resources.map((r) => qrPng(r.url)));
+    const rows: TableRow[] = [];
+    for (let i = 0; i < resources.length; i += 3) {
+      rows.push(
+        new TableRow({
+          children: RW.map((w, col) => {
+            const r = resources[i + col];
+            if (!r) return tplCell([tplPara("")], { width: w });
+            const img = images[i + col];
+            const custom = r.platform === "custom";
+            const name = custom ? r.title : platformLabel(r.platform);
+            return tplCell(
+              [
+                new Paragraph({ spacing: { after: 0, line: 240 }, children: [tplRun(name, { bold: true }), ...(custom ? [] : [tplRun(` – ${r.title}`)])] }),
+                new Paragraph({
+                  spacing: { after: 0, line: 240 },
+                  children: [
+                    /^https?:\/\//i.test(r.url)
+                      ? new ExternalHyperlink({ link: r.url, children: [new TextRun({ text: r.url, font: TPL_FONT, size: TPL_SIZE, color: "0563C1", underline: {} })] })
+                      : tplRun(r.url),
+                  ],
+                }),
+                ...(img
+                  ? [
+                      new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        spacing: { after: 0, line: 240 },
+                        children: [new ImageRun({ type: "png", data: img, transformation: { width: 56, height: 56 }, altText: { name: "QR", description: r.url, title: name } })],
+                      }),
+                    ]
+                  : []),
+              ],
+              { width: w },
+            );
+          }),
+        }),
+      );
+    }
+    children.push(tplTable(RW, rows));
+  }
+
+  const doc = new Document({
+    styles: { default: { document: { run: { font: TPL_FONT, size: TPL_SIZE }, paragraph: { spacing: { after: 0, line: 240 } } } } },
+    numbering: {
+      config: [
+        {
+          reference: TPL_BULLET,
+          levels: [{ level: 0, format: LevelFormat.BULLET, text: "•", alignment: AlignmentType.LEFT, style: { paragraph: { indent: { left: 284, hanging: 227 } } } }],
+        },
+      ],
+    },
+    sections: [
+      {
+        properties: {
+          page: {
+            size: { width: 11906, height: 16838, orientation: PageOrientation.PORTRAIT },
+            margin: { top: 720, right: 720, bottom: 720, left: 720, header: 708, footer: 708 },
+          },
+        },
+        children,
+      },
+    ],
+  });
+  downloadBlob(await Packer.toBlob(doc), `${L.file}-${plan.topic}.docx`);
 }
 
 async function exportWrittenTasksToDocx(test: SavedTest) {

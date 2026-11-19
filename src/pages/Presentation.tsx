@@ -4,7 +4,8 @@ import { useLocation } from "react-router-dom";
 import { PageHeader } from "../components/PageHeader";
 import { SlideEditor } from "../components/SlideEditor";
 import { SlideView } from "../components/SlideView";
-import { buildLessonPresentation, type LessonPlan } from "../lib/generators";
+import { buildLessonPresentation, isTemplatePlan, type LessonPlan } from "../lib/generators";
+import { generateLessonDeck, LESSON_STYLE } from "../lib/lessonDeck";
 import { LangPicker } from "../components/LangPicker";
 import type { Lang } from "../lib/lang";
 import { getPresentation, savePresentation, type SavedPresentation, updatePresentation } from "../lib/projects";
@@ -71,6 +72,7 @@ const LAYOUT_LABELS: Record<SlideLayout, string> = {
   quiz: tr("Тест сұрағы"),
   task: tr("Тапсырма"),
   closing: tr("Қорытынды"),
+  lesson: tr("ҚМЖ слайды"),
 };
 
 const PHASES = [tr("Құрылым мен мазмұн жасалуда..."), tr("Сызбалар мен кестелер дайындалуда..."), tr("Тапсырмалар мен тест сұрақтары құрастырылуда...")];
@@ -86,7 +88,7 @@ export default function PresentationPage() {
   const [style, setStyle] = useState<string>("minimal");
   const [count, setCount] = useState<number>(10);
   // Иллюстрация саны: әрқайсысы бір AI сұранысы (тегін лимит тәулігіне небәрі ~60).
-  const [imageCount, setImageCount] = useState(2);
+  const [imageCount, setImageCount] = useState(plan && isTemplatePlan(plan) ? 1 : 2);
   const [lang, setLang] = useState<Lang>(plan?.lang ?? defaultMaterialLang);
   const [generating, setGenerating] = useState(false);
   const [phase, setPhase] = useState(0);
@@ -117,6 +119,60 @@ export default function PresentationPage() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : tr("Презентацияны ашу мүмкін болмады.")));
   }, [openedId]);
+
+  const lessonMode = !!plan && isTemplatePlan(plan);
+
+  /** ҚМЖ ресми үлгісі бойынша жасалған жоспардан — презентация үлгісі бойынша слайдтар. */
+  const runLessonGeneration = useCallback(
+    async (thePlan: LessonPlan) => {
+      setGenerating(true);
+      scrollToResult();
+      setError("");
+      setSaveState("");
+      setEditing(false);
+      setDirty(false);
+      setPhase(0);
+      const timer = window.setInterval(() => setPhase((p) => (p + 1) % PHASES.length), 5000);
+      let result: Awaited<ReturnType<typeof generateLessonDeck>>;
+      try {
+        result = await generateLessonDeck(thePlan);
+      } finally {
+        window.clearInterval(timer);
+        setGenerating(false);
+      }
+      if (!result.usedAi) setError(tr("AI қолжетімсіз болды, сондықтан слайдтар ҚМЖ мәтінінен тікелей құрастырылды. Кейінірек «Слайд жасау» арқылы қайталап көріңіз."));
+      const slides = result.slides;
+      const deckLang = thePlan.lang ?? "kk";
+      const topicLine = `${thePlan.subject}, ${thePlan.grade}: ${thePlan.topic}`;
+      setDeck({ title: result.title, topic: topicLine, style: LESSON_STYLE, lang: deckLang, slides, subtitle: tr("ҚМЖ үлгісі бойынша · {n} слайд", { n: slides.length }) });
+      setActive(0);
+
+      // Үлгідегідей бір сурет: титулда, «Жаңа білім» мен «Суретпен жұмыс» слайдтарында.
+      const withImage = slides.map((sl, i) => (sl.image_prompt ? i : -1)).filter((i) => i >= 0);
+      if (imageCount > 0 && withImage.length) {
+        setPending(new Set(withImage));
+        try {
+          const svg = await illustrateSlide(slides[withImage[0]].image_prompt!, "minimal");
+          withImage.forEach((i) => (slides[i] = { ...slides[i], image_svg: svg }));
+          setDeck((d) => (d ? { ...d, slides: d.slides.map((sl, i) => (withImage.includes(i) ? { ...sl, image_svg: svg } : sl)) } : d));
+        } catch {
+          // сурет шықпаса, орны бос қалады — кейін «Суретті қайта салу» арқылы қосуға болады
+        }
+        setPending(new Set());
+      }
+
+      setSaveState("saving");
+      try {
+        const saved = await savePresentation({ topic: topicLine, style: LESSON_STYLE, title: result.title, slides, lang: deckLang });
+        setDeck((d) => (d ? { ...d, id: saved.id } : d));
+        setSaveState("saved");
+      } catch (err) {
+        setSaveState("");
+        setError(err instanceof Error ? tr("Презентация дайын, бірақ сақталмады: {msg}", { msg: err.message }) : tr("Презентация сақталмады."));
+      }
+    },
+    [imageCount],
+  );
 
   const runGeneration = useCallback(
     async (theTopic: string, planContext?: string, fallback?: Deck) => {
@@ -183,8 +239,10 @@ export default function PresentationPage() {
   useEffect(() => {
     if (!plan || startedFromPlan.current) return;
     startedFromPlan.current = true;
-    void runGeneration(plan.topic, planToContext(plan), deckFromPlan(plan));
-  }, [plan, runGeneration]);
+    // eslint-disable-next-line react/set-state-in-effect -- ҚМЖ бетінен келгенде генерация бір рет іске қосылады
+    if (isTemplatePlan(plan)) void runLessonGeneration(plan);
+    else void runGeneration(plan.topic, planToContext(plan), deckFromPlan(plan));
+  }, [plan, runGeneration, runLessonGeneration]);
 
   const total = deck?.slides.length ?? 0;
   const go = useCallback((i: number) => setActive(Math.max(0, Math.min(total - 1, i))), [total]);
@@ -223,7 +281,8 @@ export default function PresentationPage() {
       setError(tr("Презентация тақырыбын жазыңыз."));
       return;
     }
-    void runGeneration(topic.trim(), plan ? planToContext(plan) : undefined);
+    if (plan && lessonMode) void runLessonGeneration(plan);
+    else void runGeneration(topic.trim(), plan ? planToContext(plan) : undefined);
   }
 
   // Сақталмаған өзгерістер болса, бетті жапқанда ескертеміз.
@@ -256,7 +315,11 @@ export default function PresentationPage() {
   }
 
   function addSlide() {
-    changeDeck((d) => ({ ...d, slides: [...d.slides.slice(0, active + 1), blankSlide(), ...d.slides.slice(active + 1)] }), true);
+    const fresh =
+      deck?.style === LESSON_STYLE
+        ? normalizeSlide({ layout: "lesson", heading: tr("Жаңа слайд"), lesson: { kind: "practice", tone: 1, footer: deck.slides[1]?.lesson?.footer ?? "", text: [tr("Слайд мәтіні")] } })
+        : blankSlide();
+    changeDeck((d) => ({ ...d, slides: [...d.slides.slice(0, active + 1), fresh, ...d.slides.slice(active + 1)] }), true);
     setActive(active + 1);
   }
 
@@ -307,8 +370,13 @@ export default function PresentationPage() {
     if (!deck) return;
     setExporting(true);
     try {
-      const { exportSlidesToPptx } = await import("../lib/exportPptx");
-      await exportSlidesToPptx(deck.title, deck.slides.map(finalizeSlide), deck.style, deck.lang);
+      if (deck.style === LESSON_STYLE) {
+        const { exportLessonPptx } = await import("../lib/exportLessonPptx");
+        await exportLessonPptx(deck.title, deck.slides.map(finalizeSlide), deck.lang);
+      } else {
+        const { exportSlidesToPptx } = await import("../lib/exportPptx");
+        await exportSlidesToPptx(deck.title, deck.slides.map(finalizeSlide), deck.style, deck.lang);
+      }
     } finally {
       setExporting(false);
     }
@@ -332,10 +400,14 @@ export default function PresentationPage() {
         >
           {plan && (
             <div className="rounded-xl bg-fuchsia-100 px-3.5 py-2.5 text-[13px] text-fuchsia-800">
-              {tr("ҚМЖ негізінде:")} <b>{plan.topic}</b> — {tr("мақсаттары, кезеңдері мен тапсырмалары ескеріледі.")}
+              {tr("ҚМЖ негізінде:")} <b>{plan.topic}</b> —{" "}
+              {lessonMode
+                ? tr("слайдтар презентация үлгісі бойынша, сабақтың кезеңдері мен уақытына сай ретпен жасалады: мақсат, өзектендіру, жаңа білім, бекіту, сергіту, деңгейлік тапсырмалар, викторина, рефлексия, үй тапсырмасы.")
+                : tr("мақсаттары, кезеңдері мен тапсырмалары ескеріледі.")}
             </div>
           )}
-          <LangPicker value={lang} onChange={setLang} />
+          {!lessonMode && <LangPicker value={lang} onChange={setLang} />}
+          {!lessonMode && (<>
           <label className="block">
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("Тақырып")}</span>
             <textarea
@@ -367,10 +439,11 @@ export default function PresentationPage() {
               ))}
             </div>
           </div>
+          </>)}
           <div>
             <span className="mb-2 block text-[13px] font-semibold text-slate-500">{tr("AI иллюстрациялар")}</span>
             <div className="grid grid-cols-3 gap-2">
-              {[0, 2, 4].map((n) => (
+              {(lessonMode ? [0, 1] : [0, 2, 4]).map((n) => (
                 <button key={n} type="button" aria-pressed={imageCount === n} onClick={() => setImageCount(n)} className={chipClass(imageCount === n)}>
                   {n === 0 ? tr("Жоқ") : n}
                 </button>
@@ -488,18 +561,20 @@ export default function PresentationPage() {
                   </label>
                   <div className="mb-4 flex flex-wrap items-center gap-2 border-t border-slate-200 pt-4">
                     <span className="mr-auto text-[15px] font-bold">{tr("{n}-слайд", { n: active + 1 })}</span>
+                    {current.layout !== "lesson" && (
                     <select
                       aria-label={tr("Слайд түрі")}
                       value={current.layout}
                       onChange={(e) => updateSlide(active, { layout: e.target.value as SlideLayout })}
                       className="rounded-[10px] border border-slate-200 bg-surface px-2.5 py-2 text-[13px]"
                     >
-                      {(Object.keys(LAYOUT_LABELS) as SlideLayout[]).map((l) => (
+                      {(Object.keys(LAYOUT_LABELS) as SlideLayout[]).filter((l) => l !== "lesson").map((l) => (
                         <option key={l} value={l}>
                           {LAYOUT_LABELS[l]}
                         </option>
                       ))}
                     </select>
+                    )}
                     <button type="button" onClick={() => moveSlide(-1)} disabled={active === 0} aria-label={tr("Слайдты солға жылжыту")} title={tr("Солға жылжыту")} className="rounded-[10px] border border-slate-200 p-2 hover:border-violet-500 disabled:opacity-40">
                       <ArrowLeft size={15} />
                     </button>

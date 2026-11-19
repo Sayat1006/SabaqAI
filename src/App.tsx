@@ -23,8 +23,10 @@ const KtzhPage = lazy(() => import("./pages/Ktzh"));
 const ProgressPage = lazy(() => import("./pages/Progress"));
 const LiveHostPage = lazy(() => import("./pages/LiveHost"));
 const LivePlayPage = lazy(() => import("./pages/LivePlay"));
+const PollAnswerPage = lazy(() => import("./pages/PollAnswer"));
 const SchedulePage = lazy(() => import("./pages/Schedule"));
 const GamesPage = lazy(() => import("./pages/Games"));
+const PhysicsLabPage = lazy(() => import("./pages/PhysicsLab"));
 const AdminNewsPage = lazy(() => import("./pages/AdminNews"));
 const AdminUsagePage = lazy(() => import("./pages/AdminUsage"));
 
@@ -38,6 +40,8 @@ export default function App() {
           <Route path="t/:code" element={<TakeTestPage />} />
           <Route path="l" element={<LivePlayPage />} />
           <Route path="l/:code" element={<LivePlayPage />} />
+          <Route path="p" element={<PollAnswerPage />} />
+          <Route path="p/:code" element={<PollAnswerPage />} />
           <Route element={<RequireAuth />}>
             {/* Тірі викторина: тақтаға толық бетпен шығады (мәзірсіз). */}
             <Route path="live/:id" element={<LiveHostPage />} />
@@ -53,6 +57,8 @@ export default function App() {
               <Route path="tools" element={<ClassToolsPage />} />
             <Route path="games" element={<GamesPage />} />
             <Route path="games/:id" element={<GamesPage />} />
+              <Route path="lab" element={<PhysicsLabPage />} />
+              <Route path="lab/:id" element={<PhysicsLabPage />} />
               <Route path="docs" element={<DocsPage />} />
               <Route path="ktzh" element={<KtzhPage />} />
               <Route path="progress" element={<ProgressPage />} />

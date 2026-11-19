@@ -1,4 +1,4 @@
-import { CalendarClock, Gamepad2, CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
+import { Atom, CalendarClock, Gamepad2, CalendarDays, ClipboardList, FileCheck2, FileText, Image, LineChart, Presentation, Timer, type LucideIcon } from "lucide-react";
 import { tr } from "../i18n";
 
 export type ToolGroup = "plan" | "create" | "class";
@@ -85,6 +85,14 @@ export const tools: Tool[] = [
     short: tr("Ойындар"),
     icon: Gamepad2,
     description: tr("Сабақта тақырыпты бекітетін интерактивті оқу ойындары: тақтада толық экранмен немесе оқушыларға сілтеме/QR арқылы."),
+  },
+  {
+    to: "/lab",
+    group: "class",
+    label: tr("Физика зертханасы"),
+    short: tr("Зертхана"),
+    icon: Atom,
+    description: tr("7–11 сынып физикасының 3D виртуалды зертханасы: Ом заңы, маятник, Гук заңы, еңіс жазықтық, линза — нақты формулалармен."),
   },
   {
     to: "/tools",

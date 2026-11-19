@@ -3,6 +3,8 @@ import { svgDataUrl } from "../lib/projects";
 import { slideText, type SlideData } from "../lib/slides";
 import { SLIDE_THEMES } from "../lib/studio";
 import "./slides.css";
+import { LessonSlideView } from "./LessonSlideView";
+import type { Lang } from "../lib/lang";
 
 type Theme = (typeof SLIDE_THEMES)[string];
 
@@ -195,7 +197,13 @@ function Illustration({ svg, pending }: { svg?: string; pending?: boolean }) {
 
 /* ------------------------------------------------------------------- слайд */
 
-export function SlideView({
+export function SlideView(props: Parameters<typeof SlideViewInner>[0]) {
+  if (props.slide.layout === "lesson")
+    return <LessonSlideView slide={props.slide} index={props.index} lang={props.lang as Lang | undefined} imagePending={props.imagePending} />;
+  return <SlideViewInner {...props} />;
+}
+
+function SlideViewInner({
   slide: s,
   style,
   index,
