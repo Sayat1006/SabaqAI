@@ -81,7 +81,15 @@ export function PollResults({ st, full = false, hideNames = false }: { st: PollS
                 {counts[i]} · {pct(counts[i])}%
               </span>
             </div>
-            {!hideNames && st.ask_name && names(i).length > 0 && <div className={`pl-10 text-slate-500 ${full ? "text-lg" : "text-xs"}`}>{names(i).join(", ")}</div>}
+            {!hideNames && st.ask_name && names(i).length > 0 && (
+              <div className={`flex flex-wrap gap-1.5 ${full ? "pl-16" : "pl-10"}`}>
+                {names(i).map((nm, k) => (
+                  <span key={k} className={`rounded-full bg-slate-100 font-semibold text-slate-700 ${full ? "px-3 py-1 text-xl" : "px-2 py-0.5 text-xs"}`}>
+                    {nm}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         ))}
         {avg !== null && <div className={`font-semibold text-violet-700 ${full ? "text-2xl" : "text-sm"}`}>{tr("Орташа баға: {n} / 5", { n: avg.toFixed(1) })}</div>}
@@ -137,6 +145,7 @@ export function ClassPoll({
   options,
   prompts,
   full,
+  requireNames = false,
 }: {
   /** Белсенді сауалнаманы есте сақтайтын кілт (карточка бойынша). */
   slot: string;
@@ -146,10 +155,13 @@ export function ClassPoll({
   options?: PollOption[];
   prompts?: string[];
   full: boolean;
+  /** Оқушылар міндетті түрде аты-жөнін жазады (бағдаршам, рефлексия). */
+  requireNames?: boolean;
 }) {
   const [pollId, setPollId] = useState<string | null>(() => readActive(slot));
   const [st, setSt] = useState<PollState | null>(null);
-  const [askName, setAskName] = useState(false);
+  const [askNameOpt, setAskName] = useState(true);
+  const askName = requireNames || askNameOpt;
   const [hideNames, setHideNames] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -230,11 +242,15 @@ export function ClassPoll({
       <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-violet-200 bg-violet-50/40 p-5 text-center">
         <Smartphone size={30} className="text-violet-500" />
         <p className="max-w-md text-sm text-slate-600">{tr("Тақтаға QR-код шығады. Оқушылар телефонмен сканерлеп, тіркелусіз жауап береді — нәтиже осы жерде бірден көрінеді.")}</p>
-        <label className="flex items-center gap-2 text-sm font-semibold">
-          <input type="checkbox" checked={askName} onChange={(e) => setAskName(e.target.checked)} className="h-4 w-4 accent-violet-600" />
-          {tr("Аты-жөнін сұрау")}
-          <span className="font-normal text-slate-500">({askName ? tr("мұғалім атын көреді") : tr("жауаптар аноним")})</span>
-        </label>
+        {requireNames ? (
+          <p className="text-sm font-semibold text-violet-800">{tr("Оқушылар аты-жөнін жазып жауап береді — аттары нәтижеде көрінеді.")}</p>
+        ) : (
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input type="checkbox" checked={askName} onChange={(e) => setAskName(e.target.checked)} className="h-4 w-4 accent-violet-600" />
+            {tr("Аты-жөнін сұрау")}
+            <span className="font-normal text-slate-500">({askName ? tr("мұғалім атын көреді") : tr("жауаптар аноним")})</span>
+          </label>
+        )}
         <button type="button" onClick={() => void start()} disabled={busy} className={primary}>
           <QrCode size={16} /> {busy ? tr("Дайындалуда...") : tr("QR-кодты көрсету")}
         </button>

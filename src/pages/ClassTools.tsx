@@ -480,7 +480,7 @@ function TrafficLight() {
         <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={tr("Сұрақ немесе тақырып (міндетті емес)")} aria-label={tr("Бағдаршам сұрағы")} className={field} />
       )}
       {mode === "qr" ? (
-        <ClassPoll slot="traffic" kind="traffic" method="traffic" title={question} options={TRAFFIC_OPTIONS(tr)} full={full} />
+        <ClassPoll slot="traffic" kind="traffic" method="traffic" title={question} options={TRAFFIC_OPTIONS(tr)} full={full} requireNames />
       ) : (
       <>
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -775,6 +775,7 @@ function Reflection() {
       )}
       {mode === "qr" ? (
         <ClassPoll
+          requireNames
           slot="reflection"
           kind="reflection"
           method={question ? "question" : tech.key}

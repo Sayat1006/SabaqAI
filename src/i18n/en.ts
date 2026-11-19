@@ -1268,6 +1268,7 @@ const en: Record<string, string> = {
   "Түсінемін": "I understand",
   "Қолдана аламын": "I can apply",
   "Түсіндіре аламын": "I can explain",
+  "Оқушылар аты-жөнін жазып жауап береді — аттары нәтижеде көрінеді.": "Students enter their names — names appear in the results.",
 };
 
 export default en;

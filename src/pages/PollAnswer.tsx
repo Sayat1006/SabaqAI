@@ -95,6 +95,8 @@ const TEXT = {
   },
 } satisfies Record<Lang, unknown>;
 
+const NAME_KEY = "ainur-poll-name";
+
 const guessLang = (): Lang => {
   const l = navigator.language?.toLowerCase() ?? "";
   return l.startsWith("ru") ? "ru" : l.startsWith("en") ? "en" : "kk";
@@ -109,7 +111,14 @@ export default function PollAnswerPage() {
   const [device] = useState(deviceId);
   const [poll, setPoll] = useState<PublicPoll | null>(null);
   const [codeInput, setCodeInput] = useState("");
-  const [name, setName] = useState("");
+  // Аты-жөні осы телефонда есте қалады — келесі сауалнамада қайта жазудың қажеті жоқ.
+  const [name, setName] = useState(() => {
+    try {
+      return localStorage.getItem(NAME_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [choice, setChoice] = useState<number | null>(null);
   const [texts, setTexts] = useState<string[]>([]);
   const [sent, setSent] = useState(false);
@@ -130,7 +139,7 @@ export default function PollAnswerPage() {
         setError("");
         if (p.answer) {
           setSent(true);
-          setName(p.answer.name ?? "");
+          if (p.answer.name) setName(p.answer.name);
           setChoice(p.answer.choice);
         }
         setTexts(p.prompts.map((_, i) => p.answer?.texts?.[i] ?? ""));
@@ -153,6 +162,13 @@ export default function PollAnswerPage() {
     setError("");
     try {
       await answerPoll(code, device, poll.kind === "reflection" ? { name, texts } : { name, choice: c! });
+      if (poll.ask_name) {
+        try {
+          localStorage.setItem(NAME_KEY, name.trim());
+        } catch {
+          // жеке режим — атын келесі жолы қайта жазады
+        }
+      }
       setChoice(c);
       setSent(true);
     } catch (e) {
